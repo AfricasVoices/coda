@@ -3,9 +3,29 @@ import java.util.stream.Collectors;
 
 public class Session {
 
-    private String id;
-    private List<RawEvent> events;
+    private final String id;
+    private final List<RawEvent> events;
     private Map<String, SessionDecoration> decorations;
+
+    public Session(String id, RawEvent event) {
+        this.id = id;
+        this.events = Arrays.asList(event);
+    }
+
+    public Session(String id, List<RawEvent> events) {
+        this.id = id;
+        this.events = events;
+    }
+
+    String getId() {
+        return id;
+    }
+
+    boolean decorate(String decorationName, String decorationValue) {
+        // TODO create 'empty' decoration if value is ""?
+        this.decorations.put(decorationName, new SessionDecoration(this, decorationName, decorationValue));
+        return true;
+    }
 
 
     Set<String> getAllDecorationNames() {
