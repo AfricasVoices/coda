@@ -4,8 +4,13 @@ import java.util.stream.Collectors;
 public class Session {
 
     private final String id;
+
     private final List<RawEvent> events;
-    private Map<String, SessionDecoration> decorations;
+    private Map<String, SessionDecoration> decorations = new TreeMap<>();
+
+    static Comparator<Session> compareSessionByIdString = (session1, session2) ->  session1.getId().compareTo(session2.getId());
+    static Comparator<Session> compareSessionByIdInt = (session1, session2) ->  Integer.compare(Integer.parseInt(session1.getId()), Integer.parseInt(session2.getId()));
+
 
     public Session(String id, RawEvent event) {
         this.id = id;
@@ -27,6 +32,17 @@ public class Session {
         return true;
     }
 
+    SessionDecoration decorationForName(String decorationName) {
+        if (this.decorations.containsKey(decorationName)) {
+            return decorations.get(decorationName);
+        } else {
+            return null;
+        }
+    }
+
+    public List<RawEvent> getEvents() {
+        return events;
+    }
 
     Set<String> getAllDecorationNames() {
         Set<String> names = new HashSet<>();
@@ -37,11 +53,11 @@ public class Session {
     }
 
     Set<String> getAllEventNames() {
-        Set<String> names = events.stream().map(RawEvent::getName).collect(Collectors.toSet()); // whoa Java 8 :D
+        Set<String> names = events.stream().map(RawEvent::getName).collect(Collectors.toSet());
         return names;
     }
 
-    Iterator<RawEventDecoration> eventDecorationsForName(String decorationName) {
+    Iterator<RawEventDecoration> eventDecorationValuesForName(String decorationName) {
         List<RawEventDecoration> decorations = new ArrayList<>();
         for (RawEvent e : events) {
             if (e.getDecorations().containsKey(decorationName)) {
@@ -57,4 +73,7 @@ public class Session {
 
         return events;
     }
+
+    // TODO: RENAMING DECORATORS
+
 }

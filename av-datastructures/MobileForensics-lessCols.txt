@@ -1,4 +1,4 @@
-subscriber_;message_body_;timestamp_;type
+subscriber_;message_body;timestamp_;type
 9;You gonna be around this afternoon so I can drop off my computer?;06/01/11 10:22;Incoming
 9;Yeah, susie was here earlier too;06/01/11 11:13;Outgoing
 9; She's a loser. She's ignoring me today so I don't come next door and bug her. She probably has to get to the beach by noon...  I'll be down around 3...I hope.;06/01/11 11:16;Incoming
@@ -686,7 +686,7 @@ subscriber_;message_body_;timestamp_;type
 4;And it is actually pretty cheap;06/09/11 23:22;Incoming
 4;Yeah!;06/09/11 23:22;Incoming
 4;Sweet thanks!!! Also I am excited you are coming with us in July!!;06/09/11 23:23;Incoming
-4;"Me too :)Ó;06/09/11 23:284;Sweet!!;06/09/11 23:298;What u up to tnght;07/09/11 12:328;Out of town;07/09/11 12:548;K;07/09/11 12:555;Hey its miguel, was wondering if u where gonna  be in the office today my computer is really acting up was wondering if I could have u look at it;08/09/11 07:495;Yeah sure, bring it by around 10;08/09/11 08:255;K thnx;08/09/11 09:0056;How is Michael holding up?  Need to see your face and soon!  Love you!  lucy;08/09/11 10:3013;If you want a little boy you were a bountet to bed if she wants girl she werarse bountet night night your educateed;08/09/11 21:424;What time you thinkin for.tonight?;09/09/11 08:434;Dunno yet;09/09/11 09:034;Amber has Appt at 5;09/09/11 09:364;So maybe 7:30?;09/09/11 09:364;Cool sounds good!;09/09/11 09:554;Can we do 6pm?;09/09/11 13:314;Yeah, you got something else going on later?;09/09/11 13:324;No, ambers Appt is earlier than I thought;09/09/11 13:534;Ok sounds good;09/09/11 13:554;Who all is meeting up, and does 6 work for everyone or should we go later?;09/09/11 16:254;Maybe like 630, Tim and andrea so far, they will be there around then.;09/09/11 16:264;Sounds good, 6:30;09/09/11 16:274;Cool!;09/09/11 16:2713;Smile christ loves you. I love you more.i love your beautiful wife to.christ loves her to. I just pray with him.love a ;09/09/11 16:334;chicago station?;09/09/11 17:534;Correct!;09/09/11 17:584;In the banquet room;09/09/11 18:459;Hey tell ur mom thank u very much for the gift, I'm glad you were able to help through our conversation;09/09/11 21:319;We should grab a beer soon. My mon-wed is tied up, but thur and fri evenings tend to work good;09/09/11 21:579;Sure. I'm kid-free next week, just gotta get the rental home before I go out for beer!;09/09/11 21:599;Sounds good. We'll make plans next week;09/09/11 22:009;I'm actually in maryland next week, so thur night would work best. Probably around 6:30 or later depending on where u want to go;09/09/11 22:019;Sounds good. Thurs is usually an early day for me so I can get home and switch cars.;09/09/11 22:039;Kewl;09/09/11 22:0427;U guys coming to grand lux? Trying yo figure out how many seats...;10/09/11 11:0327;Nm they just told me ur coming it is someone else they aren't sure about. See u soon;10/09/11 11:0413;Roses are re2d is made by two. BAbys are made of love and push ups of enjoyment too. SMile god loves both of you, me too.;10/09/11 22:2413;Roses are re2d is made by two. BAbys are made of love and push ups of enjoyment too. SMile god loves both of you, me too.;10/09/11 22:2563;Sure.;12/09/11 07:3870;Hey cindy, I'm really sorry but I'm gonna he in around 8:45 or so because I over slept.;12/09/11 08:1970;That is ok. Jack called off and Al is out as well. Everything is pretty quiet.;12/09/11 08:4043;Can i speak with you sometime today regarding my directed project;12/09/11 09:4343;Can you come to cafeteria.;12/09/11 10:4243;Yes. When;12/09/11 10:5743;Now?;12/09/11 11:1543;On my way.;12/09/11 11:2243;I'm on the first floor;12/09/11 11:2543;Ok;12/09/11 11:2743;Thank you Jill, you rock. Max signed off on my paper during a break.;12/09/11 14:1743;Excellent!  You rock!!!!;12/09/11 14:4490;We just finished up. Are you free?;12/09/11 15:2690;Yes, be right there. I have to pick up surge protectors from that room.;12/09/11 15:3190;Okay. I'll be up here.;12/09/11 15:3612;got glitter?;05/10/11 11:0612;your icon suck;05/10/11 11:0812;:-) ;05/10/11 11:0917;Can you give Jessica a call. It's about your cards;06/10/11 14:5217;K;06/10/11 14:576;U got any plans for tonight?;06/10/11 20:186;Out of town;06/10/11 20:248;Bob, do you have or can you get a copy of software? We have a disk but not the program. Or maybe someone has a copy we can """"borrow""""? """;08/10/11 10:59;Outgoing
+4;Me too :);06/09/11 23:284;Sweet!!;06/09/11 23:298;What u up to tnght;07/09/11 12:328;Out of town;07/09/11 12:548;K;07/09/11 12:555;Hey its miguel, was wondering if u where gonna  be in the office today my computer is really acting up was wondering if I could have u look at it;08/09/11 07:495;Yeah sure, bring it by around 10;08/09/11 08:255;K thnx;08/09/11 09:0056;How is Michael holding up?  Need to see your face and soon!  Love you!  lucy;08/09/11 10:3013;If you want a little boy you were a bountet to bed if she wants girl she werarse bountet night night your educateed;08/09/11 21:424;What time you thinkin for.tonight?;09/09/11 08:434;Dunno yet;09/09/11 09:034;Amber has Appt at 5;09/09/11 09:364;So maybe 7:30?;09/09/11 09:364;Cool sounds good!;09/09/11 09:554;Can we do 6pm?;09/09/11 13:314;Yeah, you got something else going on later?;09/09/11 13:324;No, ambers Appt is earlier than I thought;09/09/11 13:534;Ok sounds good;09/09/11 13:554;Who all is meeting up, and does 6 work for everyone or should we go later?;09/09/11 16:254;Maybe like 630, Tim and andrea so far, they will be there around then.;09/09/11 16:264;Sounds good, 6:30;09/09/11 16:274;Cool!;09/09/11 16:2713;Smile christ loves you. I love you more.i love your beautiful wife to.christ loves her to. I just pray with him.love a ;09/09/11 16:334;chicago station?;09/09/11 17:534;Correct!;09/09/11 17:584;In the banquet room;09/09/11 18:459;Hey tell ur mom thank u very much for the gift, I'm glad you were able to help through our conversation;09/09/11 21:319;We should grab a beer soon. My mon-wed is tied up, but thur and fri evenings tend to work good;09/09/11 21:579;Sure. I'm kid-free next week, just gotta get the rental home before I go out for beer!;09/09/11 21:599;Sounds good. We'll make plans next week;09/09/11 22:009;I'm actually in maryland next week, so thur night would work best. Probably around 6:30 or later depending on where u want to go;09/09/11 22:019;Sounds good. Thurs is usually an early day for me so I can get home and switch cars.;09/09/11 22:039;Kewl;09/09/11 22:0427;U guys coming to grand lux? Trying yo figure out how many seats...;10/09/11 11:0327;Nm they just told me ur coming it is someone else they aren't sure about. See u soon;10/09/11 11:0413;Roses are re2d is made by two. BAbys are made of love and push ups of enjoyment too. SMile god loves both of you, me too.;10/09/11 22:2413;Roses are re2d is made by two. BAbys are made of love and push ups of enjoyment too. SMile god loves both of you, me too.;10/09/11 22:2563;Sure.;12/09/11 07:3870;Hey cindy, I'm really sorry but I'm gonna he in around 8:45 or so because I over slept.;12/09/11 08:1970;That is ok. Jack called off and Al is out as well. Everything is pretty quiet.;12/09/11 08:4043;Can i speak with you sometime today regarding my directed project;12/09/11 09:4343;Can you come to cafeteria.;12/09/11 10:4243;Yes. When;12/09/11 10:5743;Now?;12/09/11 11:1543;On my way.;12/09/11 11:2243;I'm on the first floor;12/09/11 11:2543;Ok;12/09/11 11:2743;Thank you Jill, you rock. Max signed off on my paper during a break.;12/09/11 14:1743;Excellent!  You rock!!!!;12/09/11 14:4490;We just finished up. Are you free?;12/09/11 15:2690;Yes, be right there. I have to pick up surge protectors from that room.;12/09/11 15:3190;Okay. I'll be up here.;12/09/11 15:3612;got glitter?;05/10/11 11:0612;your icon suck;05/10/11 11:0812;:-) ;05/10/11 11:0917;Can you give Jessica a call. It's about your cards;06/10/11 14:5217;K;06/10/11 14:576;U got any plans for tonight?;06/10/11 20:186;Out of town;06/10/11 20:248;Bob, do you have or can you get a copy of software? We have a disk but not the program. Or maybe someone has a copy we can borrow? ;08/10/11 10:59;Outgoing
 8;I don't have it. I'll ask mike;08/10/11 11:20;Incoming
 56;Michael is not doing well at all. The death was sudden and unexpected from what I understand. His mom was only 50 and apparently had a bought of pneumonia, went to the doctor, he ran test, and sent her home. I guess she died in her husbands arms at work. He cannot go home for two reasons, no passport / could not return and no money. I am so sorry that he cannot be there.;08/10/11 12:55;Incoming
 56;I'm sorry to hear that!  My aunt had a mini stroke yesterday but seems to be ok and no permanent damage.;08/10/11 13:27;Outgoing
@@ -987,7 +987,7 @@ subscriber_;message_body_;timestamp_;type
 33;funeral coming soon;03/02/12 18:07;Incoming
 33;fuck that sux. good ones die young;03/02/12 18:14;Outgoing
 33;yeah;03/02/12 19:02;Incoming
-118;"Lisa Richardson on your wall: Give Amanda and Tom our love and prayers for his recovery.  We are keeping them in our thoughts. Reply with your comment or ""like"".";04/02/12 08:47;Incoming
+118;Lisa Richardson on your wall: Give Amanda and Tom our love and prayers for his recovery.  We are keeping them in our thoughts. Reply with your comment or like.;04/02/12 08:47;Incoming
 49;Are you still taking mom to her eye apt today? I can do it if you want.;04/02/12 09:09;Outgoing
 49;Iwill take her, do not worry - just share some of package with me around 420;04/02/12 09:11;Incoming
 49;She is the one worrying. I figured if you needed to have me do it, you would ask.;04/02/12 09:34;Outgoing
@@ -1049,7 +1049,7 @@ subscriber_;message_body_;timestamp_;type
 8;I heard that skag mighta been laced with something, like maybe PCP;04/02/12 20:44;Incoming
 14;yeah sucks;04/02/12 20:44;Incoming
 17;hey u still got hookup for smack?;04/02/12 20:44;Outgoing
-120;"Tomy Trump on your wall: cindy and Family, Our hearts and prayers go out to you and Amanda and the whole family for the loss of UncleTom at 6:30 tonight. May god be with everyone and give you all the strength that you will need to get through this rough and sad time in your lives. Our thoughts and prayers are with all of you. Love The Trump's Reply with your comment or ""like"".";04/02/12 20:44;Incoming
+120;Tomy Trump on your wall: cindy and Family, Our hearts and prayers go out to you and Amanda and the whole family for the loss of UncleTom at 6:30 tonight. May god be with everyone and give you all the strength that you will need to get through this rough and sad time in your lives. Our thoughts and prayers are with all of you. Love The Trump's Reply with your comment or like.;04/02/12 20:44;Incoming
 148;Okay I'm get in a showe my head is pounding;04/02/12 20:44;Outgoing
 148;I heard that skag mighta been laced with something, like maybe PCP;04/02/12 20:44;Incoming
 154;yeah sucks;04/02/12 20:44;Outgoing
@@ -1062,7 +1062,7 @@ subscriber_;message_body_;timestamp_;type
 150;I dont mean to bug u but I feel like shit. Ive been throwin up all day. Can I start headin out ur way? It takes me like 45min to get there ;04/02/12 20:45;Incoming
 154;we can hang out somewhere else instead of ur house if me bringing shrooms freaks u out or anything;04/02/12 20:45;Incoming
 157;for u or for someone else?;04/02/12 20:45;Incoming
-121;"Rachel van Norman on your wall: So sorry to hear the news cindy. I am glad he was with his family when it happened. My thoughts are with you. Reply with your comment or ""like"".";04/02/12 21:52;Outgoing
+121;Rachel van Norman on your wall: So sorry to hear the news cindy. I am glad he was with his family when it happened. My thoughts are with you. Reply with your comment or like.;04/02/12 21:52;Outgoing
 110;Samantha Towers commented on your status: They are in my prayers. I am very sorry for your loss :(;04/02/12 21:58;Outgoing
 110;Larry Roper commented on your status: So sorry for your loss.  My prayers are with you and your family.;04/02/12 22:01;Incoming
 110;Jeff Smith commented on your status: Sorry to hear that, in my prayers;04/02/12 22:13;Outgoing
@@ -1152,7 +1152,7 @@ subscriber_;message_body_;timestamp_;type
 53;Stage 4 breast cancer. His dad is not doing good either. His heart.;04/03/12 08:18;Outgoing
 53;Dont worry. Talk later.;04/03/12 08:20;Incoming
 53;I am getting dressed.  Late for work but can I call I when I leave my room?;04/03/12 08:20;Outgoing
-122;"heather mayes on your wall: Mama D please pass on our love and sorrow  to Aunt Amanda !! So very sorry !! She is in my thoughts and prayers ! She has very strong women to help her through this . Dont forget to laugh about everthing good about Tom !! Much LOVE to you and Amanda and family !! Reply with your comment or ""like"".";04/03/12 09:29;Outgoing
+122;heather mayes on your wall: Mama D please pass on our love and sorrow  to Aunt Amanda !! So very sorry !! She is in my thoughts and prayers ! She has very strong women to help her through this . Dont forget to laugh about everthing good about Tom !! Much LOVE to you and Amanda and family !! Reply with your comment or like.;04/03/12 09:29;Outgoing
 56;How are you and everyone doing today?  Just know I am keeping you close~love you.  lucy;04/03/12 10:08;Outgoing
 8;Sorry just got home hun. Uugghh I need a joint soo bad. Hows ur head?;04/03/12 10:43;Outgoing
 8;I heard about a guy who was trippin and jumped out of a 5th story window, thought he could fly;04/03/12 10:43;Incoming
@@ -1551,7 +1551,7 @@ subscriber_;message_body_;timestamp_;type
 4;I'll be back in the area around 1pm;08/05/12 10:15;Outgoing
 62;Will u keep eye on mindy. I am going to get cat food.;08/05/12 12:57;Incoming
 43;Is the database down? I'm signing in from home and it's not connecting;09/05/12 11:25;Outgoing
-28;"Is there a safe way I can get Jenny's computer to not boot correctly or something (need a ""reason"" to get it away from her so you can work on it since it";09/05/12 15:14;Incoming
+28;Is there a safe way I can get Jenny's computer to not boot correctly or something (need a reason to get it away from her so you can work on it since it;09/05/12 15:14;Incoming
 28; seems like there's no way I can drop it off without her knowing).;09/05/12 15:15;Outgoing
 28;Hit Ctrl+Opt+Cmd+8 and tell her you need me to look at the graphics card;09/05/12 15:18;Incoming
 28;Although that may not convince her;09/05/12 15:19;Outgoing
@@ -2483,7 +2483,7 @@ subscriber_;message_body_;timestamp_;type
 4;Not everyone drinks regular;10/22/11 13:44 ;Incoming
 4;Lol but its Halloween, that means its ok! :);10/22/11 13:45 ;Incoming
 4;That's cool, I'll pick some up!;10/22/11 13:46 ;Incoming
-9;"I have the child Tiger so I""m out! Thanks for the invite.";10/22/11 14:15 ;Outgoing
+9;I have the child Tiger so Im out! Thanks for the invite.;10/22/11 14:15 ;Outgoing
 9;Bill and/or Jim are welcome to come too;10/22/11 14:16 ;Incoming
 9;Just so u know... ;10/22/11 14:18 ;Incoming
 9;Jim has a friend over so they're on XBox and I'm hoping they go out and enjoy the weather. Maybe steal some street signs or something, break into the sch;10/22/11 14:21 ;Outgoing
@@ -2546,7 +2546,7 @@ subscriber_;message_body_;timestamp_;type
 63;In;10/25/11 13:13 ;Incoming
 63;Lemme un;10/25/11 13:13 ;Outgoing
 43;Yes.;10/26/11 16:57 ;Outgoing
-43;"When I print I have a ""magicISO"" drive? Can I unmount it?";10/26/11 16:57 ;Incoming
+43;When I print I have a magicISO drive? Can I unmount it?;10/26/11 16:57 ;Incoming
 63;it works;10/27/11 9:41 ;Incoming
 40;6;10/30/11 16:04 ;Outgoing
 40;Please let me know when you would like dinner to be ready, no rush.;10/30/11 16:04 ;Incoming
@@ -2783,7 +2783,7 @@ subscriber_;message_body_;timestamp_;type
 33;You, always have been!;3/20/12 12:43 ;Outgoing
 33;Don't think I will be able to take as much time off as I want to in May.;3/20/12 14:49 ;Outgoing
 90;Awesome!;3/21/12 22:26 ;Incoming
-90;"I fixed the code. I placed a commend where we had a semicolon following the word ""end"" in that fprintf for loop. Code works.";3/21/12 22:26 ;Incoming
+90;I fixed the code. I placed a commend where we had a semicolon following the word end in that fprintf for loop. Code works.;3/21/12 22:26 ;Incoming
 49;At emergency room with Tom, lung is collapsing;3/22/12 10:45 ;Outgoing
 49;He's stable now.;3/22/12 11:41 ;Incoming
 49;Let the puppies out for you.;3/22/12 14:44 ;Incoming
@@ -2835,20 +2835,20 @@ subscriber_;message_body_;timestamp_;type
 110;Rachel Lee Dobbs commented on your status: Sending lots of prayers to Papa Smith!;3/25/12 13:41 ;Outgoing
 49;Not when I left for the night;3/25/12 3:07 ;Outgoing
 49;Room 617. Bed 2;3/26/12 12:18 ;Incoming
-111;"Sara Smith on your wall: You unfriendly me?!?!? Reply with your comment or ""like"".";3/26/12 17:07 ;Incoming
+111;Sara Smith on your wall: You unfriendly me?!?!? Reply with your comment or like.;3/26/12 17:07 ;Incoming
 111;Sara Smith commented on your Wall post: It made me send you a friend request to post on your wall....did you get my text???;3/26/12 18:20 ;Outgoing
 111;Sara Smith commented on your Wall post: Can you call Mandy and see if she was serious about a puppy....Wilma has some people interested....especially coconut and pistachio;3/26/12 18:22 ;Outgoing
 49;Tom still in the hospital?;3/26/12 20:02 ;Incoming
 49;Yes room318;3/26/12 20:03 ;Outgoing
 49;I hope to see him tomorrow since I have to take mom to the eye doctor.;3/26/12 20:06 ;Incoming
-112;"Martha Washeck commented on your link:Yes I always ""BELIEVE"" and I dont believe that GOD or the ANGEL...";3/26/12 21:12 ;Incoming
+112;Martha Washeck commented on your link:Yes I always BELIEVE and I dont believe that GOD or the ANGEL...;3/26/12 21:12 ;Incoming
 110;Susan Migdal commented on your status: Thanks!!;3/26/12 22:33 ;Incoming
-110;"Jamie Martek commented on your status: That's what they say..""Gotta love'em or.....(you fill in the blank)";3/26/12 9:32 ;Outgoing
+110;Jamie Martek commented on your status: That's what they say..Gotta love'em or.....(you fill in the blank);3/26/12 9:32 ;Outgoing
 49;Call me when you leave the house, ill come down and meet you at the door.;3/27/12 11:38 ;Incoming
 90;The problem was I was running 'project' which is a Matlab function and not Project.m the name of the script.;3/27/12 13:41 ;Incoming
 90;Sounds familiar.;3/27/12 14:14 ;Outgoing
 110;Rachel Lee Dobbs commented on your status: I love my Verizon HTC Incredible 2;3/27/12 14:40 ;Incoming
-113;"Samantha Smith commented on your photo. Boys.... LOL Reply with your comment or ""like"".";3/27/12 14:48 ;Incoming
+113;Samantha Smith commented on your photo. Boys.... LOL Reply with your comment or like.;3/27/12 14:48 ;Incoming
 110;Mike Barns commented on your status: Verizon!;3/27/12 15:15 ;Incoming
 110;Misty Partle commented on your status: Where's she goin to have it done at??;3/27/12 17:33 ;Outgoing
 49;Where r u? Herb shipment—;3/27/12 17:43 ;Outgoing
@@ -2897,11 +2897,11 @@ subscriber_;message_body_;timestamp_;type
 110;Susie Niles commented on your status: Caleb was but now its Hunger Games, but they say its nice there;3/30/12 21:44 ;Incoming
 110;Susie Niles commented on your status: Would rather be at the beach myself, the things we do for our kids :))));3/30/12 21:48 ;Incoming
 110;Samantha Smith commented on your status: IDK if Heather can see my posts but if not tell her I send my hugs.;3/30/12 22:55 ;Incoming
-112;"You have been poked on Facebook by 'Samantha Smith. Reply ""p"" to poke 'Samantha back.";3/30/12 22:56 ;Incoming
+112;You have been poked on Facebook by 'Samantha Smith. Reply p to poke 'Samantha back.;3/30/12 22:56 ;Incoming
 112;Paul Crabtree accepted your friend request.;3/31/12 10:53 ;Outgoing
 33;Tom is in Allentown, PA;3/31/12 14:14 ;Incoming
 33;Tom ate 2.5 pieces of lasagna.;3/31/12 20:15 ;Outgoing
-112;"You have been poked on Facebook by Susie Lynch. Reply ""p"" to poke Susie back.";3/31/12 20:19 ;Incoming
+112;You have been poked on Facebook by Susie Lynch. Reply p to poke Susie back.;3/31/12 20:19 ;Incoming
 33;That does not surprise me.;3/31/12 20:42 ;Incoming
 33;He has never had my lasgna. He did not know it was going to be addictive.;3/31/12 20:46 ;Incoming
 33;He agrees with you.;3/31/12 20:47 ;Incoming
@@ -3096,8 +3096,8 @@ subscriber_;message_body_;timestamp_;type
 43;I will be here. Do not bring your laptop just yet. John Doe owes me some documentation first.;4/24/12 15:43 ;Outgoing
 49;I told mom that we did not say anything to her in hopes I could fix it without her getting wound up over it.;4/24/12 16:38 ;Outgoing
 38;ork to run?;4/24/12 22:17 ;Incoming
-38;"ry running this application again.""  That is the same message that I received over the weekend.  Is it possible that The computer must be on our school netw";4/24/12 22:17 ;Outgoing
-38;"cindy, I received the following message after clicking on the disk drive to install the lion OS.   ""An error occurred while preparing the installation. T";4/24/12 22:17 ;Incoming
+38;ry running this application again.  That is the same message that I received over the weekend.  Is it possible that The computer must be on our school netw;4/24/12 22:17 ;Outgoing
+38;cindy, I received the following message after clicking on the disk drive to install the lion OS.   An error occurred while preparing the installation. T;4/24/12 22:17 ;Incoming
 2;text me back when you get this;4/25/11 15:31 ;Outgoing
 2;K;4/25/11 15:32 ;Outgoing
 7;Hey team. I will be logging on from home tonight at around 730pm. Chat with you then. ;4/25/11 17:56 ;Incoming
@@ -3780,7 +3780,7 @@ subscriber_;message_body_;timestamp_;type
 95;Thank you.;6/25/12 10:51 ;Outgoing
 70;Happy birthday!;6/25/12 11:43 ;Outgoing
 70;Thank you Larry;6/25/12 11:44 ;Incoming
-70;"julie said ""suck up...youre still not getting a raise :)""";6/25/12 11:45 ;Outgoing
+70;julie said suck up...youre still not getting a raise :);6/25/12 11:45 ;Outgoing
 70;I know, plus jim is the one who would have to approve it. By chance do you know how to restore server to one of the backups fury did like 2 weeks ago?;6/25/12 11:46 ;Incoming
 70;Ok, have a great day. Cya tomorrow;6/25/12 11:48 ;Outgoing
 70;No, i sure dont see if you can get a hold of Tom.;6/25/12 11:48 ;Incoming
@@ -4293,7 +4293,7 @@ subscriber_;message_body_;timestamp_;type
 2;You take off already?;8/19/12 15:23 ;Incoming
 2;In virginia yes;8/19/12 15:25 ;Outgoing
 2;Lol, nice! Ok then, see you when you get back!;8/19/12 15:26 ;Incoming
-13;"Have safe trip. Smile"" think. You never no you may even run for president.";8/19/12 8:44 ;Outgoing
+13;Have safe trip. Smile think. You never no you may even run for president.;8/19/12 8:44 ;Outgoing
 13;Haha I don't want that job;8/19/12 8:45 ;Incoming
 13;Never say no! Its in christ hands.;8/19/12 8:46 ;Incoming
 13;Hope your a live see i care i might be dead some one else could be texing four my courpse;8/20/11 13:18 ;Incoming
@@ -4317,7 +4317,7 @@ subscriber_;message_body_;timestamp_;type
 40;You are not wanted you tinder the.pic but I guess it did not work.out?;8/20/11 18:21 ;Incoming
 40;No pic came through;8/20/11 18:21 ;Outgoing
 40;Why am I rowing a boat?;8/20/11 18:21 ;Incoming
-40;"I hate this auto correct. The message was to read ""you ate not, wanted you to see the picture.""";8/20/11 18:23 ;Incoming
+40;I hate this auto correct. The message was to read you ate not, wanted you to see the picture.;8/20/11 18:23 ;Incoming
 8;U still planning on coming at 9? we got Guinness, pizza, herb, and some more beer;8/20/11 20:49 ;Incoming
 8;On my way;8/20/11 20:57 ;Outgoing
 8;Kewl;8/20/11 20:58 ;Incoming
@@ -4682,7 +4682,7 @@ subscriber_;message_body_;timestamp_;type
 2;Nice;9/20/11 19:08 ;Incoming
 63;Yes. I got it. What's up?;9/20/11 8:15 ;Incoming
 63;Ahhh. My phone died. But I'm in the office...situation changed.;9/20/11 8:28 ;Outgoing
-39;"""Its what i've wanted my whole life!""";9/20/12 15:06 ;Incoming
+39;Its what i've wanted my whole life!;9/20/12 15:06 ;Incoming
 39;I wish I was there to see her in it.;9/20/12 15:06 ;Incoming
 39;So, I take it she likes it?;9/20/12 15:06 ;Outgoing
 39;Oh my. That's so cool;9/20/12 15:09 ;Incoming
