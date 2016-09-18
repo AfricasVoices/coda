@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:av_datastructures/dataset.dart';
 import 'package:av_datastructures/events.dart';
@@ -7,8 +8,6 @@ import 'package:av_datastructures/sessions.dart';
 const String split = ';';
 
 Dataset importOriginalDataset(String inputPath) {
-
-
   Dataset dataset = new Dataset();
 
   List<String> lines = new File(inputPath).readAsLinesSync();
@@ -54,38 +53,81 @@ Dataset importOriginalDataset(String inputPath) {
   return dataset;
 }
 
-DataSet csvImport(String csvPath) {
+Dataset csvImport(String csvPath) {
 
 }
 
-DataSet jsonImport(String jsonPath) {
+Dataset jsonImport(String jsonPath) {
 
 }
 
 
 csvExport(Dataset dataset, String datasetPath) {
-  // var outFile = new File(datasetPath);
-
-  // Compute columns
-
-  // Sort the sessions in the dataset
-  var sessionIds = dataset.sessions.keys.map(int.parse).toList()..sort();
-  for (var sessionId in sessionIds) {
-    var session = dataset.sessions["$sessionId"];
-
-  }
-
-
+  // // var outFile = new File(datasetPath);
+  //
+  // // Compute columns
+  //
+  // // Sort the sessions in the dataset
+  // var sessionIds = dataset.sessions.keys.map(int.parse).toList()..sort();
+  // for (var sessionId in sessionIds) {
+  //   var session = dataset.sessions["$sessionId"];
+  //
+  // }
 }
 
-jsonExport(Dataset dataset, String outputpath) {
+jsonExport(Dataset dataset, String outputPath) {
 
+  Map datasetMap = {};
+  for (var sessionId in dataset.sessions.keys) {
+    Map sessionMap = {};
+
+    var session = dataset.sessions[sessionId];
+    for (var event in session.events) {
+      Map eventMap = {};
+
+      Map decorationMap = {};
+      for (var decorationName in event.decorations.keys) {
+        decorationMap[decorationName] = "${event.decorationForName(decorationName).value}";
+      }
+      eventMap["decorations"] = decorationMap;
+
+      eventMap["name"] = event.name;
+      eventMap["timestamp"] = event.timestamp;
+      eventMap["data"] = event.data;
+
+      sessionMap.putIfAbsent("events", () => []);
+      sessionMap["events"].add(eventMap);
+    }
+
+    datasetMap[sessionId] = sessionMap;
+  }
+
+  String encoded = JSON.encode(datasetMap);
+  new File(outputPath).writeAsStringSync(encoded);
 }
 
 
 main(List<String> args) {
-  var dataset = importOriginalDataset(args[0]);
-  csvExport(dataset, null);
+  if (args.length != 3) {
+    _printHelpText();
+    exit(1);
+  }
+
+  String inputPath = args[1];
+  String outputPath = args[2];
+
+  switch (args[0].toLowerCase()) {
+    case "raw2json":
+      print ("Converting raw to json format");
+      break;
+    default:
+      print ("Unknown action: ${args[0]}");
+      _printHelpText();
+      exit(1);
+  }
+
+  var dataset = importOriginalDataset(inputPath);
+  jsonExport(dataset, outputPath);
 }
 
 // Support utils for silly data format
@@ -98,4 +140,10 @@ String _fixTimestampFormat(String timestamp) {
   int hour = int.parse(timestamp.split(":")[0].split(" ")[1]);
   int min = int.parse(timestamp.split(":")[1]);
   return new DateTime(year, month, day, hour, min).toString();
+}
+
+_printHelpText() {
+  print ("Usage: dart tools.dart action input_path output_path");
+  print ("Currently supported actions:");
+  print ("\traw2json");
 }
