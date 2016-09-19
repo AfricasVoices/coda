@@ -58,7 +58,29 @@ Dataset csvImport(String csvPath) {
 }
 
 Dataset jsonImport(String jsonPath) {
+  Dataset dataset = new Dataset();
 
+  var datasetJson = JSON.decode(new File(jsonPath).readAsStringSync());
+  Map sessionMap = datasetJson;
+  for (var sessionId in sessionMap.keys) {
+    dataset.sessions.putIfAbsent(sessionId, () => new Session(sessionId, []));
+
+    List eventsList = sessionMap[sessionId]["events"];
+    for (var eventMap in eventsList) {
+      String name = eventMap["name"];
+      String timestamp = eventMap["timestamp"];
+      String data = eventMap["data"];
+
+      var event = new RawEvent(name, timestamp, null, data);
+      for (var decorationName in eventMap["decorations"].keys) {
+        event.decorate(decorationName, eventMap["decorations"][decorationName]);
+      }
+
+      dataset.sessions[sessionId].events.add(event);
+    }
+  }
+
+  return dataset;
 }
 
 
@@ -119,6 +141,18 @@ main(List<String> args) {
   switch (args[0].toLowerCase()) {
     case "raw2json":
       print ("Converting raw to json format");
+      var dataset = importOriginalDataset(inputPath);
+      jsonExport(dataset, outputPath);
+      break;
+    case "json2csv":
+      print ("Converting from json to csv format");
+      var dataset = jsonImport(inputPath);
+      csvExport(dataset, outputPath);
+      break;
+    case "csv2json":
+      print ("Converting from csv to json format");
+      var dataset = csvImport(inputPath);
+      jsonExport(dataset, outputPath);
       break;
     default:
       print ("Unknown action: ${args[0]}");
@@ -126,8 +160,7 @@ main(List<String> args) {
       exit(1);
   }
 
-  var dataset = importOriginalDataset(inputPath);
-  jsonExport(dataset, outputPath);
+
 }
 
 // Support utils for silly data format
@@ -146,4 +179,6 @@ _printHelpText() {
   print ("Usage: dart tools.dart action input_path output_path");
   print ("Currently supported actions:");
   print ("\traw2json");
+  print ("\tjson2csv");
+  print ("\tcsv2json");
 }
