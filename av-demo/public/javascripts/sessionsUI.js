@@ -5,6 +5,23 @@ var eventDecoOrder = [];
 var eventDecoLabels = {};
 var dataset;
 
+function saveJSON(url) {
+    var eventList = {};
+    d3.select('tbody').selectAll("tr").each(function(tr,j){
+        //var eventsNum = $("tr[session-id='" + d3.select(this).attr("session-id") + "']").length;
+        //for (i=0; i<eventsNum; i++) {
+            dataset[d3.select(this).attr("session-id")]["events"][d3.select(this).attr("event-index")]["decorations"]["type"] = $($(this).children()[3]).children(".selection").children(".text").text();
+        //}
+    });
+
+
+    d3.json(url, function(error,data) {
+        return data;
+    })
+        .header("Content-Type","application/json")
+        .send("POST", JSON.stringify(dataset))
+}
+
 d3.json("../models/sessions.json", function(data) {
 
     dataset = data;
@@ -18,8 +35,24 @@ d3.json("../models/sessions.json", function(data) {
         eventDecoLabels[decoKey] = [];//if (!eventDecoLabels.hasOwnProperty(decoKey)) eventDecoLabels[decoKey] = [];
     });
 
-
     Object.keys(data).forEach(function(key) { extractLabels(data[key]);});
+
+    d3.select("td[id='type-labels']").selectAll("a").data(eventDecoLabels["type"]).enter()
+        .append("a")
+        .attr("class", "ui orange circular label")
+        .text(function(d) {return d;});
+
+    $(".button").on("click", (function(event) {
+        eventDecoLabels["type"].push($("#type-label-input").val());
+        d3.select("td[id='type-labels']").selectAll("a").data(eventDecoLabels["type"]).enter()
+            .append("a")
+            .attr("class", "ui orange circular label")
+            .text(function(d) {return d;})
+            .each(function(a) {
+                $(".selection").children("select").append("<option>" + a +"</option>");
+            });
+    }));
+
 
     var flattenSession = function(session) {
         var flat = [];
@@ -60,6 +93,7 @@ d3.json("../models/sessions.json", function(data) {
                     });
 
                     eventObj.__sessionID__ = sessionKey;
+                    eventObj.__eventIndex__ = i;
                     rows.push(eventObj);
                 }
             });
@@ -68,6 +102,9 @@ d3.json("../models/sessions.json", function(data) {
 
         return rows;
     }
+
+
+
 
     var table = d3.select("#table-container").append("table")
         .attr("class", "ui selectable celled table")
@@ -81,6 +118,7 @@ d3.json("../models/sessions.json", function(data) {
         .selectAll("tr").data(createEventRows(Object.keys(data))).enter()
         .append("tr")
         .attr("session-id", function(row) {return row.__sessionID__;})
+        .attr("event-index", function(row,i) {return row.__eventIndex__;})
         .attr("row", function(row,i) {return i;})
         .selectAll("td").data(function (sessionData) {
             var trueKeys = Object.keys(sessionData).filter(key => !key.endsWith("_"));
@@ -112,6 +150,10 @@ d3.json("../models/sessions.json", function(data) {
     //d3.selectAll("td[empty]").each(function() {d3.select(this).attr("class","warning");})
     d3.selectAll("td[full]").each(function(empty,i) {
         (+$(this).parents("tr").attr("session-id") % 2) == 0 ? d3.select(this).attr("class","negative") : d3.select(this).attr("class","positive");
+    });
+
+    $("#save").on("click", function(event){
+        saveJSON('/sessions/save');
     });
 
 

@@ -8,6 +8,9 @@ var bodyParser = require('body-parser');
 var events = require('./routes/events');
 var sessions = require('./routes/sessions');
 var loadCSV = require('./routes/loadCSV');
+var saveJSON = require('./routes/saveJSON');
+var fs = require("fs");
+
 
 var app = express();
 
@@ -18,13 +21,16 @@ app.set('view engine', 'ejs');
 // uncomment after placing your favicon in /public
 //app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(logger('dev'));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json({limit: '50mb'}));
+app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/events', events);
 app.use('/sessions', sessions);
+//app.post('sessions/save', function(req, res, next) {
+//  fs.writeFile( "filename.json", JSON.stringify( myJson ), "utf8", yourCallback );
+//});
 app.use('/scripts/d3.js', express.static(__dirname + '/node_modules/d3/d3.js'));
 //app.use('/models/data.csv', express.static(__dirname + '/models/data.csv'));
 //app.use('/models/data.csv', loadCSV);

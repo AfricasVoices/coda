@@ -17,12 +17,42 @@
       <script src="/scripts/d3.js"></script>
   </head>
   <body>
-  <div class="container-fluid">
-      <div class="row">
-          <div class=col-md-8" id="table-container"></div>
-          <div class="col-md4" id="manage-labels"></div>
+  <!--<!<div class="container">-->
+      <div class="ui grid">
+          <div class="ten wide column" id="table-container"></div>
+          <div class="four wide column" id="manage-labels">
+              <table class="ui selectable celled table">
+                  <thead>
+                    <tr>
+                        <th>column</th>
+                        <th>labels</th>
+                        <th>add-label</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                  <tr id="type">
+                      <td>
+                          type
+                      </td>
+                      <td id="type-labels">
+                      </td>
+                      <td style="white-space: nowrap">
+                          <input id="type-label-input" type="text" name="label" placeholder="new label">
+                          <button class="ui button">
+                              add
+                          </button>
+                      </td>
+                  </tr>
+                  </tbody>
+              </table>
+          </div>
+          <div class="two wide column">
+              <button class="ui positive basic button" id="save">
+                  Save
+              </button>
+          </div>
       </div>
-  </div>
+  <!--</div>-->
   <script src="../javascripts/sessionsUI.js"></script>
 
   </body>
