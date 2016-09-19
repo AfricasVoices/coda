@@ -4,10 +4,12 @@ body {
 }
 
 #table-container {
-  width: 50%;
+  width: 70%;
   overflow-y: auto;
-  height: 90vh
+  height: 100vh
 }
+
+
 
 a {
   color: #00B7FF;
