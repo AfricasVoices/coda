@@ -1,32 +1,30 @@
 /**
  * Created by fletna on 16/09/16.
  */
-var dataset = {eventDeco: {}};
 var eventDecoOrder = [];
-var eventDecoLabels = {}
+var eventDecoLabels = {};
+var dataset;
 
 d3.json("../models/sessions.json", function(data) {
 
-    var headerLabels = ["session_id"];
-    data[Object.keys(data)[0]]["events"].forEach(function(event, i) {
-        if (i<2) {
-            headerLabels.push(event["name"] + ":timestamp");
-            headerLabels.push(event["name"] + ":data");
-            Object.keys(event["decorations"]).forEach(function(decoKey) {
-                headerLabels.push(event["name"] + ":" + decoKey);
-                if (eventDecoOrder.indexOf(decoKey) === -1) eventDecoOrder.push(decoKey);
-                if (!eventDecoLabels.hasOwnProperty(decoKey)) eventDecoLabels[decoKey] = [];
-            });
-        }
+    dataset = data;
 
+    var headerLabels = ["session_id", "timestamp", "data"];
+    var event = data[Object.keys(data)[0]]["events"][0];
+
+    Object.keys(event["decorations"]).forEach(function(decoKey) {
+        headerLabels.push(decoKey);
+        eventDecoOrder.push(decoKey);//if (eventDecoOrder.indexOf(decoKey) === -1) eventDecoOrder.push(decoKey);
+        eventDecoLabels[decoKey] = [];//if (!eventDecoLabels.hasOwnProperty(decoKey)) eventDecoLabels[decoKey] = [];
     });
+
 
     Object.keys(data).forEach(function(key) { extractLabels(data[key]);});
 
     var flattenSession = function(session) {
         var flat = [];
         session["events"].forEach(function(event,i) {
-            if (i<2) {
+            if (i<5) {
                 flat.push(event["timestamp"]);
                 flat.push(event["data"]);
                 Object.keys(event["decorations"]).forEach(function(deco,j) {
@@ -47,6 +45,30 @@ d3.json("../models/sessions.json", function(data) {
         });
     }
 
+    function createEventRows(sessionKeys) {
+        var rows = [];
+        sessionKeys.forEach(function(sessionKey){
+            var session = data[sessionKey]
+            data[sessionKey]["events"].forEach(function(event,i) {
+                var eventObj = {}
+                if (i<5) {
+                    eventObj["session"] = i === 0 ? sessionKey : "";
+                    eventObj["timestamp"] = event["timestamp"];
+                    eventObj["data"] = event["data"];
+                    eventDecoOrder.forEach(function(deco) {
+                        eventObj[deco] = event["decorations"][deco];
+                    });
+
+                    eventObj.__sessionID__ = sessionKey;
+                    rows.push(eventObj);
+                }
+            });
+
+        });
+
+        return rows;
+    }
+
     var table = d3.select("#table-container").append("table")
         .attr("class", "ui selectable celled table")
         .append("thead").append("tr");
@@ -56,43 +78,41 @@ d3.json("../models/sessions.json", function(data) {
         .text(function (d) {return d});
 
     var body = d3.select("table").append("tbody")
-        .selectAll("tr").data(Object.keys(data).map(sessionId => [sessionId, data[sessionId]])).enter()
+        .selectAll("tr").data(createEventRows(Object.keys(data))).enter()
         .append("tr")
-        .attr("session-id", function(sessionData) {return sessionData[0];})
+        .attr("session-id", function(row) {return row.__sessionID__;})
+        .attr("row", function(row,i) {return i;})
         .selectAll("td").data(function (sessionData) {
-            var flatSession = [sessionData[0]].concat(flattenSession(sessionData[1]));
-            flatSession = flatSession.map(function(el) { return {"session": sessionData[1], "sessionId" : sessionData[0], "cell": el};});
-            if (flatSession.length < headerLabels.length) {
-                var difference = headerLabels.length-flatSession.length;
-                for (var i = 0; i < difference; i++) {
-                    var placeholder = {"session": sessionData[1], "sessionId" : sessionData[0], "cell": ""}
-                    flatSession.push(placeholder);
-                }
-            } return flatSession;
-
+            var trueKeys = Object.keys(sessionData).filter(key => !key.endsWith("_"));
+            return trueKeys.map(key => [sessionData[key], sessionData.__sessionID__]);
         }).enter()
         .append("td")
-        .attr("id", function(d,i) {return d["sessionId"] + "-" + headerLabels[i];})
-        .each(function (cellValue, i) {
-            Object.keys(eventDecoLabels).forEach(function(decoration) {
-                    if (!headerLabels[i].endsWith(":" + decoration)) {
-                        d3.select("td[id='" + cellValue["sessionId"] + "-" + headerLabels[i] +"'").text(cellValue["cell"]);
-                    } else {
-                        if (cellValue["cell"] != "") {
-                            d3.select("td[id='" + cellValue["sessionId"] + "-" + headerLabels[i] + "'").append("select")
-                                .attr("class", "ui search dropdown")
-                                .selectAll("option").data(eventDecoLabels[decoration]).enter()
-                                .append("option")
-                                .attr("value", function (d) {
-                                    return d;
-                                })
-                                .text(function (d) {
-                                    return d;
-                                });
-                            console.log(cellValue["cell"]);
-                            $("td[id='" + cellValue["sessionId"] + "-" + headerLabels[i] + "']").children("select").dropdown("set selected", cellValue["cell"]);
-                        }
-                    }
-            });
+        .attr("id", function(cell,i) {return cell[1] + "-" + headerLabels[i] + "-" + i;})
+        .each(function (cell, i) {
+            if (eventDecoOrder.indexOf(headerLabels[i]) ===-1) {
+                d3.select(this).text(cell[0])
+                    .attr("empty", cell[0] === "" ? "" : null)
+                    .attr("full", cell[0] !== "" ? "" : null);
+            } else {
+                d3.select(this).append("select")
+                    .attr("class", "ui search dropdown")
+                    .selectAll("option").data(eventDecoLabels[headerLabels[i]]).enter()
+                    .append("option")
+                    .attr("value", function (d) { return d; })
+                    .text(function (d) { return d; })
+                    .attr("picked", function(d) {
+                        return cell[0] === d ? "" : null;});
+            }
         });
+
+    d3.selectAll("option[picked]").each(function() {
+        var currentPicked = this;
+        $(this).parents("select").dropdown("set selected", $(this).attr("value"));
+    });
+    //d3.selectAll("td[empty]").each(function() {d3.select(this).attr("class","warning");})
+    d3.selectAll("td[full]").each(function(empty,i) {
+        (+$(this).parents("tr").attr("session-id") % 2) == 0 ? d3.select(this).attr("class","negative") : d3.select(this).attr("class","positive");
+    });
+
+
 });
