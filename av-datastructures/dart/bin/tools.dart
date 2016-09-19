@@ -5,7 +5,7 @@ import 'package:av_datastructures/dataset.dart';
 import 'package:av_datastructures/events.dart';
 import 'package:av_datastructures/sessions.dart';
 
-const String split = ';';
+const String seperator = ';';
 
 Dataset importOriginalDataset(String inputPath) {
   Dataset dataset = new Dataset();
@@ -16,7 +16,7 @@ Dataset importOriginalDataset(String inputPath) {
 
   for (String ln in lines) {
     try {
-      List<String> dataElements = ln.split(split);
+      List<String> dataElements = ln.split(seperator);
       String subscriber = dataElements.length > 0 ? dataElements[0] : null;
       String message = dataElements.length > 1 ? dataElements[1] : null;
       String timestamp = dataElements.length > 2 ? dataElements[2] : null;
@@ -54,7 +54,67 @@ Dataset importOriginalDataset(String inputPath) {
 }
 
 Dataset csvImport(String csvPath) {
+  Dataset dataset = new Dataset();
 
+  List<String> dataLines = new File(csvPath).readAsLinesSync();
+
+  String headerRow = dataLines.removeAt(0);
+  List<String> headerItems = headerRow.split(";");
+  int colCount = headerItems.length;
+
+  String elementFor(List<String> elements, String name) {
+    int indexOfName = headerItems.indexOf(name);
+    return elements[indexOfName];
+  }
+
+  for (String ln in dataLines) {
+
+    List<String> elements = ln.split(seperator);
+
+    Session session = new Session(
+      elementFor(elements, "sessionId"), []);
+    print ("Session: ${session.id}");
+    dataset.sessions[session.id] = session;
+
+    RawEvent workingEvent;
+
+    int lastTimestampIndex = 1;
+    for (int i = lastTimestampIndex; i < colCount; i++) {
+      if (headerItems[i].endsWith("_timestamp")) {
+        // We've completed the previous event
+        if (workingEvent != null && workingEvent.data != "") session.events.add(workingEvent);
+
+        lastTimestampIndex = i;
+
+        String timestamp = elements[i];
+        i++; // Skip to data
+        String data = elements[i];
+
+        print ("name: ${headerItems[i]}");
+        print ("timestamp: $timestamp");
+        print ("data: $data");
+
+        workingEvent = new RawEvent(headerItems[i], timestamp, null, data);
+        continue;
+      }
+
+      // Otherwise we're dealing with a decoration
+      String headerName = headerItems[i];
+      String decorationValue = elements[i];
+
+      if (decorationValue == "") continue;
+
+      String decorationName = headerName.substring(workingEvent.name.length + 1);
+
+      print ("Decorating: $decorationName -> $decorationValue");
+      workingEvent.decorate(decorationName, decorationValue);
+    }
+
+    if (workingEvent.data == "") continue;
+    session.events.add(workingEvent);
+  }
+
+  return dataset;
 }
 
 Dataset jsonImport(String jsonPath) {
@@ -85,16 +145,60 @@ Dataset jsonImport(String jsonPath) {
 
 
 csvExport(Dataset dataset, String datasetPath) {
-  // // var outFile = new File(datasetPath);
-  //
-  // // Compute columns
-  //
-  // // Sort the sessions in the dataset
-  // var sessionIds = dataset.sessions.keys.map(int.parse).toList()..sort();
-  // for (var sessionId in sessionIds) {
-  //   var session = dataset.sessions["$sessionId"];
-  //
-  // }
+  var file = new File(datasetPath);
+
+  // Compute header row
+  List<String> headerItems = [];
+  headerItems.add("sessionId");
+
+  // Messages
+  for (Session session in dataset.sessions.values) {
+    for (RawEvent e in session.events) {
+      if (!headerItems.contains(e.name)) {
+        headerItems.add("${e.name}_timestamp");
+        headerItems.add(e.name);
+      }
+
+      for (String decorationName in e.decorations.keys) {
+        String mangledDecorationName = "${e.name}_$decorationName";
+        if (!headerItems.contains(mangledDecorationName)) {
+          int indexOfMessage = headerItems.indexOf(e.name);
+          headerItems.insert(indexOfMessage + 1, mangledDecorationName);
+        }
+      }
+    }
+  }
+
+  // Populate data rows
+  List<List<String>> dataRows = [];
+
+  for (Session session in dataset.sessions.values) {
+    // Populate the row with empties
+    List<String> row = new List<String>.filled(headerItems.length, "");
+    dataRows.add(row);
+
+    row[headerItems.indexOf("sessionId")] = session.id;
+
+    for (RawEvent e in session.events) {
+      String name = e.name;
+      row[headerItems.indexOf(name)] = e.data;
+      row[headerItems.indexOf('${e.name}_timestamp')] = e.timestamp;
+
+      for (String decorationName in e.decorations.keys) {
+        String mangledDecorationName = "${e.name}_$decorationName";
+        row[headerItems.indexOf(mangledDecorationName)] = e.decorations[decorationName].value;
+      }
+    }
+  }
+
+  StringBuffer sb = new StringBuffer();
+  sb.writeln(headerItems.join(seperator));
+
+  for (List<String> rowItems in dataRows) {
+    sb.writeln(rowItems.join(seperator));
+  }
+
+  file.writeAsStringSync(sb.toString());
 }
 
 jsonExport(Dataset dataset, String outputPath) {
