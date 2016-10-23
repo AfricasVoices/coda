@@ -1,0 +1,7 @@
+name: av_datastructures
+description: Core data structures for representing events
+dependencies:
+  path: any
+
+  # flutter:
+    # path: ../../flutter/packages/flutter
