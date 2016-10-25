@@ -9,7 +9,32 @@ body {
   height: 100vh -->
 }-->
 
+#editor {
+  /*table-layout: fixed*/
+}
 
+.ui.icon.button {
+  margin-left: 3px;
+}
+
+.ui.disabled.input {
+  opacity: 1;
+  /*width: 70%;*/
+}
+
+.shortcut > .input {
+  width: 60%;
+}
+
+td > button {
+  width: 90%;
+  height: 90%;
+}
+
+.container {
+  border-style: solid;
+  border-width: 2px 2px 2px 2px;
+}
 
 a {
   color: #00B7FF;
