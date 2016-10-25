@@ -198,8 +198,13 @@ d3.json("../models/sessions.json", function(data) {
 
         eventDecoLabels[$(".modal").attr("id")] = codes;
 
-        $(".cell." + $(".modal").attr("id")).find("select").append("<option>" + $(".modal").attr("id") + "</option>");
-
+        var dropdowns = $(".cell." + $(".modal").attr("id")).find("select");
+        dropdowns.each(function(index, dropdown) {
+            $(dropdown).find("option").remove();
+            codes.forEach(function(code) {
+                $(dropdown).append("<option>" + code + "</option>");
+            });
+        });
     });
 
     $(".code.header").on("click", function(event) {
