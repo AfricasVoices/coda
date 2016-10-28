@@ -7,6 +7,8 @@ var dataset;
 $.getJSON("../sessions.json", function(data) {
     dataset = data;
     buildTable();
+    $('table').stickyTableHeaders();
+
 });
 
 var buildTable = function() {
@@ -25,10 +27,6 @@ var buildTable = function() {
             Object.keys(event["decorations"]).forEach(function(decoKey) {
                 decoColumn.append("<td class=col-md-" + decoColumnWidth + ">" + event["decorations"][decoKey] + "</td>");
             });
-
-
-
-
         });
     });
 
