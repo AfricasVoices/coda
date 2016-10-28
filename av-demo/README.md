@@ -6,4 +6,4 @@ npm install
 npm start
 ```
 
-Running on , navigate to http://localhost:8009/sessions or http://localhost:8009/events.
+Navigate to http://localhost:8009/sessions.
