@@ -6,4 +6,4 @@ npm install
 npm start
 ```
 
-Running on port 3009, navigate to /sessions or /events.
+Running on , navigate to http://localhost:8009/sessions or http://localhost:8009/events.
