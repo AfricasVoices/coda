@@ -16,8 +16,12 @@ table td[class*=col-], table th[class*=col-] {
   float: left;
 }
 
+body {
+  padding-top: 65px;
+}
+
 .container>.row {
-  height: 100vh;
+  height: 80vh; /* TODO: will be calculated */
 }
 
 div[class*=col-], .panel {
@@ -28,7 +32,6 @@ div[class*=col-], .panel {
   height: 97%;
   overflow-y: auto;
 }
-
 
 ::-webkit-scrollbar {
   width: 0px;  /* remove scrollbar space */
