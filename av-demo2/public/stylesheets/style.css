@@ -15,3 +15,22 @@ thead {
 table td[class*=col-], table th[class*=col-] {
   float: left;
 }
+
+.container>.row {
+  height: 100vh;
+}
+
+div[class*=col-], .panel {
+  height: 100%;
+}
+
+.panel {
+  height: 97%;
+  overflow-y: auto;
+}
+
+
+::-webkit-scrollbar {
+  width: 0px;  /* remove scrollbar space */
+  background: transparent;  /* optional: just make scrollbar invisible */
+}

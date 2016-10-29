@@ -7,7 +7,7 @@ var dataset;
 $.getJSON("../sessions.json", function(data) {
     dataset = data;
     buildTable();
-    $('table').stickyTableHeaders();
+    $('table').stickyTableHeaders({scrollableArea: $(".panel")});
 
 });
 
