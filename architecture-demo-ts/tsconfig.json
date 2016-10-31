@@ -7,7 +7,6 @@
     },
     "files" : [
         "ui.ts",
-        "model.ts",
         "popup.ts",
         "typings/chrome/chrome.d.ts"
     ]
