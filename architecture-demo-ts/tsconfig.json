@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "es5",
+        "noImplicitAny": false,
+        "sourceMap": false
+    },
+    "files" : [
+        "ui.ts",
+        "model.ts",
+        "popup.ts",
+        "typings/chrome/chrome.d.ts"
+    ]
+}
