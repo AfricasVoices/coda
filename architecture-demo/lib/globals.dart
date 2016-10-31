@@ -1,6 +1,7 @@
 import 'services.dart';
 import 'model.dart';
 
-Model activeModel;
+Model model;
 Schema schema;
 Watchdog hound;
+UndoManager undoManager;

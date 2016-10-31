@@ -14,9 +14,11 @@ class Watchdog {
 
   tick() {
     print ("Saving model");
-    print (activeModel.serialise());
+    print (model.serialise());
   }
 }
+
+// TODO Add Epoch time
 
 class InstrumentationService{
   String userUUID;
@@ -58,7 +60,7 @@ class UndoManager {
       schemaUndoStack.removeLast();
     }
 
-    modelUndoStack.add(activeModel);
+    modelUndoStack.add(model);
     schemaUndoStack.add(schema);
 
     if (modelUndoStack.length > MAX_UNDO_LEVELS) {
@@ -75,7 +77,7 @@ class UndoManager {
     if (!canUndo) return;
 
     pointer--;
-    activeModel = modelUndoStack[pointer];
+    model = modelUndoStack[pointer];
     schema = schemaUndoStack[pointer];
   }
 
@@ -83,7 +85,7 @@ class UndoManager {
     if (!canRedo) return;
 
     pointer++;
-    activeModel = modelUndoStack[pointer];
+    model = modelUndoStack[pointer];
     schema = schemaUndoStack[pointer];
   }
 }

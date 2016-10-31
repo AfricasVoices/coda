@@ -36,6 +36,10 @@ class Model {
 class Schema {
   List<SchemaEntry> codingSchemes; // Coding scheme in order of the cols
 
+  Schema() {
+    codingSchemes = [];
+  }
+
   String serialise() {
     List schemaEntries = [];
     for (SchemaEntry se in codingSchemes) {
