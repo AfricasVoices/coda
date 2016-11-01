@@ -12,10 +12,6 @@ thead {
   background-color: #FFF;
 }
 
-table td[class*=col-], table th[class*=col-] {
-  float: left;
-}
-
 body {
   padding-top: 65px;
 }
@@ -81,7 +77,7 @@ div[class*=col-], #message-panel {
   padding-bottom: 999999px;
 }
 
-::-webkit-scrollbar{
+::-webkit-scrollbar:not(#editor-row::-webkit-scrollbar){
   width: 0px;  /* remove scrollbar space */
   background: transparent;  /* optional: just make scrollbar invisible */
 }
