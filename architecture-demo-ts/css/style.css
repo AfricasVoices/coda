@@ -58,7 +58,7 @@ div[class*=col-], #message-panel {
   margin-bottom: 0px;
 }
 
-#save-button {
+#scheme-save-button {
   margin-left: 30px;
 }
 
@@ -71,10 +71,8 @@ div[class*=col-], #message-panel {
   margin-left: 10px;
 }
 
-#editor-row > div
-{
-  margin-bottom: -999999px;
-  padding-bottom: 999999px;
+.edit-scheme-button {
+  margin-left: 5px;
 }
 
 ::-webkit-scrollbar:not(#editor-row::-webkit-scrollbar){

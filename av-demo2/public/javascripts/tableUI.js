@@ -8,13 +8,15 @@ $.getJSON("../sessions.json", function(data) {
     dataset = data;
     buildTable();
     $('#message-table').stickyTableHeaders({scrollableArea: $("#message-panel")});
+    $('#code-table').stickyTableHeaders({scrollableArea: $("#editor-row")});
+    $('#editor-row').css("height", $('#code-editor-panel').outerHeight(true) - $('#code-editor-panel > .panel-heading').outerHeight(true) - $('#panel-row').outerHeight(true) - $('#button-row').outerHeight(true) - 10);
     $( "#code-editor-panel" ).resizable({
         handles: "nw",
         minWidth: 500,
         minHeight: 500
 
     });
-    codeEditorManager.init($("#code-editor-panel"));
+    codeEditorManager.init($("#code-editor"));
 });
 
 var buildTable = function() {
@@ -38,15 +40,38 @@ var buildTable = function() {
 
 var codeEditorManager =  {
 
+    editorContainer: {},
     editorPanel: {},
     codeTable: {},
     addButton: {},
+    closeButton: {},
+    cancelButton: {},
 
-    init: function(editorElement) {
-        this.editorPanel = editorElement;
+    init: function(editorContainer) {
+        this.editorContainer = editorContainer;
+        this.editorPanel = this.editorContainer.find(".panel");
         this.codeTable = this.editorPanel.find("tbody");
         this.addButton = this.editorPanel.find("#add-code");
+        this.closeButton = this.editorPanel.find("#close-editor");
+        this.cancelButton = this.editorPanel.find("#cancel-button");
         this.bindAddButtonListener();
+        this.bindCloseDialogListeners();
+
+        $(editorContainer).hide();
+    },
+
+    bindCloseDialogListeners: function() {
+        var editorContainer = this.editorContainer;
+        var closeButton = this.closeButton;
+        var cancelButton = this.cancelButton;
+
+
+        closeButton.on("click", function() {
+            editorContainer.hide();
+        });
+
+
+
     },
 
     bindAddButtonListener: function() {
