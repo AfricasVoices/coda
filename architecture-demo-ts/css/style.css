@@ -1,0 +1,105 @@
+.table-fixed thead {
+  width: 100%;
+}
+.table-fixed tbody {
+  overflow-y: auto;
+  width: 100%;
+}
+
+thead {
+  border-top: none;
+  border-bottom: none;
+  background-color: #FFF;
+}
+
+body {
+  padding-top: 65px;
+}
+
+.container>.row {
+  height: 80vh; /* TODO: will be calculated */
+}
+
+div[class*=col-], #message-panel {
+  height: 100%;
+}
+
+#message-panel {
+  height: 97%;
+  overflow-y: auto;
+}
+
+#close-editor {
+  float: right;
+}
+
+#code-editor {
+  z-index: 1;
+  position: fixed !important;
+  bottom: 0;
+  right: 0;
+  width: 550px;
+
+  /* position: relative; */
+}
+
+#button-row {
+  position:absolute;
+  bottom: 0px;
+  margin-bottom: 10px;
+}
+
+#code-editor-panel {
+  overflow: hidden;
+  top: auto !important;
+  bottom: 0 !important;
+  position:relative;
+  height: 500px;
+  margin-bottom: 0px;
+}
+
+#scheme-save-button {
+  margin-left: 30px;
+}
+
+.panel-heading > h4, .panel-heading > span {
+  margin-bottom: 10px;
+  margin-top: 10px;
+}
+
+.panel-heading > button {
+  margin-left: 10px;
+}
+
+.edit-scheme-button {
+  margin-left: 5px;
+}
+
+::-webkit-scrollbar:not(#editor-row::-webkit-scrollbar){
+  width: 0px;  /* remove scrollbar space */
+  background: transparent;  /* optional: just make scrollbar invisible */
+}
+
+
+#editor-row, #panel-row {
+  margin: 0px;
+}
+
+#editor-row {
+  overflow-y: scroll;
+  padding: 0px 10px 10px 10px;
+}
+
+#panel-row > .panel {
+  padding-bottom: 10px;
+  height: 100%;
+}
+
+#panel-row {
+  height: 155px;
+  /* padding-bottom: 44px; */
+  bottom: 50px;
+  position: absolute;
+  width: 100%;
+  padding: 10px 10px 0px 10px;
+}

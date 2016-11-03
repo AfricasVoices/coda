@@ -56,12 +56,7 @@
                 <th class="col-md-6">Data</th>
                 <th class="col-md-4" id="decoration-column">
                   <div class="row">
-                    <div class="col-md-12">
-                      Type
-                      <button type='button' class='btn btn-default btn-xs'>
-                        <i class='glyphicon glyphicon-edit'></i>
-                      </button>
-                    </div>
+
                   </div>
                 </th>
               </tr>
@@ -83,7 +78,9 @@
       <div class="panel panel-default" id="code-editor-panel">
         <div class="panel-heading clearfix">
           <h4 class="panel-title pull-left">Code Scheme Editor</h4>
-          <button id="add-code" class="btn btn-default"><i class="glyphicon glyphicon-plus"></i></button>
+          <button id="add-code" class="btn btn-default">
+            <i class="glyphicon glyphicon-plus"></i>
+          </button>
           <span id="close-editor" class="glyphicon glyphicon-remove"></span>
         </div>
 
@@ -103,7 +100,11 @@
           <div class="row" id="panel-row">
             <div class="panel panel-default">
               <div class="panel-body">
-                Basic panel example
+                <div class="input-group">
+                  <span class="input-group-addon">Code Scheme Name</span>
+                  <input id="scheme-name-input" type="text" class="form-control" placeholder="enter name..." aria-describedby="scheme-name-input">
+                </div>
+
               </div>
             </div>
           </div>
