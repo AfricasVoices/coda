@@ -1,8 +1,8 @@
 .table-fixed thead {
   width: 100%;
 }
-.table-fixed tbody {
-  overflow-y: auto;
+.table-fixed tbody { /* TODO Scrollbar actually appears on #message-panel */
+  overflow-y: scroll;
   width: 100%;
 }
 
@@ -28,6 +28,13 @@ div[class*=col-], #message-panel {
   height: 97%;
   overflow-y: auto;
 }
+
+#message-panel::-webkit-scrollbar {
+  width: 0px;   /* remove scrollbar space */
+  background: transparent;   /* optional: just make scrollbar invisible */
+}
+
+
 
 #close-editor {
   float: right;
@@ -75,10 +82,6 @@ div[class*=col-], #message-panel {
   margin-left: 5px;
 }
 
-::-webkit-scrollbar:not(#editor-row::-webkit-scrollbar){
-  width: 0px;  /* remove scrollbar space */
-  background: transparent;  /* optional: just make scrollbar invisible */
-}
 
 
 #editor-row, #panel-row {

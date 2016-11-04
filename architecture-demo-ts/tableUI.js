@@ -1,6 +1,8 @@
 var dataset;
 var activeRow;
+var editorOpen;
 
+$("#editor-row").css("height", $("#code-editor-panel").outerHeight(true) - $("#code-editor-panel").find(".panel-heading").outerHeight(true) - $('#panel-row').outerHeight(true) - $('#button-row').outerHeight(true) - 10);
 $("body").hide();
 
 $.getJSON("data/sessions.json", function(data) {
@@ -9,12 +11,12 @@ $.getJSON("data/sessions.json", function(data) {
     var codeEditorPanel = $("#code-editor-panel");
     var editorRow = $("#editor-row");
 
+
     messageViewerManager.init(messagePanel, dataset);
 
     $('#message-table').stickyTableHeaders({scrollableArea: messagePanel});
     $('#code-table').stickyTableHeaders({scrollableArea: editorRow});
 
-    editorRow.css("height", codeEditorPanel.outerHeight(true) - codeEditorPanel.find(".panel-heading").outerHeight(true) - $('#panel-row').outerHeight(true) - $('#button-row').outerHeight(true) - 10);
     codeEditorPanel.resizable({
         handles: "nw",
         minWidth: 500,
@@ -104,6 +106,11 @@ var messageViewerManager = {
         });
 
         $(document).on('keydown', function(event) {
+
+            if (editorOpen) {
+                return;
+            }
+
             if (event.keyCode == 38) { // UP
                 activeRow.removeClass('active');
                 activeRow = activeRow.prev().addClass('active');
@@ -158,6 +165,8 @@ var messageViewerManager = {
         $(editButton).on("click", function() {
                 if (!$("#code-editor").is(":visible")) {
 
+                    editorOpen = true;
+
                     scheme["codes"].forEach(function(code) {
                         codeEditorManager.addCodeInputRows(code, "");
                         $(".shortcut-input").siblings("div").hide();
@@ -201,6 +210,7 @@ var codeEditorManager =  {
     init: function(editorContainer) {
 
         $(editorContainer).hide();
+        editorOpen = false;
 
         this.editorContainer = editorContainer;
         this.editorPanel = this.editorContainer.find(".panel");
@@ -236,9 +246,11 @@ var codeEditorManager =  {
                 editorContainer.hide();
                 editorContainer.find("tbody").empty();
                 editorContainer.find("#scheme-name-input").val("");
+                editorOpen = true;
             });
 
             $(editorContainer).show();
+            editorOpen = true;
         });
 
     },
@@ -250,16 +262,22 @@ var codeEditorManager =  {
 
         $("#scheme-save-button").one("click", function (event) {
 
-            var codes = [];
+            var codes = [], shortcuts = [];
 
             var inputFields = editorContainer.find("input[class='form-control code-input']");
             inputFields.each(function(index, input) {
                 codes.push($(input).val());
             });
 
+            var shortcutFields = editorContainer.find("input[class='form-control shortcut-input']");
+            shortcutFields.each(function(index, shortcut) {
+               shortcuts.push(ascii($(shortcut).val()));
+            });
+
             var newScheme = {
                 name: editorContainer.find("#scheme-name-input").val(),
-                codes: codes
+                codes: codes,
+                shortcuts: shortcuts
             };
 
             var header = $("#header-decoration-column").find("div[class*='col-']:nth-child(" + oneIndexed + ")");
@@ -277,11 +295,12 @@ var codeEditorManager =  {
             });
 
 
-            $("#header-decoration-column").find("button").off("click");
+            $("#header-decoration-column").find("button").off("click"); // turn off old listener and bind new one
             messageViewerManager.bindEditSchemeButtonListener($("#header-decoration-column").find("button"), newScheme);
 
             editorContainer.find("tbody").empty();
             editorContainer.hide();
+            editorOpen = false;
 
         });
     },
@@ -297,13 +316,14 @@ var codeEditorManager =  {
             editorContainer.hide();
             editorContainer.find("tbody").empty();
             $("#scheme-name-input").attr("value", "").val("");
-
+            editorOpen = false;
         });
 
         cancelButton.on("click", function() {
             editorContainer.hide();
             editorContainer.find("tbody").empty();
             $("#scheme-name-input").attr("value", "").val("");
+            editorOpen = false;
         });
 
 
@@ -387,5 +407,8 @@ var codeEditorManager =  {
         });
 
     }
-
 };
+
+function ascii (a) {
+    return a.charCodeAt(0);
+}
