@@ -1,8 +1,5 @@
-/**
- * Created by fletna on 28/10/16.
- */
-
 var dataset;
+var activeRow;
 
 $("body").hide();
 
@@ -27,28 +24,6 @@ $.getJSON("data/sessions.json", function(data) {
 
     $("body").show();
 });
-
-/*
-var buildTable = function(data) {
-    Object.keys(data).forEach(function(sessionKey) {
-        var events = dataset[sessionKey]["events"];
-        events.forEach(function(event) {
-            var eventRow = $("<tr></tr>").appendTo("#message-table > tbody");
-            eventRow.append("<td class='col-md-2'>" + event["timestamp"] + "</td>");
-            eventRow.append("<td class='col-md-6'>" + event["data"] + "</td>");
-
-            var decoColumn = $("<td class=col-md-4><div class='row'></div></td>").appendTo(eventRow);
-            var decoNumber = Object.keys(event["decorations"]).length;
-            var decoColumnWidth = (12/decoNumber>>0);
-
-            Object.keys(event["decorations"]).forEach(function(decoKey) {
-                // make it a div rather than a td to not conflict with table styling
-                eventRow.append("<div class='col-md-" + decoColumnWidth + "'>" + event["decorations"][decoKey] + "</div>");
-            });
-        });
-    });
-};
-*/
 
 var messageViewerManager = {
     messageContainer: {},
@@ -121,6 +96,26 @@ var messageViewerManager = {
                 });
             });
         });
+
+
+        this.table.on('click', 'tbody tr', function(event) {
+            $(this).addClass('active').siblings().removeClass('active');
+            activeRow = $(this);
+        });
+
+        $(document).on('keydown', function(event) {
+            if (event.keyCode == 38) { // UP
+                activeRow.removeClass('active');
+                activeRow = activeRow.prev().addClass('active');
+
+            }
+
+            if (event.keyCode == 40) { // DOWN
+                activeRow.removeClass('active');
+                activeRow = activeRow.next().addClass('active');
+            }
+        });
+
     },
 
     addNewScheme: function(scheme) {
