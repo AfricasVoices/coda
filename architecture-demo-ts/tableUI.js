@@ -1,14 +1,15 @@
 var dataset;
-var activeRow;
 var editorOpen;
+var activeRow;
 
-$("#editor-row").css("height", $("#code-editor-panel").outerHeight(true) - $("#code-editor-panel").find(".panel-heading").outerHeight(true) - $('#panel-row').outerHeight(true) - $('#button-row').outerHeight(true) - 10);
+
+var codeEditorPanel = $("#code-editor-panel");
+$("#editor-row").css("height", codeEditorPanel.outerHeight(true) - codeEditorPanel.find(".panel-heading").outerHeight(true) - $('#panel-row').outerHeight(true) - $('#button-row').outerHeight(true) - 10);
 $("body").hide();
 
 $.getJSON("data/sessions.json", function(data) {
     dataset = data;
     var messagePanel = $("#message-panel");
-    var codeEditorPanel = $("#code-editor-panel");
     var editorRow = $("#editor-row");
 
 
@@ -42,6 +43,7 @@ var messageViewerManager = {
         var decoNumber = Object.keys(availableSchemes).length;
         var decoColumnWidth = (12/decoNumber>>0);
         var bindEditCodeschemeListener = this.bindEditSchemeButtonListener;
+        var messagePanel = this.messageContainer;
 
         /*
         Build header
@@ -95,32 +97,61 @@ var messageViewerManager = {
                     });
 
                     input.val(event["decorations"][decoKey]);
+                    if (event["decorations"][decoKey].length === 0) {
+                        eventRow.addClass("uncoded");
+                    }
+
                 });
             });
         });
 
+        activeRow = this.table.find("tbody").find("tr:first");
 
-        this.table.on('click', 'tbody tr', function(event) {
+        this.table.on('click', 'tbody tr', function() {
             $(this).addClass('active').siblings().removeClass('active');
             activeRow = $(this);
         });
 
         $(document).on('keydown', function(event) {
 
-            if (editorOpen) {
-                return;
+            if (!editorOpen) {
+
+                if (event.keyCode == 38) { // UP
+                    var prev = activeRow.prev();
+
+                    if (prev.length !== 0) {
+                        activeRow.removeClass('active');
+                        activeRow = prev.addClass('active');
+                    }
+                }
+
+                if (event.keyCode == 40) { // DOWN
+                    var next = activeRow.next();
+
+                    if (next.length !== 0) {
+                        activeRow.removeClass('active');
+                        activeRow = activeRow.next().addClass('active');
+                    }
+                }
             }
 
-            if (event.keyCode == 38) { // UP
-                activeRow.removeClass('active');
-                activeRow = activeRow.prev().addClass('active');
+            if (event.keyCode == 13) { // ENTER
+                activeRow.toggleClass("active");
 
+
+                // get next row and make it active
+                activeRow = nextUnfilledRow(activeRow, true);
+                activeRow.toggleClass("active");
+
+
+
+                var isVisible = isRowVisible(activeRow[0], messagePanel[0]);
+
+                if (!isVisible) {
+                    scrollRowToTop(activeRow[0], messagePanel[0]);
+                }
             }
 
-            if (event.keyCode == 40) { // DOWN
-                activeRow.removeClass('active');
-                activeRow = activeRow.next().addClass('active');
-            }
         });
 
     },
@@ -162,8 +193,11 @@ var messageViewerManager = {
 
     bindEditSchemeButtonListener: function(editButton, scheme) {
 
+        var codeEditor = $("#code-editor");
+
         $(editButton).on("click", function() {
-                if (!$("#code-editor").is(":visible")) {
+
+                if (!(codeEditor.is(":visible"))) {
 
                     editorOpen = true;
 
@@ -181,14 +215,14 @@ var messageViewerManager = {
                     codeEditorManager.bindSaveEditListener(index);
 
                     $("#scheme-name-input").val(scheme["name"]);
-                    $("#code-editor").show();
+                    codeEditor.show();
                 }
 
-                $("#code-editor").find(".code-input").each(function(i, el) {
+                codeEditor.find(".code-input").each(function(i, el) {
                    $(el).siblings(".input-group-btn").hide();
                 });
 
-                $("#code-editor").find(".shortcut-input").each(function(i, el) {
+                codeEditor.find(".shortcut-input").each(function(i, el) {
                     $(el).siblings(".input-group-btn").hide();
                 });
         });
@@ -259,8 +293,9 @@ var codeEditorManager =  {
     bindSaveEditListener: function(index) {
         var editorContainer = this.editorContainer;
         var oneIndexed = index + 1;
+        var headerDecoColumn = $("#header-decoration-column");
 
-        $("#scheme-save-button").one("click", function (event) {
+        $("#scheme-save-button").one("click", function () {
 
             var codes = [], shortcuts = [];
 
@@ -280,7 +315,7 @@ var codeEditorManager =  {
                 shortcuts: shortcuts
             };
 
-            var header = $("#header-decoration-column").find("div[class*='col-']:nth-child(" + oneIndexed + ")");
+            var header = headerDecoColumn.find("div[class*='col-']:nth-child(" + oneIndexed + ")");
             header.find("i:first").text(newScheme["name"]);
 
             $(".decorator-column").each(function (i, row) {
@@ -295,8 +330,8 @@ var codeEditorManager =  {
             });
 
 
-            $("#header-decoration-column").find("button").off("click"); // turn off old listener and bind new one
-            messageViewerManager.bindEditSchemeButtonListener($("#header-decoration-column").find("button"), newScheme);
+            headerDecoColumn.find("button").off("click"); // turn off old listener and bind new one
+            messageViewerManager.bindEditSchemeButtonListener(headerDecoColumn.find("button"), newScheme);
 
             editorContainer.find("tbody").empty();
             editorContainer.hide();
@@ -411,4 +446,79 @@ var codeEditorManager =  {
 
 function ascii (a) {
     return a.charCodeAt(0);
+}
+
+
+function nextUnfilledRow(activeRow, wrap) {
+
+    if (wrap == null) wrap = false;
+
+    var next = activeRow.nextAll(".uncoded:first");
+    if (next.length > 0) return next;
+
+    if (wrap) {
+        var prev = activeRow.prevAll(".uncoded:last");
+        if (prev.length !== 0) return prev;
+    }
+
+    return activeRow;
+}
+
+function previousUnfilledRow(activeRow, wrap) {
+
+    if (wrap == null) wrap = false;
+
+    var previous = activeRow.prevAll(".uncoded:first");
+    if (previous.length > 0) return previous;
+
+    if (wrap) {
+        var next = activeRow.nextAll(".uncoded:last");
+        if (next.length !== 0) return next;
+    }
+
+    return activeRow;
+}
+
+function isRowVisible(row, tablePanel){
+
+    // adapted from http://stackoverflow.com/a/38039019
+
+    var tolerance = 0.01; // since getBoundingClientRect provides the position up to 10 decimals
+    var percentX = 100;
+    var percentY = 100;
+
+    var elementRect = row.getBoundingClientRect();
+    var parentRect = tablePanel.getBoundingClientRect();
+
+    var newParentRect = {top: parentRect["top"] + 40, // top + header
+        left: parentRect["left"],
+        right: parentRect["right"],
+        bottom: parentRect["bottom"] - 20 // bottom - padding bottom
+    };
+
+    var visiblePixelX = Math.min(elementRect.right, newParentRect.right) - Math.max(elementRect.left, newParentRect.left);
+    var visiblePixelY = Math.min(elementRect.bottom, newParentRect.bottom) - Math.max(elementRect.top, newParentRect.top);
+    var visiblePercentageX = visiblePixelX / elementRect.width * 100;
+    var visiblePercentageY = visiblePixelY / elementRect.height * 100;
+    return visiblePercentageX + tolerance > percentX && visiblePercentageY + tolerance > percentY;
+
+}
+
+
+function scrollRowToTop(row, container) {
+
+    var boundingBoxTop = row.getBoundingClientRect().top;
+
+    if (boundingBoxTop > 0) { // BELOW THE CONTAINER (next or wrapping around the list)
+
+        // move row bounding box back up to top of container, then move down because of header and about 2 rows
+        container.scrollTop = container.scrollTop + boundingBoxTop - 40 - row.offsetHeight * 2;
+
+
+    } else { // ABOVE THE CONTAINER (prev or wrapping around the list)
+
+        // move row bounding box back down to top of container, then move up to acc for bottom padding and about 2 rows
+        container.scrollTop = container.scrollTop - boundingBoxTop * (-1) - 20 - row.offsetHeight * 2;
+    }
+
 }
