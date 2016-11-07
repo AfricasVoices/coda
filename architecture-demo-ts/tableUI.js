@@ -135,8 +135,8 @@ var messageViewerManager = {
                         activeRow.removeClass('active');
                         activeRow = prev.addClass('active');
 
-                        if (!UIUtils.isRowVisible(prev[0], $("#message-panel")[0])) {
-
+                        if (!UIUtils.isRowVisible(prev[0], messagePanel[0])) {
+                            UIUtils.scrollRowToTop(prev[0], messagePanel[0]);
                         }
 
                     }
@@ -148,11 +148,21 @@ var messageViewerManager = {
                     if (next.length !== 0) {
                         activeRow.removeClass('active');
                         activeRow = activeRow.next().addClass('active');
+
+                        if (!UIUtils.isRowVisible(next[0], messagePanel[0])) {
+                            UIUtils.scrollRowToTop(next[0], messagePanel[0]);
+                        }
+
                     }
                 }
             }
 
             if (event.keyCode == 13) { // ENTER
+
+                if ($(document.activeElement).is("input")) {
+                    return;
+                }
+
                 activeRow.toggleClass("active");
 
 
@@ -173,6 +183,11 @@ var messageViewerManager = {
     },
 
     addNewScheme: function(scheme) {
+
+        // TODO: warning message in case of empty codes
+        if (scheme["codes"].length === 0) return;
+
+
         var decorationCell = $("#header-decoration-column").find(".row");
         var numberOfDecorations = decorationCell.find("div[class*=col-]").length + 1;
         var newDecoColumnWidth = (12/numberOfDecorations>>0);
@@ -188,7 +203,6 @@ var messageViewerManager = {
         decorationCell.find("div[class*=col-]").attr("class", "col-md-" + newDecoColumnWidth);
 
         this.table.find("tbody > tr").each(function(index, row) {
-
             var decoCell = $(row).children("td:last").find(".row");
 
             // keep it a div instead of td so styles dont conflict
@@ -218,7 +232,7 @@ var messageViewerManager = {
                     editorOpen = true;
 
                     scheme["codes"].forEach(function(code) {
-                        codeEditorManager.addCodeInputRows(code, "");
+                        codeEditorManager.addCodeInputRow(code, "");
                         $(".shortcut-input").siblings("div").hide();
                     });
 
@@ -270,9 +284,32 @@ var codeEditorManager =  {
         this.cancelEditorButton = this.editorPanel.find("#cancel-button");
         this.addSchemeButton = $("#add-scheme");
         this.saveSchemeButton = this.editorPanel.find("#scheme-save-button");
-        this.bindAddCodeButtonListener();
+        this.bindAddCodeButtonListener(this.codeTable);
         this.bindCloseDialogListeners();
         this.bindAddSchemeListeners();
+        this.bindNameInputListeners();
+
+    },
+
+    bindNameInputListeners: function() {
+
+        var nameInput = $("#scheme-name-input");
+
+        nameInput.on("click", function() {
+            $(this).prop("readonly", false);
+        });
+
+        nameInput.on("keydown", function(event) {
+
+            if (event.keyCode === 13) {
+                $(this).prop("readonly", true);
+                $(this).attr("value", $(this).val());
+                $(this).blur();
+            }
+
+            event.stopPropagation();
+
+        });
 
     },
 
@@ -287,20 +324,26 @@ var codeEditorManager =  {
                 var codes = [];
 
                 inputFields.each(function(index, input) {
-                    codes.push($(input).val());
+                    if ($(input).val().length > 0)
+                        codes.push($(input).val());
                 });
 
-                var name = editorContainer.find("#scheme-name-input").val();
+                var name = editorContainer.find("#scheme-name-input").attr("value");
 
                 messageViewerManager.addNewScheme({"name": name, "codes": codes});
                 editorContainer.hide();
                 editorContainer.find("tbody").empty();
                 editorContainer.find("#scheme-name-input").val("");
                 editorOpen = true;
+
+                codeEditorManager.bindAddCodeButtonListener(editorContainer.find("tbody"));
+
             });
 
+            $("#scheme-name-input").prop("readonly", false);
             $(editorContainer).show();
             editorOpen = true;
+            $("#scheme-name-input").focus();
         });
 
     },
@@ -366,6 +409,7 @@ var codeEditorManager =  {
         closeButton.on("click", function() {
             editorContainer.hide();
             editorContainer.find("tbody").empty();
+            codeEditorManager.bindAddCodeButtonListener(editorContainer.find("tbody"));
             $("#scheme-name-input").attr("value", "").val("");
             editorOpen = false;
         });
@@ -373,6 +417,7 @@ var codeEditorManager =  {
         cancelButton.on("click", function() {
             editorContainer.hide();
             editorContainer.find("tbody").empty();
+            codeEditorManager.bindAddCodeButtonListener(editorContainer.find("tbody"));
             $("#scheme-name-input").attr("value", "").val("");
             editorOpen = false;
         });
@@ -380,82 +425,130 @@ var codeEditorManager =  {
 
     },
 
-    bindAddCodeButtonListener: function() {
+    bindAddCodeButtonListener: function(tableBody) {
 
-        var addCodeInputRows = this.addCodeInputRows;
+        var addCodeInputRow = codeEditorManager.addCodeInputRow;
 
-        this.addCodeButton.on("click", function() {
-            addCodeInputRows("","");
+        $(tableBody).append('<tr class="row add-code-row">' +
+            '<td class="col-md-6">' +
+            '<button id="add-code" class="btn btn-default">' +
+            '<i class="glyphicon glyphicon-plus">' +
+            '</i>' +
+            '</button>' +
+            '</td>' +
+            '<td class="col-md-5"></td>' +
+            '<td class="col-md-1"></td>' +
+            '</tr>');
+
+        $(".add-code-row").on("click", function() {
+            addCodeInputRow("","");
         });
     },
 
-    addCodeInputRows: function(code, shortcut) {
+    addCodeInputRow: function(code, shortcut) {
 
         var bindInputListeners = codeEditorManager.bindInputListeners;
         var codeTable = codeEditorManager.codeTable;
 
-        var row = $("<tr class='row'></tr>").appendTo(codeTable);
+        var row = $("<tr class='row'></tr>").insertBefore($("#add-code").parents("tr"));
         var codeCell = $("<td class='col-md-6'></td>").appendTo(row);
-        var shortcutCell = $("<td class='col-md-6'></td>").appendTo(row);
+        var shortcutCell = $("<td class='col-md-5'></td>").appendTo(row);
+        var buttonCell = $("<td class='col-md-1'></td>").appendTo(row);
 
-        var codeCellInput = $("<div class='input-group'>" +
-            "<input type='text' class='form-control code-input' placeholder='enter code...' value='" + code + "'>" +
-            "<div class='input-group-btn'>" +
-            "<button type='button' class='btn btn-success'>" +
-            "<i class='glyphicon glyphicon-ok'></i>" +
-            "</button>" +
-            "<button type='button' class='btn btn-danger'>" +
+
+        var codeInput = $("<input type='text' class='form-control code-input' placeholder='enter code...' value='" + code + "'>")
+            .appendTo(codeCell);
+
+        var shortcutInput = $("<input type='text' class='form-control shortcut-input' placeholder='type shortcut key...' value='" + shortcut + "'>")
+            .appendTo(shortcutCell);
+
+        var button = $("<button type='button' class='btn btn-danger delete-code'>" +
             "<i class='glyphicon glyphicon-remove'></i>" +
-            "</button>" +
-            "</div>" +
-            "</div>").appendTo(codeCell);
+            "</button>").appendTo(buttonCell);
 
-        var shortcutCellInput = $("<div class='input-group'>" +
-            "<input type='text' class='form-control shortcut-input' placeholder='type shortcut key...' value='" + shortcut + "'>" +
-            "<div class='input-group-btn'>" +
-            "<button type='button' class='btn btn-success'>" +
-            "<i class='glyphicon glyphicon-ok'></i>" +
-            "</button>" +
-            "<button type='button' class='btn btn-danger'>" +
-            "<i class='glyphicon glyphicon-remove'></i>" +
-            "</button>" +
-            "</div>" +
-            "</div>").appendTo(shortcutCell);
+        codeInput.focus();
 
-
-        codeCellInput.find("input").focus();
-
-        bindInputListeners(codeCellInput);
-        bindInputListeners(shortcutCellInput);
+        bindInputListeners(row);
     },
 
 
-    bindInputListeners: function(inputGroup) {
-        var inputField = $(inputGroup).find(".form-control");
-        var acceptButton = $(inputGroup).find(".btn-success");
-        var rejectButton = $(inputGroup).find(".btn-danger");
+    bindInputListeners: function(inputRow) {
 
-        acceptButton.on("click", function(){
-            $(this).hide();
-            rejectButton.hide();
-            inputField.attr("value", inputField.val());
+        var inputRow = $(inputRow);
+        var codeInput = inputRow.find(".code-input");
+        var shortcutInput = inputRow.find(".shortcut-input");
+        var deleteButton = inputRow.find(".delete-code");
+
+        codeInput.on("keydown", function(event){
+            if (event.keyCode === 13) {
+
+                // save changes in this field, move to shortcut field
+                $(this).prop("readonly", true);
+
+                $(this).attr("value", $(this).val());
+                $(this).parents("tr").find(".shortcut-input")
+                    .prop("readonly", false)
+                    .focus();
+            }
         });
 
-       rejectButton.on("click", function(){
-           $(this).hide();
-           acceptButton.hide();
-           inputField.val(inputField.attr("value"));
+        shortcutInput.on("keydown", function(event){
+            if (event.keyCode === 13) {
+                $(this).attr("value", $(this).val());
+                $(this).prop("readonly", true);
+
+                var nextRow = $(this).parents("tr").next();
+
+                if (nextRow.length > 0 && nextRow.attr("class") !== "row add-code-row") {
+                    nextRow.find(".code-input")
+                        .prop("readonly", false)
+                        .focus();
+
+                } else {
+                    codeEditorManager.addCodeInputRow("","");
+                    nextRow = $(this).parents("tr").next();
+                    nextRow.find(".code-input")
+                        .prop("readonly", false)
+                        .focus();
+                }
+            }
         });
 
-        inputField.on("click", function(){
+        codeInput.on("click", function(){
 
-            var inputClass = inputField.attr("class").split(' ')[1];
-            $("." + inputClass).each(function(i, element) {
-                $(element).siblings(".input-group-btn").hide();
+        // reset all changes if user clicks elsewhere
+
+            $(this).prop("readonly", false);
+
+            var inputs = $(".shortcut-input").add($(".code-input"));
+
+            inputs.each(function(index, input) {
+                $(input).val($(input).attr("value"));
             });
-
-            $(inputGroup).find(".input-group-btn").show();
         });
+
+        shortcutInput.on("click", function(){
+
+            $(this).prop("readonly", false);
+
+            // reset all changes if user clicks elsewhere???
+            var inputs = $(".shortcut-input").add($(".code-input"));
+
+            inputs.each(function(index, input) {
+                $(input).val($(input).attr("value"));
+            });
+        });
+
+        deleteButton.on("click", function() {
+
+            // TODO: unbind shortcuts
+            // TODO: remove code from dropdowns
+
+            $(inputRow).remove();
+
+        });
+
+
 
     }
 };

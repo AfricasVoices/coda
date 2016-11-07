@@ -76,12 +76,26 @@
     <div id="code-editor" >
       <div class="panel panel-default" id="code-editor-panel">
         <div class="panel-heading clearfix">
-          <h4 class="panel-title pull-left">Code Scheme Editor</h4>
-          <button id="add-code" class="btn btn-default">
-            <i class="glyphicon glyphicon-plus"></i>
-          </button>
-          <span id="close-editor" class="glyphicon glyphicon-remove"></span>
+          <div class="panel-title">
+            <div class="row">
+
+              <div class="col-md-11">
+                <div class="input-group">
+                  <span class="input-group-addon" id="basic-addon1">Code Scheme Name</span>
+                  <input id="scheme-name-input" type="text" class="form-control" placeholder="code scheme name..." aria-describedby="scheme-name-input">
+                </div>
+              </div>
+
+              <div class="col-md-1">
+                <button id="close-editor" class="btn btn-default btn-sm">
+                  <i class="glyphicon glyphicon-remove"></i>
+                </button>
+              </div>
+
+            </div>
+          </div>
         </div>
+
 
         <div>
           <div class="row" id="editor-row">
@@ -93,17 +107,14 @@
               </tr>
               </thead>
               <tbody>
+
               </tbody>
+
             </table>
           </div>
           <div class="row" id="panel-row">
             <div class="panel panel-default">
               <div class="panel-body">
-                <div class="input-group">
-                  <span class="input-group-addon">Code Scheme Name</span>
-                  <input id="scheme-name-input" type="text" class="form-control" placeholder="enter name..." aria-describedby="scheme-name-input">
-                </div>
-
               </div>
             </div>
           </div>

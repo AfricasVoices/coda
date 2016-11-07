@@ -61,6 +61,9 @@ var UIUtils = (
             },
 
             scrollRowToTop: function (row, container) {
+
+                // TODO: be given the offsetHeight of the row with biggest height
+
                 var boundingBoxTop = row.getBoundingClientRect().top;
 
                 if (boundingBoxTop > 0) { // BELOW THE CONTAINER (next or wrapping around the list)
