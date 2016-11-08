@@ -126,7 +126,7 @@ var messageViewerManager = {
         // keyboard nav
         $(document).on('keydown', function(event) {
 
-            if (!editorOpen) {
+            if (!editorOpen && document.activeElement.nodeName === "BODY") {
 
                 if (event.keyCode == 38) { // UP
                     var prev = activeRow.prev();
