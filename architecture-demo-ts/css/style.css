@@ -106,6 +106,23 @@ div[class*=col-], #message-panel {
   padding: 10px 10px 0px 10px;
 }
 
-tr.active > td {
-  background-color: #b6b5b5 !important;
+tr.active.message > td {
+  /* background-color: #b6b5b5 !important; */
+
 }
+
+tr.active {
+  border-left: 30px solid black;
+}
+
+tr.active.code-row > td {
+  background-color: transparent !important;
+}
+
+/*
+#code-table {
+  border-collapse: separate;
+  border-spacing: 0 10px;
+}
+
+*/

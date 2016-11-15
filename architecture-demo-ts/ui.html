@@ -2,140 +2,160 @@
 <html>
   <head>
     <title>Coding Assistant</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/jquery-ui.css"/>
+    <link rel="stylesheet" href="colorpicker/css/bootstrap-colorpicker.min.css"/>
+    <link rel="stylesheet" href="css/style.css"/>
+
+    <!-- LIB JS -->
     <script src="lib/jquery-3.1.1.min.js"></script>
-    <!-- Latest compiled and minified CSS -->
-    <link rel="stylesheet" href="css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
-    <link rel='stylesheet' href='css/style.css' />
     <script src="lib/jquery-ui.min.js"></script>
-    <link rel='stylesheet' href='css/jquery-ui.css'/>
+    <script src="bootstrap/js/bootstrap.min.js"></script>
+    <script src="colorpicker/js/bootstrap-colorpicker.min.js"></script>
 
-    <!-- Latest compiled and minified JavaScript -->
-    <script src="lib/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
-
+    <!-- Toolbar UI -->
     <script src="ui.js"></script>
-    <!--<script src="model.js"></script>-->
   </head>
+
+  <!-- MAIN UI -->
   <body>
-    <nav class="navbar navbar-default navbar-fixed-top">
-      <div class="container">
-        <div class="navbar-header">
-          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="navbar-brand" href="#">Coding assistant</a>
+      <nav class="navbar navbar-default navbar-fixed-top">
+        <div class="container">
+          <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+              <span class="sr-only">Toggle navigation</span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="#">Coding assistant</a>
+          </div>
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav">
+              <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Dataset<span class="caret"></span></a>
+                <ul class="dropdown-menu">
+                  <li><a href="#">Load new dataset</a></li>
+                  <li><a href="#">Export all files</a></li>
+                  <li role="separator" class="divider"></li>
+                  <li><a href="#">Quit</a></li>
+                </ul>
+              </li>          <li><p class="navbar-btn">
+              <a href="#" class="btn btn-success">Save</a>
+            </p></li>
+            </ul>
+          </div><!--/.nav-collapse -->
         </div>
-        <div id="navbar" class="navbar-collapse collapse">
-          <ul class="nav navbar-nav">
-            <li class="dropdown">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Dataset<span class="caret"></span></a>
-              <ul class="dropdown-menu">
-                <li><a href="#">Load new dataset</a></li>
-                <li><a href="#">Export all files</a></li>
-                <li role="separator" class="divider"></li>
-                <li><a href="#">Quit</a></li>
-              </ul>
-            </li>          <li><p class="navbar-btn">
-            <a href="#" class="btn btn-success">Save</a>
-          </p></li>
-          </ul>
-        </div><!--/.nav-collapse -->
-      </div>
-    </nav>
-    <div class="container" id="message-viewer">
-      <div class="row">
-        <div class="col-md-1 col-xs-1"></div>
-        <div class="col-md-10 col-xs-10">
-          <div class="panel panel-default" id="message-panel">
-            <table class="table table-fixed table-hover" id="message-table">
-              <thead>
-              <tr>
-                <th class="col-md-2 col-xs-2">Timestamp</th>
-                <th class="col-md-6 col-xs-6">Data</th>
-                <th class="col-md-4 col-xs-4" id="header-decoration-column">
-                  <div class="row">
-                  </div>
-                </th>
-              </tr>
-              </thead>
-              <tbody>
-              </tbody>
-            </table>
+      </nav>
+      <div class="container" id="message-viewer">
+        <div class="row">
+          <div class="col-md-1 col-xs-1"></div>
+          <div class="col-md-10 col-xs-10">
+            <div class="panel panel-default" id="message-panel">
+              <table class="table table-fixed table-hover" id="message-table">
+                <thead>
+                <tr>
+                  <th class="col-md-2 col-xs-2">Timestamp</th>
+                  <th class="col-md-6 col-xs-6">Data</th>
+                  <th class="col-md-4 col-xs-4" id="header-decoration-column">
+                    <div class="row">
+                    </div>
+                  </th>
+                </tr>
+                </thead>
+                <tbody>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="col-md-1 col-xs-1">
+            <button id="add-scheme" type="button" class="btn btn-default" data-spy="affix" data-target=".panel">
+              <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+            </button>
           </div>
         </div>
-        <div class="col-md-1 col-xs-1">
-          <button id="add-scheme" type="button" class="btn btn-default" data-spy="affix" data-target=".panel">
-            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-          </button>
-        </div>
       </div>
-    </div>
 
-    <div id="code-editor" >
-      <div class="panel panel-default" id="code-editor-panel">
-        <div class="panel-heading clearfix">
-          <div class="panel-title">
-            <div class="row">
 
-              <div class="col-md-11">
-                <div class="input-group">
-                  <span class="input-group-addon" id="basic-addon1">Code Scheme Name</span>
-                  <input id="scheme-name-input" type="text" class="form-control" placeholder="code scheme name..." aria-describedby="scheme-name-input">
+      <!-- CODE EDITOR -->
+      <div id="code-editor" >
+        <div class="panel panel-default" id="code-editor-panel">
+          <div class="panel-heading clearfix">
+            <div class="panel-title">
+              <div class="row">
+
+                <div class="col-md-11 col-xs-11">
+                  <div class="input-group">
+                    <span class="input-group-addon" id="basic-addon1">Code Scheme Name</span>
+                    <input id="scheme-name-input" type="text" class="form-control" placeholder="code scheme name..." aria-describedby="scheme-name-input">
+                  </div>
+                </div>
+
+                <div class="col-md-1 col-xs-1">
+                  <button id="close-editor" class="btn btn-default btn-sm">
+                    <i class="glyphicon glyphicon-remove"></i>
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+
+          <div>
+            <!-- CODE EDITOR TABLE -->
+            <div class="row" id="editor-row">
+              <table class="table table-fixed table-hover" id="code-table">
+                <thead>
+                <tr class="row">
+                  <th class="col-md-6">Code</th>
+                  <th class="col-md-6">Shortcut</th>
+                </tr>
+                </thead>
+                <tbody>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- CODE EDITOR PANEL -->
+            <div class="row" id="panel-row">
+              <div class="panel panel-default">
+                <div class="panel-body">
+                  <div id="color-pick" class="input-group colorpicker-component">
+                    <span class="input-group-addon" id="">Code Color</span>
+                    <input type="text" value="#00AABB" class="form-control"/>
+                    <span class="input-group-addon" id="colorpicker-trigger"><i></i></span>
+                  </div>
                 </div>
               </div>
-
-              <div class="col-md-1">
-                <button id="close-editor" class="btn btn-default btn-sm">
-                  <i class="glyphicon glyphicon-remove"></i>
-                </button>
-              </div>
-
             </div>
           </div>
-        </div>
 
-
-        <div>
-          <div class="row" id="editor-row">
-            <table class="table table-fixed table-hover" id="code-table">
-              <thead>
-              <tr class="row">
-                <th class="col-md-6">Code</th>
-                <th class="col-md-6">Shortcut</th>
-              </tr>
-              </thead>
-              <tbody>
-
-              </tbody>
-
-            </table>
-          </div>
-          <div class="row" id="panel-row">
-            <div class="panel panel-default">
-              <div class="panel-body">
-              </div>
+          <!-- CODE EDITOR BUTTONS -->
+          <div class="row" id="button-row">
+            <div class="btn-group">
+              <button type="button" id="scheme-save-button" class="btn btn-success">Save</button>
             </div>
-          </div>
-        </div>
-        <div class="row" id="button-row">
-          <div class="btn-group">
-            <button type="button" id="scheme-save-button" class="btn btn-success">Save</button>
-          </div>
-          <div class="btn-group">
-            <button type="button" id="cancel-button" class="btn btn-danger">Cancel</button>
+            <div class="btn-group">
+              <button type="button" id="cancel-button" class="btn btn-danger">Cancel</button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <h1 style="display:none">
-      <div id='data' />
-      <div id='storageData' />
-    </h1>
-    </body>
+      <h1 style="display:none">
+        <div id='data' />
+        <div id='storageData' />
+      </h1>
+  </body>
 
-    <script src="lib/jquery.stickytableheaders.js"></script>
-    <script src="UIUtils.js"></script>
-    <script src="tableUI.js"></script>
+  <!-- MAIN UI JS -->
+  <script src="lib/jquery.stickytableheaders.js"></script>
+  <script src="model.js"></script>
+  <script src="UIUtils.js"></script>
+  <script src="initUI.js"></script>
+  <script src="tableUI.js"></script>
+  <script src="editorUI.js"></script>
+
 </html>
