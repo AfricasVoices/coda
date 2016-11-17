@@ -3,6 +3,17 @@ var UIUtils = (
 
         return {
 
+            randomId : function(array) {
+                var newId = Math.floor(Math.random()*100);
+
+                if (array !== undefined && array.length !== 0) {
+                    while (array.indexOf(newId) !== -1) {
+                        newId = Math.floor(Math.random()*100);
+                    }
+                }
+                return newId;
+            },
+
             ascii: function (a) {
                 return a.charCodeAt(0);
             },
@@ -10,11 +21,11 @@ var UIUtils = (
             nextUnfilledRow: function (activeRow, wrap) {
                 if (wrap == null) wrap = false;
 
-                var next = activeRow.nextAll(".uncoded:first");
+                var next = activeRow.nextAll().has("select.uncoded").first();
                 if (next.length > 0) return next;
 
                 if (wrap) {
-                    var prev = activeRow.prevAll(".uncoded:last");
+                    var prev = activeRow.prevAll().has(".uncoded:last").last();
                     if (prev.length !== 0) return prev;
                 }
 
@@ -24,11 +35,11 @@ var UIUtils = (
             previousUnfilledRow: function (activeRow, wrap) {
                 if (wrap == null) wrap = false;
 
-                var previous = activeRow.prevAll(".uncoded:first");
+                var previous = activeRow.prevAll().has(".uncoded:first").first();
                 if (previous.length > 0) return previous;
 
                 if (wrap) {
-                    var next = activeRow.nextAll(".uncoded:last");
+                    var next = activeRow.nextAll().has(".uncoded:last").first();
                     if (next.length !== 0) return next;
                 }
 

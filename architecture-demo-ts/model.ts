@@ -35,11 +35,6 @@ class RawEvent {
 
     }
 
-    code(scheme: CodeScheme, value : string, color : string, shortcut : string) {
-        var code = new Code(scheme, value, color, shortcut);
-        this.codes.set(scheme.id, code);
-    }
-
     codeForScheme(schemeId : string) : Code {
         return this.codes.get(schemeId);
     }
@@ -144,21 +139,23 @@ class SessionDecoration {
 class CodeScheme {
     id : string;
     name : string;
-    codes : Map<string, Code>;
+    codes : Map<String,Code>;
+    isNew : boolean;
 
-    constructor(id : string, name : string) {
+    constructor(id : string, name : string, isNew : boolean) {
         this.id = id;
         this.name = name;
-        this.codes = new Map<string, Code>();
+        this.codes = new Map<string,Code>();
+        this.isNew = isNew;
     }
 
     static clone(original : CodeScheme) {
-        var newScheme : CodeScheme = new this(original["id"], original["name"]);
+        var newScheme : CodeScheme = new this(original["id"], original["name"], false);
 
-        newScheme.codes = new Map<string, Code>();
+        newScheme.codes = new Map<string,Code>();
 
-        Array.from(original["codes"].entries()).forEach(([key,entry]) => {
-            newScheme.codes.set(key, Code.clone(entry));
+        original.codes.forEach(function(code: Code) {
+            newScheme.codes.set(code.id, Code.clone(code));
         });
 
         return newScheme;
@@ -166,7 +163,7 @@ class CodeScheme {
 
     getShortcuts() : Set<string> {
         let shortcuts : Set<string> = new Set<string>();
-        this.codes.forEach((code: Code, id: string) => {
+        this.codes.forEach(function(code: Code) {
             shortcuts.add(code.shortcut);
         });
         return shortcuts;
@@ -174,31 +171,22 @@ class CodeScheme {
 
     getCodeValues() : Set<string> {
         let values : Set<string> = new Set<string>();
-        this.codes.forEach((code: Code, id: string) => {
+        this.codes.forEach(function(code: Code) {
             values.add(code.value);
         });
         return values;
     }
 
     getCodeByValue(value: string) : Code {
-        var codes = Array.from(this.codes.values());
 
         var match;
-
-        for (let code of codes) {
+        // TS doesn't support iterating IterableIterator with ES5 target
+        for (let code of Array.from(this.codes.values())) {
             if (code.value === value) {
                 match = code;
                 break;
             }
         }
-        /*
-         codes.forEach(function(code, i) {
-         if (code.value === value) match = code;
-         return;
-         });
-         */
-
-
         return match;
     }
 }
@@ -206,14 +194,19 @@ class CodeScheme {
 class Code {
 
     private _owner : CodeScheme;
+    private _id: string;
     private _value : string;
     private _color : string;
     private _shortcut : string;
     private _words : Array<string>;
-    private _edited : boolean;
+    private _isEdited : boolean;
 
     get owner(): CodeScheme {
         return this._owner;
+    }
+
+    get id(): string {
+        return this._id;
     }
 
     get value(): string {
@@ -232,51 +225,48 @@ class Code {
         return this._words;
     }
 
-    get edited(): boolean {
-        return this._edited;
+    get isEdited(): boolean {
+        return this._isEdited;
     }
 
-    constructor(owner: CodeScheme, value: string, color: string, shortcut: string) {
+    constructor(owner: CodeScheme, id: string, value: string, color: string, shortcut: string, isEdited: boolean) {
         this._owner = owner;
+        this._id = id;
         this._value = value;
         this._color = color;
         this._shortcut = shortcut;
         this._words = [];
-        this._edited = false;
+        this._isEdited = isEdited;
     }
 
     set owner(value: CodeScheme) {
         this._owner = value;
-        this._edited = true;
     }
 
     set value(value: string) {
         this._value = value;
-        this._edited = true;
+        this._isEdited = true;
+
     }
 
     set color(value: string) {
         this._color = value;
-        this._edited = true;
+        this._isEdited = true;
     }
 
     set shortcut(value: string) {
         this._shortcut = value;
-        this._edited = true;
+        this._isEdited = true;
     }
 
     set words(value: Array<string>) {
         this._words = value;
-        this._edited = true;
+        this._isEdited = true;
     }
 
-    setColor(color: string) {
-        this._color = color;
-        this._edited = true;
-    }
 
     static clone(original : Code) : Code {
-        var newCode = new Code(original["_owner"], original["_value"], original["_color"], original["_shortcut"]);
+        var newCode = new Code(original["_owner"], original["_id"], original["_value"], original["_color"], original["_shortcut"], false);
         newCode._words = original["_words"].slice(0);
         return newCode;
     }

@@ -1,12 +1,14 @@
 var dataset;
 var newDataset;
 var editorOpen;
-var activeRow;
 var UIUtils = UIUtils;
 var codeEditorPanel = $("#code-editor-panel");
 
 var schemes = {};
 var tempScheme = {};
+
+var activeRow;
+var activeScheme;
 
 
 var state = {
@@ -16,7 +18,7 @@ var state = {
     schemes: {
         type: {"name": "type", "codes": ["Incoming", "Outgoing", "Unknown"], "colors": ["#2ecc71", "#9b59b6", "#e74c3c"]}
     }
-}
+};
 
 
 
@@ -31,9 +33,8 @@ $.getJSON("data/sessions.json", function(data) {
         var decorations = {};
 
         var properDataset = new Dataset();
-        Object.keys(data).forEach(function(sessionKey) {
+        Object.keys(data).forEach(function(sessionKey, i) {
             var events = [];
-
             Object.keys(data[sessionKey]["events"]).forEach(function(eventKey) {
                 var event = new RawEvent(data[sessionKey]["events"][eventKey]["name"], data[sessionKey]["events"][eventKey]["timestamp"], "", data[sessionKey]["events"][eventKey]["data"], "");
 
@@ -45,14 +46,15 @@ $.getJSON("data/sessions.json", function(data) {
                     }
 
                     if (!decorations.hasOwnProperty(d)) {
-                        schemes[sessionKey + eventKey] = new CodeScheme(sessionKey + eventKey, d);
-                        decorations[d] = sessionKey + eventKey;
+                        // TODO: how to do scheme ids
+                        schemes[sessionKey] = new CodeScheme(sessionKey, d, true);
+                        decorations[d] = sessionKey;
                     }
 
                     if (decorationValue.length > 0 && !schemes[decorations[d]].getCodeValues().has(decorationValue)) {
-                        var existingCodeNo = schemes[decorations[d]].codes.size;
                         var scheme = schemes[decorations[d]];
-                        scheme.codes.set(existingCodeNo, new Code(scheme, decorationValue, "#ffffff", ""));
+                        var newCodeId = sessionKey + "-" + UIUtils.randomId(Array.from(scheme.codes.keys()));
+                        scheme.codes.set(newCodeId, new Code(scheme, newCodeId, decorationValue, "#ffffff", "", false));
                     }
 
                 });

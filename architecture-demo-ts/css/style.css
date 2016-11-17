@@ -120,9 +120,5 @@ tr.active.code-row > td {
 }
 
 /*
-#code-table {
-  border-collapse: separate;
-  border-spacing: 0 10px;
-}
-
+TODO prevent code header column wrapping to next row - keep button always on top and hide the excess text
 */

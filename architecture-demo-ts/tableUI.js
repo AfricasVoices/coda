@@ -7,17 +7,14 @@ var messageViewerManager = {
         this.messageContainer = messageContainer;
         this.table = messageContainer.find("table");
         this.buildTable(data);
+        var dropdowns = $(".decorator-column").find("select");
+        dropdowns.each(function(i, dropdown) {
+            $(dropdown).on("change", messageViewerManager.dropdownChange);
+        });
     },
 
     buildTable: function(data) {
         var schemes = newDataset.schemes;
-
-        /*
-        Object.keys(state.schemes).forEach(function(schemeName) {
-           schemes.push(state.schemes[schemeName]);
-        });
-        */
-
         var decoNumber = Object.keys(schemes).length;
         var decoColumnWidth = (12/decoNumber>>0);
         var bindEditSchemeButtonListener = this.bindEditSchemeButtonListener;
@@ -26,8 +23,7 @@ var messageViewerManager = {
         /*
         Build header
          */
-        Object.keys(schemes).forEach(function(schemeKey) {
-
+        Object.keys(schemes).forEach(function(schemeKey, i) {
             messageViewerManager.codeSchemeOrder.push(schemeKey);
 
             var decoColumn = $("#header-decoration-column");
@@ -38,6 +34,11 @@ var messageViewerManager = {
                 "</i>" +
                 "</button>").appendTo(col);
 
+            if (i==0) {
+                activeScheme = schemeKey;
+                col.children("i").css("text-decoration", "underline");
+            }
+            col.children("i").on("click", messageViewerManager.changeActiveScheme);
             bindEditSchemeButtonListener(button, schemes[schemeKey]);
         });
 
@@ -48,8 +49,7 @@ var messageViewerManager = {
          */
 
         newDataset.sessions.forEach(function(session) {
-            var events = session.events;
-            events.forEach(function(event) {
+            session.events.forEach(function(event) {
                 var eventRow = $("<tr class='message' id=" + event["name"] + "></tr>").appendTo("#message-table > tbody");
                 eventRow.append("<td class='col-md-2'>" + event["timestamp"] + "</td>");
                 eventRow.append("<td class='col-md-6'>" + event["data"] + "</td>");
@@ -57,73 +57,31 @@ var messageViewerManager = {
                 var decoCell =  $("<div class='row decorator-column'></div>").appendTo(decoColumn);
 
 
-                //$("<td class=col-md-4><div class='row'></div></td>").appendTo(decoCell);
-
-                /*if (state.schemes[state.activeCell["decoName"]]["colors"].length > 0) {
-
-                }*/
-
                 Object.keys(newDataset.schemes).forEach(function(schemeKey, index) {
-                    var codes = newDataset.schemes[schemeKey].codes;
-
-
-                   /*
-                    if (!schemes.hasOwnProperty(decoration)) {
-                        schemes[decoration] = [];
-                    }
-
-                    if (schemes[decoration].indexOf(event["decorations"][decoration]) === -1) {
-                        schemes[decoration].push(event["decorations"][decoration]);
-                    }
-                    */
-
+                    var codes = Array.from(newDataset.schemes[schemeKey].codes.values());
                     var div = $("<div class='col-md-" + decoColumnWidth + "'></div>").appendTo(decoCell);
-                    var input = $("<select class='form-control " + schemeKey + "'></select>").appendTo(div);
+                    var input = $("<select class='form-control " + schemeKey + " coded'></select>").appendTo(div);
 
-                    //var currentScheme = schemes.filter(function(scheme) {return scheme["name"] === decoration;})[0];
-
-                    codes.forEach(function(code, i) {
-                        input.append("<option>" + code["value"] + "</option>");
-
+                    codes.forEach(function(codeObj) {
+                        input.append("<option id='" + codeObj["id"] + "'>" + codeObj["value"] + "</option>");
 
                         if (index == 0) {
                             eventRow.children("td").each(function(i, td) {
-                                $(td).css("background-color", code["color"]);
+                                $(td).css("background-color", codeObj["color"]);
                             });
                         }
 
                     });
+
+                    input.append("<option class='unassign'></option>"); // in order to be able to unassign codes
 
                     if (event["decorations"].has(schemes[schemeKey]["name"])) {
                         input.val(event["decorations"].get(schemes[schemeKey]["name"]).value);
                     } else {
                         input.val("");
-                        eventRow.addClass("uncoded");
+                        input.removeClass("coded");
+                        input.addClass("uncoded");
                     }
-
-
-/*
-                    currentScheme["codes"].forEach(function(code, j) {
-                       input.append("<option>" + code + "</option>");
-
-                        if (index == state.activeCell["index"]) {
-                            eventRow.children("td").each(function(i, td) {
-                                var codeIndex = state.schemes[state.activeCell["decoName"]]["codes"].indexOf(event["decorations"][decoration]);
-                                $(td).css("background-color", state.schemes[state.activeCell["decoName"]]["colors"][codeIndex]);
-                            });
-                        }
-
-                    });
-**/
-/*
-                    input.val(event["decorations"][decoration]);
-                    if (event["decorations"][decoration].length === 0) {
-                        eventRow.addClass("uncoded");
-                    }
-*/
-
-
-
                 });
             });
         });
@@ -204,36 +162,117 @@ var messageViewerManager = {
 
     },
 
-    addNewScheme: function(scheme) {
+    changeActiveScheme : function() {
+
+        $("#header-decoration-column").find("i").not(".glyphicon").css("text-decoration", "");
+        $(this).css("text-decoration", "underline");
+        activeScheme = /header(.*)/.exec($(this).parents("div").attr("id"))[1];
+
+        var schemeObj = schemes[activeScheme];
+        /*
+        $(".message").has("select.coded." + activeScheme).each(function(i, tr) {
+            // find code object via selected option
+            var color = schemeObj.codes.get($(this).find("option:selected"))["color"];
+
+            $(tr).children("td").each(function(i, td) {
+                $(td).css("background-color", color);
+            });
+        });
+        */
+
+        $(".message").each(function(i, tr) {
+            // find code object via selected option
+            var selectedOption = $(tr).find("select." + activeScheme).find("option:selected").not(".unassign");
+
+            if (selectedOption.length !== 0) {
+                var color = schemeObj.codes.get(selectedOption.attr("id"))["color"];
+                $(tr).children("td").each(function(i, td) {
+                    $(td).css("background-color", color);
+                });
+            } else {
+                $(tr).children("td").each(function(i, td) {
+                    $(td).css("background-color", "#ffffff");
+                });
+            }
+
+        });
+
+    },
+
+    dropdownChange : function() {
+
+        var schemeId = /form-control (.*) (uncoded|coded)/.exec($(this).attr("class"))[1];
+        var value = $(this).val();
+        var row = $(this).parents(".message");
+
+        if (value.length > 0) {
+            $(this).removeClass("uncoded");
+            $(this).addClass("coded");
+
+            if (activeScheme === schemeId) {
+                var color = schemes[schemeId].getCodeByValue(value)["color"];
+                row.children("td").each(function(i, td) {
+                    $(td).css("background-color", color);
+                });
+            }
+
+        } else {
+            $(this).removeClass("coded");
+            $(this).addClass("uncoded");
+
+            if (activeScheme === schemeId) {
+                row.children("td").each(function (i, td) {
+                    $(td).css("background-color", "#ffffff");
+                });
+            }
+        }
+
+    },
+
+    addNewSchemeColumn: function(scheme) {
 
         // TODO: warning message in case of empty codes
-        if (scheme["codes"].length === 0) return;
+        if (scheme["codes"].size === 0) return;
 
 
         var decorationCell = $("#header-decoration-column").find(".row");
         var numberOfDecorations = decorationCell.find("div[class*=col-]").length + 1;
         var newDecoColumnWidth = (12/numberOfDecorations>>0);
 
-        var div = ($("<div class='col-md-" + newDecoColumnWidth + "'><i>" + scheme["name"] + "</i></div>")).appendTo(decorationCell);
+        /*
+        Restructure the header
+         */
+
+        var div = ($("<div class='col-md-" + newDecoColumnWidth + "' id='header" + scheme["id"] + "'><i>" + scheme["name"] + "</i></div>")).appendTo(decorationCell);
         var button = $("<button type='button' class='btn btn-default btn-xs edit-scheme-button'>" +
         "<i class='glyphicon glyphicon-edit'>" +
         "</i>" +
         "</button>").appendTo(div);
 
+        div.children("i").on("click", this.changeActiveScheme);
+        div.children("i").trigger("click");
         this.bindEditSchemeButtonListener(button, scheme);
 
         decorationCell.find("div[class*=col-]").attr("class", "col-md-" + newDecoColumnWidth);
 
+        /*
+        Restructure the body
+         */
+
         this.table.find("tbody > tr").each(function(index, row) {
-            var decoCell = $(row).children("td:last").find(".row");
+            var decoCell = $(row).children("td:last").find(".row"); // todo rewrite queries
 
             // keep it a div instead of td so styles dont conflict
             var div = $("<div class='col-md-" + newDecoColumnWidth + "'></div>").appendTo(decoCell);
-            var input = $("<select class='form-control'></select>").appendTo(div);
+            var dropdown = $("<select class='form-control " + scheme["id"] + " uncoded'></select>").appendTo(div);
 
-            scheme["codes"].forEach(function(code) {
-                input.append("<option>" + code + "</option>");
+            Array.from(scheme.codes.values()).forEach(function(codeObj) {
+                dropdown.append("<option id='" + codeObj["id"] + "'>" + codeObj["value"] + "</option>");
             });
+
+            dropdown.append("<option class='unassign'></option>");
+            dropdown.val("");
+            dropdown.on("change", messageViewerManager.dropdownChange);
         });
 
         this.table.find("tbody > tr").each(function(index, row) {
@@ -256,13 +295,9 @@ var messageViewerManager = {
             if (!(codeEditor.is(":visible"))) {
 
                 editorOpen = true;
-/*
-                scheme["codes"].forEach(function(code, index) {
-                    codeEditorManager.addCodeInputRow(code, "", scheme["colors"][index]);
-                });
-*/
+
                 Array.from(tempScheme.codes.values()).forEach(function (codeObj, index) {
-                    codeEditorManager.addCodeInputRow(codeObj["value"], codeObj["shortcut"], codeObj["color"], index);
+                    codeEditorManager.addCodeInputRow(codeObj["value"], codeObj["shortcut"], codeObj["color"], codeObj["id"]);
                 });
 
 
@@ -272,7 +307,8 @@ var messageViewerManager = {
                         index = i;
                 });
 
-                codeEditorManager.bindSaveEditListener(messageViewerManager.codeSchemeOrder.indexOf(scheme["id"]));
+
+                codeEditorManager.bindSaveEditListener();
 
                 $("#scheme-name-input").val(scheme["name"]);
                 codeEditor.show();

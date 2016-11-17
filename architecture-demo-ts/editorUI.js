@@ -33,8 +33,10 @@ var codeEditorManager =  {
 
             if (!$.isEmptyObject(state.activeEditorRow)) {
                 $(state.activeEditorRow).css("background-color", event.color.toHex());
-                var code = Array.from(tempScheme.codes.values())[$(state.activeEditorRow).attr("id")];
-                code.color = event.color.toHex();
+                var code = tempScheme.codes.get($(state.activeEditorRow).attr("id"));
+                if (code) {
+                    code.color = event.color.toHex();
+                }
             }
 
         });
@@ -68,46 +70,52 @@ var codeEditorManager =  {
         var editorContainer = this.editorContainer;
         var addSchemeButton = this.addSchemeButton;
         var saveSchemeButton = this.saveSchemeButton;
+        var headerDecoColumn = $("#header-decoration-column");
+
 
         addSchemeButton.on("click", function() {
 
             // TODO: cleverly assign scheme ids
-            var newId = 10;
-            while (Object.keys(schemes).indexOf(newId) !== -1) {
-                newId = Math.floor(Math.random()*100);
-            }
+            var newId = UIUtils.randomId(Object.keys(schemes));
+            tempScheme = new CodeScheme(newId, "", true);
+            $("#color-pick").colorpicker('setValue', "#ffffff");
 
-            tempScheme = new CodeScheme(newId, "");
-
-
+            saveSchemeButton.off("click");
             saveSchemeButton.one("click", function() {
 
-                //var name = editorContainer.find("#scheme-name-input").attr("value");
-                //tempScheme.name = editorContainer.find("#scheme-name-input").attr("value");
+                tempScheme["name"] = editorContainer.find("#scheme-name-input").val();
+                tempScheme.codes.forEach(function(codeObj) {
+                    var row = editorContainer.find("tr[id='" + codeObj["id"] + "']");
 
+                    if (row.length > 0) {
+                        var value = row.find(".code-input").val();
+                        var shortcut = row.find(".shortcut-input").val();
 
-                var codeInputFields = editorContainer.find("input[class='form-control code-input']");
-                var shortcutInputFields = editorContainer.find("input[class='form-control shortcut-input']");
+                        if (value.length > 0) {
+                            codeObj.value = value;
+                        }
 
-                var codes = [];
-                var shortcuts = [];
-
-                codeInputFields.each(function(index, input) {
-                    if ($(input).val().length > 0)
-                        codes.push($(input).val());
-                        shortcuts.push($(shortcutInputFields[index]).val());
+                        if (shortcut.length > 0) {
+                            codeObj.shortcut = shortcut;
+                        }
+                    }
                 });
 
-                //messageViewerManager.addNewScheme({"name": name, "codes": codes});
-                messageViewerManager.addNewScheme(new CodeScheme(newId), name);
-                state.schemes[name] = {"name": name, "codes": codes};
+                // todo prevent saving when there is an empty code
+
+                messageViewerManager.addNewSchemeColumn(tempScheme, name);
+
+                var header = headerDecoColumn.find("#header" + tempScheme["id"]);
+                header.children("i").text(tempScheme["name"]);
 
                 editorContainer.hide();
                 editorContainer.find("tbody").empty();
+                codeEditorManager.bindAddCodeButtonListener();
                 editorContainer.find("#scheme-name-input").val("");
-                editorOpen = true;
+                editorOpen = false;
 
-                codeEditorManager.bindAddCodeButtonListener(editorContainer.find("tbody"));
+                schemes[newId] = tempScheme;
+                tempScheme = {};
 
             });
 
@@ -120,151 +128,108 @@ var codeEditorManager =  {
     },
 
 
-    bindSaveEditListener: function(index) {
+    bindSaveEditListener: function() {
         var editorContainer = this.editorContainer;
-        var oneIndexed = index + 1;
+        var saveSchemeButton = this.saveSchemeButton;
         var headerDecoColumn = $("#header-decoration-column");
 
-        $("#scheme-save-button").one("click", function () {
+        saveSchemeButton.off("click");
+        saveSchemeButton.one("click", function () {
 
-            var codes = [], shortcuts = [], colors = [];
-
-            /*
-             editorContainer.find(".code-row").each(function(index, row) {
-             codes.push($(row).find(".code-input").val());
-             codes.push(UIUtils.ascii($(row).find(".shortcut-input").val()));
-             colors.push($(row).css("background-color"));
-
-             });
-             */
-            var codeOrder = Array.from(tempScheme.codes.keys()); // ????? whatever todo fix this
-
-            codeOrder.forEach(function(codeIndex) {
-                var row = editorContainer.find("tr[id='" + codeIndex + "']");
+            tempScheme.codes.forEach(function(codeObj,codeIndex) {
+                var row = editorContainer.find("tr[id='" + codeObj["id"] + "']");
 
                 if (row.length > 0) {
-                    if (tempScheme.codes.has(codeIndex)) {
-                        var code = tempScheme.codes.get(codeIndex);
-                        code.value = row.find(".code-input").val();
-
+                    //if (tempScheme.codes[codeIndex] !== undefined) { // todo fetch by id
+                        var value = row.find(".code-input").val();
                         var shortcut = row.find(".shortcut-input").val();
-                        if (shortcut.length > 0) {
-                            code.shortcut = UIUtils.ascii(row.find(".shortcut-input").val());
+
+                        if (value.length > 0) {
+                            codeObj.value = value;
                         }
-                    }
+
+                        if (shortcut.length > 0) {
+                            codeObj.shortcut = shortcut;
+                        }
+                    //}
                 }
             });
 
             tempScheme["name"] = editorContainer.find("#scheme-name-input").val();
 
-
-
-// TODO: jquery each is slow
-            var inputFields = editorContainer.find("input[class='form-control code-input']");
-            inputFields.each(function(index, input) {
-                codes.push($(input).val());
-            });
-
-            var shortcutFields = editorContainer.find("input[class='form-control shortcut-input']");
-            shortcutFields.each(function(index, shortcut) {
-                shortcuts.push(UIUtils.ascii($(shortcut).val()));
-            });
-
-            var newScheme = {
-                name: editorContainer.find("#scheme-name-input").val(),
-                codes: codes,
-                shortcuts: shortcuts,
-            };
-
-            state.schemes[newScheme["name"]] = newScheme;
-
-            //var header = headerDecoColumn.find("div[class*='col-']:nth-child(" + oneIndexed + ")");
-            //header.find("i:first").text(newScheme["name"]);
-
             var header = headerDecoColumn.find("#header" + tempScheme["id"]);
             header.children("i").text(tempScheme["name"]);
 
-            /*
-            $(".decorator-column").find(".form-control " + tempScheme["id"]).each(function (i, row) {
-                var dropdown = $(row).find(":nth-child(" + oneIndexed + ") > select");
-                var options = $(dropdown).children();
 
-                options.each(function(i, option) {
-
-                    $(option).text(newScheme["codes"][i]);
-
-                });
-            });
-*/
-
-            // TODO detect which ones were edited vs added
             $(".message").each(function (i, row) {
                 var dropdown = $(row).find("." + tempScheme["id"]);
+                var options = dropdown.children().not(".unassign");
+
+                var shorterLength = options.length > tempScheme.codes.size ? tempScheme.codes.size : options.length;
+                var j = 0;
+                var codes = Array.from(tempScheme.codes.values());
+                while (j < shorterLength) {
+                    var optionId = $(options[j]).attr("id");
+                    var text = $(options[j]).text();
+                    var selected = dropdown.val();
 
 
-                // same name, different color
-                // renamed, same color
-                // renamed, different color
-                // gone
-
-                var selected = dropdown.val();
-
-                //                $(row).children("td").each(function(i, td) {
-
-
-                Array.from(tempScheme.codes).forEach(function(code, i) {
-                    var options = dropdown.children();
-                    var option = options[i];
-                    var text = $(option).text();
-                    var color;
-
-                    if (selected) {
-                        if (text === selected) {
-                            var codeObj = code[1];
-
-                            if (option && codeObj.edited) {
-                                color = tempScheme.codes.get(i)["color"];
-
-                            } else if (option && !codeObj.edited) {
-                                dropdown.val("");
-                                color = schemes[tempScheme["id"]].getCodeByValue(selected)["color"];
-                            } else {
-                                option = ("<option>" + codeObj["value"] + "</option>").appendTo(dropdown);
-                            }
-
+                    if (codes[j]["id"] === optionId) { // todo fix
+                        if (selected === text) {
                             $(row).children("td").each(function(i, td) {
-                                if (color.length > 0) {
-                                    $(td).css("background-color", color);
-                                } else {
-                                    $(td).css("background-color", "#ffffff");
-                                }
+                                $(td).css("background-color", codes[j]["color"]); //todo fix
                             });
-
                         }
+                        $(options[j]).text(codes[j]["value"]); //todo fix
+
+                    } else {
+                        if (selected === text) {
+                            dropdown.val("");
+                            dropdown.removeClass("coded");
+                            dropdown.addClass("uncoded");
+                            $(row).children("td").each(function(i, td) {
+                                $(td).css("background-color", "#ffffff");
+                            });
+                        }
+                        $(options[j]).attr("id", codes[j]["id"]); //todo fix
+                        $(options[j]).text(codes[j]["value"]); //Todo fix
                     }
-                    $(option).text(tempScheme["codes"].get(i)["value"]);
 
-                });
+                    j++;
+                }
 
+                if (options.length < tempScheme.codes.size) {
 
-                });
+                    var newCodes = codes.slice(options.length-1, tempScheme.codes.size);
+                    newCodes.forEach(function(codeObj) {
+                        $("<option id='" + codeObj["id"] + "'>" + codeObj["value"] + "</option>").insertBefore(dropdown.children(".unassign"));
+                    });
 
+                }
 
+                if (options.length > tempScheme.codes.size) {
 
+                    options = options.slice(tempScheme.codes.size, options.length);
+                    options.each(function(i, option) {
+                        if ($(option).text() === selected) {
+                            dropdown.val("");
+                            dropdown.removeClass("coded");
+                            dropdown.addClass("uncoded");
+                            $(row).children("td").each(function(i, td) {
+                                $(td).css("background-color", "#ffffff");
+                            });
+                        }
+                        $(option).remove();
+                    });
+                }
+            });
 
-
-
-
+            //tempScheme.codes = tempScheme.codes.filter(function(code) { return code !== ""; });
             schemes[tempScheme["id"]] = tempScheme;
-
-            //var button = headerDecoColumn.find("button")[index]; // raw element
-
-
-            //$(button).off("click"); // turn off old listener and bind new one
-            //messageViewerManager.bindEditSchemeButtonListener( $(button), newScheme);
-
-            editorContainer.find("tbody > tr").not().empty();
             editorContainer.hide();
+            editorContainer.find("tbody").empty();
+            codeEditorManager.bindAddCodeButtonListener();
+            editorContainer.find("#scheme-name-input").val("");
             editorOpen = false;
 
         });
@@ -276,11 +241,10 @@ var codeEditorManager =  {
         var closeButton = this.closeEditorButton;
         var cancelButton = this.cancelEditorButton;
 
-
         closeButton.on("click", function() {
             editorContainer.hide();
             editorContainer.find("tbody").empty();
-            codeEditorManager.bindAddCodeButtonListener(editorContainer.find("tbody"));
+            codeEditorManager.bindAddCodeButtonListener();
             $("#scheme-name-input").attr("value", "").val("");
             editorOpen = false;
             state.activeEditorRow = {};
@@ -290,21 +254,18 @@ var codeEditorManager =  {
         cancelButton.on("click", function() {
             editorContainer.hide();
             editorContainer.find("tbody").empty();
-            codeEditorManager.bindAddCodeButtonListener(editorContainer.find("tbody"));
+            codeEditorManager.bindAddCodeButtonListener();
             $("#scheme-name-input").attr("value", "").val("");
             editorOpen = false;
             state.activeEditorRow = {};
-
         });
-
-
     },
 
-    bindAddCodeButtonListener: function(tableBody) {
+    bindAddCodeButtonListener: function() {
 
         var addCodeInputRow = codeEditorManager.addCodeInputRow;
 
-        $(tableBody).append('<tr class="row add-code-row">' +
+        this.editorContainer.find("tbody").append('<tr class="row add-code-row">' +
             '<td class="col-md-6">' +
             '<button id="add-code" class="btn btn-default">' +
             '<i class="glyphicon glyphicon-plus">' +
@@ -316,23 +277,25 @@ var codeEditorManager =  {
             '</tr>');
 
         $(".add-code-row").on("click", function() {
-            addCodeInputRow("","", "#ffffff", parseInt($("tbody > .code-row:last").attr("id")) + 1);
-
+            addCodeInputRow("","", "#ffffff", "");
         });
+
+
     },
 
-    addCodeInputRow: function(code, shortcut, color, index) {
-
-        if (!tempScheme.codes.get(index) && code.length > 0) {
-            tempScheme.codes.set(index, new Code(tempScheme, code, color, shortcut)); // todo: fix owner when saving to parent scheme
-        }
+    addCodeInputRow: function(code, shortcut, color, id) {
 
         var bindInputListeners = codeEditorManager.bindInputListeners;
-        var codeTable = codeEditorManager.codeTable;
+
+        var newId = id;
+        if (id.length === 0) {
+            newId = tempScheme["id"] + "-" + UIUtils.randomId();
+            tempScheme.codes.set(newId, new Code(tempScheme, newId, code, color, shortcut, false)); // todo: fix owner when saving to parent scheme
+        }
 
         $(".code-row").each(function(i,row) {$(row).removeClass("active")});
 
-        var row = $("<tr class='row active code-row' id='" + index + "'></tr>").insertBefore($(".add-code-row"));
+        var row = $("<tr class='row active code-row' id='" + newId + "'></tr>").insertBefore($(".add-code-row"));
         state.activeEditorRow = row;
 
         var codeCell = $("<td class='col-md-6'></td>").appendTo(row);
@@ -350,12 +313,9 @@ var codeEditorManager =  {
             "</button>").appendTo(buttonCell);
 
         if (code.length != 0 && color.length != 0) {
-            //row.css("background-color", color);
             $("#color-pick").colorpicker('setValue', color);
         } else {
-            //row.css("background-color", "white");
             $("#color-pick").colorpicker('setValue', "#ffffff");
-
         }
 
         row.on("click", function() {
@@ -363,11 +323,12 @@ var codeEditorManager =  {
             state.activeEditorRow = $(this);
             state.activeEditorRow.addClass("active");
 
-            var code = Array.from(tempScheme.codes.values())[$(this).attr("id")];
+            var code = Array.from(tempScheme.codes.values())[$(this).attr("id")]; // todo fetch by id
 
-            var color = code["color"].length > 0 ? code["color"] : "#ffffff";
-            codeEditorManager.updateCodePanel(color);
-
+            if (code) {
+                var color = code["color"].length > 0 ? code["color"] : "#ffffff";
+                codeEditorManager.updateCodePanel(color);
+            }
         });
 
         codeInput.focus();
@@ -380,7 +341,6 @@ var codeEditorManager =  {
         var colorPicker = $("#color-pick");
         colorPicker.find("input").attr("value", color);
         colorPicker.colorpicker('setValue', color);
-
     },
 
 
@@ -393,20 +353,19 @@ var codeEditorManager =  {
 
         codeInput.on("keydown", function(event){
             if (event.keyCode === 13) {
+                // save and move to shortcut field
 
                 var index = $(this).parents("tr").attr("id");
-                if (tempScheme.codes.get("index")) {
+                var codeObj = tempScheme.codes.get(index); //todo fetch by id
 
-                } else {
-                    tempScheme.codes.set($(this).val(), new Code(tempScheme, $(this).val(), "", ""));
+                if (codeObj) {
+                    codeObj["value"] = ($(this).val());
                 }
-                // save changes in this field, move to shortcut field
 
                 $(this).prop("readonly", true);
                 $(this).attr("value", $(this).val());
-                $(this).parents("tr").find(".shortcut-input")
-                    .prop("readonly", false)
-                    .focus();
+                $(this).parents("tr").find(".shortcut-input").prop("readonly", false).focus();
+
             }
         });
 
@@ -415,7 +374,7 @@ var codeEditorManager =  {
                 $(this).attr("value", $(this).val());
                 $(this).prop("readonly", true);
 
-                tempScheme.codes.get();
+                //tempScheme.codes.get();
 
                 var nextRow = $(this).parents("tr").next();
 
@@ -425,7 +384,8 @@ var codeEditorManager =  {
                         .focus();
 
                 } else {
-                    codeEditorManager.addCodeInputRow("","");
+                    //codeEditorManager.addCodeInputRow("", "", "#ffffff", parseInt($("tbody > .code-row:last").attr("id")) + 1);
+
                     nextRow = $(this).parents("tr").next();
                     nextRow.find(".code-input")
                         .prop("readonly", false)
@@ -437,32 +397,26 @@ var codeEditorManager =  {
         codeInput.on("focusout", function(){
 
             var index = $(this).parents("tr").attr("id");
-            var codeObj = Array.from(tempScheme.codes.values())[index];
+            var codeObj = tempScheme.codes.get(index); // todo fetch by id
 
             if (codeObj) {
                 codeObj["value"] = ($(this).val());
             } else {
                 if ($(this).val().length > 0) {
-                    tempScheme.codes.set($(this).val(), new Code(tempScheme, $(this).val(), "#ffffff"), "");
+                    var newCodeId = tempScheme["id"] + "-" + UIUtils.randomId(schemes[tempScheme["id"]].codes);
+                    //tempScheme.codes[index] = new Code(tempScheme, newCodeId, $(this).val(), "#ffffff", "", false);
                 }
             }
 
             $(this).prop("readonly", true);
 
-            /*
-            var inputs = $(".shortcut-input").add($(".code-input"));
 
-
-            inputs.each(function(index, input) {
-                $(input).val($(input).attr("value"));
-            });
-            */
         });
 
         shortcutInput.on("focusout", function(){
 
             var index = $(this).parents("tr").attr("id");
-            var codeObj = Array.from(tempScheme.codes.values())[index];
+            var codeObj = tempScheme.codes.get(index); //todo fetch by id
 
             if (codeObj && $(this).val().length > 0) {
                 codeObj["shortcut"] = UIUtils.ascii($(this).val());
@@ -477,18 +431,10 @@ var codeEditorManager =  {
 
             $(this).prop("readonly", false);
 
-            /*
-            var inputs = $(".shortcut-input").add($(".code-input"));
-
-            inputs.each(function(index, input) {
-                $(input).val($(input).attr("value"));
-            });
-            */
         });
 
         codeInput.on("click", function() {
             $(this).prop("readonly", false);
-
 
         });
 
@@ -496,11 +442,10 @@ var codeEditorManager =  {
 
             // TODO: unbind shortcuts
             // TODO: remove code from dropdowns
-
             // TODO: stop relying on Map keys as indices...
-
+            var id= $(this).parents("tr").attr("id");
             $(inputRow).remove();
-            tempScheme.codes.delete(parseInt($(this).parents(".code-row").attr("id")));
+            tempScheme.codes.delete(id);
 
         });
 
