@@ -8,7 +8,7 @@ var schemes = {};
 var tempScheme = {};
 
 var activeRow;
-var activeScheme;
+var activeSchemeId;
 
 
 var state = {

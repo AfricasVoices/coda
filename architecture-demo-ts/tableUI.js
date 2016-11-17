@@ -11,6 +11,7 @@ var messageViewerManager = {
         dropdowns.each(function(i, dropdown) {
             $(dropdown).on("change", messageViewerManager.dropdownChange);
         });
+        $(window).on("keypress", this.manageShortcuts);
     },
 
     buildTable: function(data) {
@@ -35,7 +36,7 @@ var messageViewerManager = {
                 "</button>").appendTo(col);
 
             if (i==0) {
-                activeScheme = schemeKey;
+                activeSchemeId = schemeKey;
                 col.children("i").css("text-decoration", "underline");
             }
             col.children("i").on("click", messageViewerManager.changeActiveScheme);
@@ -166,9 +167,9 @@ var messageViewerManager = {
 
         $("#header-decoration-column").find("i").not(".glyphicon").css("text-decoration", "");
         $(this).css("text-decoration", "underline");
-        activeScheme = /header(.*)/.exec($(this).parents("div").attr("id"))[1];
+        activeSchemeId = /header(.*)/.exec($(this).parents("div").attr("id"))[1];
 
-        var schemeObj = schemes[activeScheme];
+        var schemeObj = schemes[activeSchemeId];
         /*
         $(".message").has("select.coded." + activeScheme).each(function(i, tr) {
             // find code object via selected option
@@ -182,7 +183,7 @@ var messageViewerManager = {
 
         $(".message").each(function(i, tr) {
             // find code object via selected option
-            var selectedOption = $(tr).find("select." + activeScheme).find("option:selected").not(".unassign");
+            var selectedOption = $(tr).find("select." + activeSchemeId).find("option:selected").not(".unassign");
 
             if (selectedOption.length !== 0) {
                 var color = schemeObj.codes.get(selectedOption.attr("id"))["color"];
@@ -209,7 +210,7 @@ var messageViewerManager = {
             $(this).removeClass("uncoded");
             $(this).addClass("coded");
 
-            if (activeScheme === schemeId) {
+            if (activeSchemeId === schemeId) {
                 var color = schemes[schemeId].getCodeByValue(value)["color"];
                 row.children("td").each(function(i, td) {
                     $(td).css("background-color", color);
@@ -220,7 +221,7 @@ var messageViewerManager = {
             $(this).removeClass("coded");
             $(this).addClass("uncoded");
 
-            if (activeScheme === schemeId) {
+            if (activeSchemeId === schemeId) {
                 row.children("td").each(function (i, td) {
                     $(td).css("background-color", "#ffffff");
                 });
@@ -314,5 +315,41 @@ var messageViewerManager = {
                 codeEditor.show();
             }
         });
+    },
+
+    manageShortcuts : function(event) {
+        if (!editorOpen && activeSchemeId && activeRow && activeSchemeId.length > 0 && activeRow.length) {
+
+            var shortcuts = schemes[activeSchemeId].getShortcuts();
+            if (shortcuts.has(event.keyCode)) {
+                var codeObj = shortcuts.get(event.keyCode);
+                $(activeRow).children("td").each(function(i, td) {
+                    var color = codeObj["color"];
+                    if (color) {
+                        $(td).css("background-color", color);
+                    } else {
+                        $(td).css("background-color", "#ffffff");
+                    }
+                });
+
+                $(activeRow).removeClass("uncoded");
+                $(activeRow).addClass("coded");
+                $(activeRow).find("select." + activeSchemeId).val(codeObj["value"]);
+
+                var next = activeRow.next();
+                if (next.length !== 0) {
+                    activeRow.removeClass('active');
+                    activeRow = activeRow.next().addClass('active');
+
+                    if (!UIUtils.isRowVisible(next[0], messageViewerManager.messageContainer[0])) {
+                        UIUtils.scrollRowToTop(next[0], messageViewerManager.messageContainer[0]);
+                    }
+
+                }
+            }
+        }
+
+
+
     }
 };

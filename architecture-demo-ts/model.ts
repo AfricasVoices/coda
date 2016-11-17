@@ -161,11 +161,13 @@ class CodeScheme {
         return newScheme;
     }
 
-    getShortcuts() : Set<string> {
-        let shortcuts : Set<string> = new Set<string>();
-        this.codes.forEach(function(code: Code) {
-            shortcuts.add(code.shortcut);
-        });
+    getShortcuts() : Map<string, Code> {
+        let shortcuts : Map<string, Code> = new Map<string, Code>();
+        for (let code of Array.from(this.codes.values())) {
+            if (code.shortcut.length !== 0) {
+                shortcuts.set(code.shortcut, code);
+            }
+        }
         return shortcuts;
     }
 

@@ -96,7 +96,7 @@ var codeEditorManager =  {
                         }
 
                         if (shortcut.length > 0) {
-                            codeObj.shortcut = shortcut;
+                            codeObj.shortcut = UIUtils.ascii(shortcut);
                         }
                     }
                 });
@@ -140,18 +140,17 @@ var codeEditorManager =  {
                 var row = editorContainer.find("tr[id='" + codeObj["id"] + "']");
 
                 if (row.length > 0) {
-                    //if (tempScheme.codes[codeIndex] !== undefined) { // todo fetch by id
-                        var value = row.find(".code-input").val();
-                        var shortcut = row.find(".shortcut-input").val();
+                    //todo codeobject should just have all this saved already
+                    var value = row.find(".code-input").val();
+                    var shortcut = row.find(".shortcut-input").val();
 
-                        if (value.length > 0) {
-                            codeObj.value = value;
-                        }
+                    if (value.length > 0) {
+                        codeObj.value = value;
+                    }
 
-                        if (shortcut.length > 0) {
-                            codeObj.shortcut = shortcut;
-                        }
-                    //}
+                    if (shortcut.length > 0) {
+                        codeObj.shortcut = UIUtils.ascii(shortcut);
+                    }
                 }
             });
 
@@ -305,7 +304,9 @@ var codeEditorManager =  {
         var codeInput = $("<input type='text' class='form-control code-input' placeholder='enter code...' value='" + code + "'>")
             .appendTo(codeCell);
 
-        var shortcutInput = $("<input type='text' class='form-control shortcut-input' placeholder='type shortcut key...' value='" + shortcut + "'>")
+        shortcut = ("" + shortcut).length > 0 ? String.fromCharCode(shortcut) : "";
+        var shortcutInput = $("<input type='text' class='form-control shortcut-input' placeholder='type shortcut key...' value='" +
+            shortcut + "'>")
             .appendTo(shortcutCell);
 
         var button = $("<button type='button' class='btn btn-danger delete-code'>" +
