@@ -20,13 +20,13 @@ document.addEventListener('DOMContentLoaded', function () {
             text = "meow";
         dataDiv.innerText = text;
         accText += text;
-        chrome.storage.local.set({ "text": accText }, function () {
-            chrome.storage.local.get(function (items) {
+        chrome.storage.local.set({ "text": accText }, () => {
+            chrome.storage.local.get((items) => {
                 console.log("Items: " + items["text"]);
             });
         });
         isDog = !isDog;
-        chrome.storage.local.getBytesInUse(function (bytesUnUse) {
+        chrome.storage.local.getBytesInUse((bytesUnUse) => {
             console.log(accText.length);
             console.log("Bytes in use: " + bytesUnUse);
             console.log("QUOTA_BYTES: " + chrome.storage.local.QUOTA_BYTES);
@@ -34,59 +34,52 @@ document.addEventListener('DOMContentLoaded', function () {
     }, false);
 });
 // Data model
-var Model = (function () {
-    function Model() {
-    }
-    Model.prototype.serialise = function () {
+class Model {
+    serialise() {
         return "modelJSON";
-    };
-    return Model;
-}());
-var Schema = (function () {
-    function Schema() {
+    }
+}
+class Schema {
+    constructor() {
         this.codingSchemes = [];
     }
-    Schema.prototype.serialise = function () {
+    serialise() {
         return JSON.stringify(this.codingSchemes);
-    };
-    Schema.deserialise = function (jsonData) {
-        var s = new Schema();
+    }
+    static deserialise(jsonData) {
+        let s = new Schema();
         var decode = JSON.parse(jsonData);
-        for (var _i = 0, decode_1 = decode; _i < decode_1.length; _i++) {
-            var entry = decode_1[_i];
+        for (var entry of decode) {
             s.codingSchemes.push(new SchemaEntry(entry['codingSchemeName'], entry['codes'], entry['shortcuts']));
         }
         return s;
-    };
-    return Schema;
-}());
-var SchemaEntry = (function () {
-    function SchemaEntry(codingSchemeName, codes, shortcuts) {
+    }
+}
+class SchemaEntry {
+    constructor(codingSchemeName, codes, shortcuts) {
         this.codingSchemeName = codingSchemeName;
         this.codes = codes;
         this.shortcuts = shortcuts;
     }
-    return SchemaEntry;
-}());
+}
 // Services 
-var Watchdog = (function () {
-    function Watchdog() {
+class Watchdog {
+    constructor() {
         console.log("Watchdog ctor");
         var f = this.tick;
         setInterval(function () { f(); }, 500);
     }
-    Watchdog.prototype.tick = function () {
+    tick() {
         console.log("Watchdog tick");
-    };
-    return Watchdog;
-}());
-var UndoManager = (function () {
-    function UndoManager() {
+    }
+}
+class UndoManager {
+    constructor() {
         this.pointer = 0;
         this.modelUndoStack = [];
         this.schemaUndoStack = [];
     }
-    UndoManager.prototype.markUndoPoint = function () {
+    markUndoPoint() {
         while (this.pointer >= this.modelUndoStack.length - 1) {
             // We we're at the top of the stack
             this.modelUndoStack.pop();
@@ -98,26 +91,25 @@ var UndoManager = (function () {
             this.modelUndoStack.splice(0, 1);
             this.schemaUndoStack.splice(0, 1);
         }
-    };
-    UndoManager.prototype.canUndo = function () { return this.pointer != 0; };
-    UndoManager.prototype.canRedo = function () {
+    }
+    canUndo() { return this.pointer != 0; }
+    canRedo() {
         return this.pointer
             != this.modelUndoStack.length - 1 && this.modelUndoStack.length != 0;
-    };
-    UndoManager.prototype.undo = function () {
+    }
+    undo() {
         if (!this.canUndo())
             return;
         this.pointer--;
         model = this.modelUndoStack[this.pointer];
         schema = this.schemaUndoStack[this.pointer];
-    };
-    UndoManager.prototype.redo = function () {
+    }
+    redo() {
         if (!this.canRedo())
             return;
         this.pointer++;
         model = this.modelUndoStack[this.pointer];
         schema = this.schemaUndoStack[this.pointer];
-    };
-    UndoManager.MAX_UNDO_LEVELS = 50;
-    return UndoManager;
-}());
+    }
+}
+UndoManager.MAX_UNDO_LEVELS = 50;
