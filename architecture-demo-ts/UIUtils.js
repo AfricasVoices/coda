@@ -18,28 +18,30 @@ var UIUtils = (
                 return a.charCodeAt(0);
             },
 
-            nextUnfilledRow: function (activeRow, wrap) {
+            nextUnfilledRow: function (activeRow, wrap, schemeId) {
                 if (wrap == null) wrap = false;
+                if (schemeId == null) schemeId = ""; else schemeId = "." + schemeId;
 
-                var next = activeRow.nextAll().has("select.uncoded").first();
+                var next = activeRow.nextAll().has("select.uncoded" + schemeId).first();
                 if (next.length > 0) return next;
 
                 if (wrap) {
-                    var prev = activeRow.prevAll().has(".uncoded:last").last();
+                    var prev = activeRow.prevAll().has("select" + schemeId + ".uncoded:last").last();
                     if (prev.length !== 0) return prev;
                 }
 
                 return activeRow;
             },
 
-            previousUnfilledRow: function (activeRow, wrap) {
+            previousUnfilledRow: function (activeRow, wrap, schemeId) {
                 if (wrap == null) wrap = false;
+                if (schemeId == null) schemeId = "";
 
-                var previous = activeRow.prevAll().has(".uncoded:first").first();
+                var previous = activeRow.prevAll().has("select.uncoded" + schemeId).first();
                 if (previous.length > 0) return previous;
 
                 if (wrap) {
-                    var next = activeRow.nextAll().has(".uncoded:last").first();
+                    var next = activeRow.nextAll().has("select" + schemeId + ".uncoded:last").first();
                     if (next.length !== 0) return next;
                 }
 

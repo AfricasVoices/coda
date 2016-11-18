@@ -148,7 +148,7 @@ var messageViewerManager = {
 
 
                 // get next row and make it active
-                activeRow = UIUtils.nextUnfilledRow(activeRow, true);
+                activeRow = UIUtils.nextUnfilledRow(activeRow, true, activeSchemeId);
                 activeRow.toggleClass("active");
 
 
@@ -334,12 +334,14 @@ var messageViewerManager = {
 
                 $(activeRow).removeClass("uncoded");
                 $(activeRow).addClass("coded");
-                $(activeRow).find("select." + activeSchemeId).val(codeObj["value"]);
+                $(activeRow).find("select." + activeSchemeId).val(codeObj["value"]).removeClass("uncoded").addClass("coded");
 
-                var next = activeRow.next();
+                //var next = activeRow.next();
+                var next = UIUtils.nextUnfilledRow(activeRow, true, activeSchemeId);
                 if (next.length !== 0) {
                     activeRow.removeClass('active');
-                    activeRow = activeRow.next().addClass('active');
+                    //activeRow = activeRow.next().addClass('active');
+                    activeRow = next.addClass('active');
 
                     if (!UIUtils.isRowVisible(next[0], messageViewerManager.messageContainer[0])) {
                         UIUtils.scrollRowToTop(next[0], messageViewerManager.messageContainer[0]);
