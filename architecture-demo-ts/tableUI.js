@@ -8,9 +8,17 @@ var messageViewerManager = {
         this.table = messageContainer.find("table");
         this.buildTable(data);
         console.time("dropdown init");
-        var dropdowns = $(".decorator-column").find("select");
+        //var dropdowns = $(".decorator-column").find("select");
+        /*
         dropdowns.each(function(i, dropdown) {
             $(dropdown).on("change", messageViewerManager.dropdownChange);
+        });
+        */
+
+        $(document).on("change", function(event) {
+            if (event.originalEvent.target.nodeName === "SELECT") {
+                messageViewerManager.dropdownChange(event.originalEvent);
+            }
         });
         console.timeEnd("dropdown init");
         $(window).on("keypress", this.manageShortcuts);
@@ -220,15 +228,17 @@ var messageViewerManager = {
 
     },
 
-    dropdownChange : function() {
+    dropdownChange : function(event) {
 
-        var schemeId = /form-control (.*) (uncoded|coded)/.exec($(this).attr("class"))[1];
-        var value = $(this).val();
-        var row = $(this).parents(".message");
+        var selectObj = $(event.target);
+
+        var schemeId = /form-control (.*) (uncoded|coded)/.exec(selectObj.attr("class"))[1];
+        var value = selectObj.val();
+        var row = selectObj.parents(".message");
 
         if (value.length > 0) {
-            $(this).removeClass("uncoded");
-            $(this).addClass("coded");
+            selectObj.removeClass("uncoded");
+            selectObj.addClass("coded");
 
             if (activeSchemeId === schemeId) {
                 var color = schemes[schemeId].getCodeByValue(value)["color"];
@@ -238,8 +248,8 @@ var messageViewerManager = {
             }
 
         } else {
-            $(this).removeClass("coded");
-            $(this).addClass("uncoded");
+            selectObj.removeClass("coded");
+            selectObj.addClass("uncoded");
 
             if (activeSchemeId === schemeId) {
                 row.children("td").each(function (i, td) {
