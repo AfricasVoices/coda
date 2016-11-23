@@ -74,21 +74,32 @@ $.getJSON("data/sessions.json", function(data) {
     dataset = data;
     newDataset = buildDataset;
 
+    console.time("TOTAL UI INITIALISATION TIME");
 
     var messagePanel = $("#message-panel");
     var editorRow = $("#editor-row");
 
+    console.time("total messageview init");
     messageViewerManager.init(messagePanel, dataset);
+    console.timeEnd("total messageview init");
 
+    console.time("stickyheaders init");
     $('#message-table').stickyTableHeaders({scrollableArea: messagePanel});
     $('#code-table').stickyTableHeaders({scrollableArea: editorRow});
+    console.timeEnd("stickyheaders init");
+
 
     codeEditorPanel.resizable({
         handles: "nw",
         minWidth: 500,
         minHeight: 500
     });
+
+    console.time("editor init");
     codeEditorManager.init($("#code-editor"));
+    console.timeEnd("editor init");
 
     $("body").show();
+    console.timeEnd("TOTAL UI INITIALISATION TIME");
+
 });

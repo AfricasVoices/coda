@@ -7,13 +7,13 @@ var messageViewerManager = {
         this.messageContainer = messageContainer;
         this.table = messageContainer.find("table");
         this.buildTable(data);
-        console.time("handlers");
+        console.time("dropdown init");
         var dropdowns = $(".decorator-column").find("select");
         dropdowns.each(function(i, dropdown) {
             $(dropdown).on("change", messageViewerManager.dropdownChange);
         });
+        console.timeEnd("dropdown init");
         $(window).on("keypress", this.manageShortcuts);
-        console.timeEnd("handlers");
     },
 
     buildTable: function(data) {
@@ -22,6 +22,8 @@ var messageViewerManager = {
         var decoColumnWidth = (12/decoNumber>>0);
         var bindEditSchemeButtonListener = this.bindEditSchemeButtonListener;
         var messagePanel = this.messageContainer;
+
+        console.time("table building");
 
         /*
         Build header
@@ -57,7 +59,6 @@ var messageViewerManager = {
         var tbody = this.table.find("tbody");
         tbody.detach();
 
-        console.time("table build");
 
         newDataset.sessions.forEach(function(session) {
             session.events.forEach(function(event) {
@@ -97,12 +98,16 @@ var messageViewerManager = {
             });
         });
 
-        console.timeEnd("table build");
         this.table.append(tbody);
+
+        console.timeEnd("table building");
+
 
         /*
         ACTIVE ROW HANDLING
         */
+
+        console.time("active row handlers");
 
         // init
         activeRow = this.table.find("tbody").find("tr:first");
@@ -172,6 +177,9 @@ var messageViewerManager = {
             }
 
         });
+
+        console.timeEnd("active row handlers");
+
 
     },
 
