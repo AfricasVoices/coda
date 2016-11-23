@@ -7,11 +7,13 @@ var messageViewerManager = {
         this.messageContainer = messageContainer;
         this.table = messageContainer.find("table");
         this.buildTable(data);
+        console.time("handlers");
         var dropdowns = $(".decorator-column").find("select");
         dropdowns.each(function(i, dropdown) {
             $(dropdown).on("change", messageViewerManager.dropdownChange);
         });
         $(window).on("keypress", this.manageShortcuts);
+        console.timeEnd("handlers");
     },
 
     buildTable: function(data) {
@@ -49,9 +51,17 @@ var messageViewerManager = {
         Build rows
          */
 
+        // todo: for performs better than forEach
+
+
+        var tbody = this.table.find("tbody");
+        tbody.detach();
+
+        console.time("table build");
+
         newDataset.sessions.forEach(function(session) {
             session.events.forEach(function(event) {
-                var eventRow = $("<tr class='message' id=" + event["name"] + "></tr>").appendTo("#message-table > tbody");
+                var eventRow = $("<tr class='message' id=" + event["name"] + "></tr>").appendTo(tbody);
                 eventRow.append("<td class='col-md-2'>" + event["timestamp"] + "</td>");
                 eventRow.append("<td class='col-md-6'>" + event["data"] + "</td>");
                 var decoColumn = $("<td class=col-md-4></td>").appendTo(eventRow);
@@ -87,6 +97,8 @@ var messageViewerManager = {
             });
         });
 
+        console.timeEnd("table build");
+        this.table.append(tbody);
 
         /*
         ACTIVE ROW HANDLING
