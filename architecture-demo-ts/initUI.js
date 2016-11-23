@@ -74,7 +74,7 @@ $.getJSON("data/sessions-100000.json", function(data) {
     dataset = data;
     newDataset = buildDataset;
 
-
+    console.time("TOTAL UI INITIALISATION TIME");
     var messagePanel = $("#message-panel");
     var editorRow = $("#editor-row");
 
@@ -97,6 +97,10 @@ $.getJSON("data/sessions-100000.json", function(data) {
     codeEditorManager.init($("#code-editor"));
     console.timeEnd("editor init");
 
-
+    console.time("body.show()");
     $("body").show();
+    console.timeEnd("body.show()");
+    console.timeEnd("TOTAL UI INITIALISATION TIME");
+
+
 });
