@@ -26,7 +26,7 @@ var state = {
 $("#editor-row").css("height", codeEditorPanel.outerHeight(true) - codeEditorPanel.find(".panel-heading").outerHeight(true) - $('#panel-row').outerHeight(true) - $('#button-row').outerHeight(true) - 10);
 $("body").hide();
 
-$.getJSON("data/sessions.json", function(data) {
+$.getJSON("data/sessions-100000.json", function(data) {
 
     var buildDataset = function(data) {
 
@@ -78,17 +78,25 @@ $.getJSON("data/sessions.json", function(data) {
     var messagePanel = $("#message-panel");
     var editorRow = $("#editor-row");
 
+    console.time("total messageview init");
     messageViewerManager.init(messagePanel, dataset);
+    console.timeEnd("total messageview init");
 
+    console.time("stickyheaders init");
     $('#message-table').stickyTableHeaders({scrollableArea: messagePanel});
     $('#code-table').stickyTableHeaders({scrollableArea: editorRow});
+    console.timeEnd("stickyheaders init");
 
     codeEditorPanel.resizable({
         handles: "nw",
         minWidth: 500,
         minHeight: 500
     });
+
+    console.time("editor init");
     codeEditorManager.init($("#code-editor"));
+    console.timeEnd("editor init");
+
 
     $("body").show();
 });

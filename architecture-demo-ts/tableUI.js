@@ -7,11 +7,28 @@ var messageViewerManager = {
         this.messageContainer = messageContainer;
         this.table = messageContainer.find("table");
         this.buildTable(data);
-        var dropdowns = $(".decorator-column").find("select");
+
+        console.time("dropdown init");
+        //var dropdowns = $(".decorator-column").find("select"); // MAJOR BOTTLENECK!!!!!
+
+        /*
         dropdowns.each(function(i, dropdown) {
             $(dropdown).on("change", messageViewerManager.dropdownChange);
         });
+        */
+
+        $(document).on("change", function(event) {
+           if (event.originalEvent.target.nodeName === "SELECT") {
+               messageViewerManager.dropdownChange(event.originalEvent);
+           }
+        });
+
+        console.timeEnd("dropdown init");
+
+        console.time("shortcuts init");
         $(window).on("keypress", this.manageShortcuts);
+        console.timeEnd("shortcuts init");
+
     },
 
     buildTable: function(data) {
@@ -49,48 +66,73 @@ var messageViewerManager = {
         Build rows
          */
 
+        var tbody = "";
+
+        console.time("table building");
+
         newDataset.sessions.forEach(function(session) {
             session.events.forEach(function(event) {
-                var eventRow = $("<tr class='message' id=" + event["name"] + "></tr>").appendTo("#message-table > tbody");
-                eventRow.append("<td class='col-md-2'>" + event["timestamp"] + "</td>");
-                eventRow.append("<td class='col-md-6'>" + event["data"] + "</td>");
-                var decoColumn = $("<td class=col-md-4></td>").appendTo(eventRow);
-                var decoCell =  $("<div class='row decorator-column'></div>").appendTo(decoColumn);
+                tbody += "<tr class='message' id=" + event["name"] + ">";
+                tbody += "<td class='col-md-2'>" + event["timestamp"] + "</td>";
+                tbody += "<td class=col-md-4>" + event["data"] + "</td>";
+                tbody += "<td class=col-md-4>";
+                tbody += "<div class='row decorator-column'>";
 
 
                 Object.keys(newDataset.schemes).forEach(function(schemeKey, index) {
                     var codes = Array.from(newDataset.schemes[schemeKey].codes.values());
-                    var div = $("<div class='col-md-" + decoColumnWidth + "'></div>").appendTo(decoCell);
-                    var input = $("<select class='form-control " + schemeKey + " coded'></select>").appendTo(div);
+                    tbody += "<div class='col-md-" + decoColumnWidth + "'>";
 
+                    var selected = event["decorations"].get(schemes[schemeKey]["name"]).value;
+                    var optionsString = "";
+                    var selectClass = "uncoded";
                     codes.forEach(function(codeObj) {
-                        input.append("<option id='" + codeObj["id"] + "'>" + codeObj["value"] + "</option>");
 
+                        if (event["decorations"].has(schemes[schemeKey]["name"])) {
+                            if (event["decorations"].get(schemes[schemeKey]["name"]).value === codeObj["value"]) {
+                                optionsString += "<option id='" + codeObj["id"] + "' selected>" + codeObj["value"] + "</option>";
+                                selectClass = "coded";
+                            } else {
+                                optionsString += "<option id='" + codeObj["id"] + "'>" + codeObj["value"] + "</option>";
+                            }
+                        }
+
+                        /* TODO
                         if (index == 0) {
                             eventRow.children("td").each(function(i, td) {
                                 $(td).css("background-color", codeObj["color"]);
                             });
                         }
+                        */
 
                     });
 
-                    input.append("<option class='unassign'></option>"); // in order to be able to unassign codes
+                    tbody += "<select class='form-control " + schemeKey + " " + selectClass + "'>";
+                    tbody += optionsString;
 
-                    if (event["decorations"].has(schemes[schemeKey]["name"])) {
-                        input.val(event["decorations"].get(schemes[schemeKey]["name"]).value);
-                    } else {
-                        input.val("");
-                        input.removeClass("coded");
-                        input.addClass("uncoded");
-                    }
+
+                    tbody += "<option class='unassign'></option>";
+                    tbody += "</select>";
+                    tbody += "</div>";
+
                 });
+
+
+                tbody += "</div>";
+                tbody += "</td>";
+                tbody += "</td>";
+                tbody += "</tr>";
             });
+
         });
 
+        $(this.table).find("tbody").append(tbody);
+        console.timeEnd("table building");
 
         /*
         ACTIVE ROW HANDLING
         */
+
 
         // init
         activeRow = this.table.find("tbody").find("tr:first");
@@ -200,15 +242,17 @@ var messageViewerManager = {
 
     },
 
-    dropdownChange : function() {
+    dropdownChange : function(event) {
 
-        var schemeId = /form-control (.*) (uncoded|coded)/.exec($(this).attr("class"))[1];
-        var value = $(this).val();
-        var row = $(this).parents(".message");
+        var selectElement = $(event.target);
+
+        var schemeId = /form-control (.*) (uncoded|coded)/.exec(selectElement.attr("class"))[1];
+        var value = selectElement.val();
+        var row = selectElement.parents(".message");
 
         if (value.length > 0) {
-            $(this).removeClass("uncoded");
-            $(this).addClass("coded");
+            selectElement.removeClass("uncoded");
+            selectElement.addClass("coded");
 
             if (activeSchemeId === schemeId) {
                 var color = schemes[schemeId].getCodeByValue(value)["color"];
@@ -218,8 +262,8 @@ var messageViewerManager = {
             }
 
         } else {
-            $(this).removeClass("coded");
-            $(this).addClass("uncoded");
+            selectElement.removeClass("coded");
+            selectElement.addClass("uncoded");
 
             if (activeSchemeId === schemeId) {
                 row.children("td").each(function (i, td) {
