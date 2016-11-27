@@ -1,7 +1,7 @@
 let ENDING_PATTERN = "_";
 class Dataset {
     constructor() {
-        this.sessions = new Map();
+        this.sessions = [];
     }
     getAllEventDecorationNames() {
         var decorations = new Set();
@@ -12,6 +12,9 @@ class Dataset {
         });
         decorations.delete(undefined); // to handle empty decorations
         return decorations;
+    }
+    getAllSessionIds() {
+        return this.sessions.map(function (session) { return session.id; });
     }
 }
 class RawEvent {

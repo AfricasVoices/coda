@@ -1,12 +1,12 @@
 let ENDING_PATTERN : string = "_";
 
 class Dataset {
-    sessions : Map<string, Session> = new Map<string, Session>();
+    sessions : Array<Session> = [];
     schemes : {};
 
     getAllEventDecorationNames() {
         var decorations = new Set();
-        this.sessions.forEach((session: Session, sessionKey: string, map: Map<string,Session>) => {
+        this.sessions.forEach((session: Session, sessionKey: number, map:Array<Session>) => {
             session.events.forEach((event:RawEvent, index: number, eventArr: Array<RawEvent>) => {
                 //decorations.add(...event.decorationNames());
             });
@@ -14,6 +14,10 @@ class Dataset {
 
         decorations.delete(undefined); // to handle empty decorations
         return decorations;
+    }
+
+    getAllSessionIds() {
+        return this.sessions.map(function(session:Session) {return session.id;});
     }
 }
 

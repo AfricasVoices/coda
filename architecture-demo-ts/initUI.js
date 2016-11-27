@@ -26,17 +26,19 @@ var state = {
 $("#editor-row").css("height", codeEditorPanel.outerHeight(true) - codeEditorPanel.find(".panel-heading").outerHeight(true) - $('#panel-row').outerHeight(true) - $('#button-row').outerHeight(true) - 10);
 $("body").hide();
 
-$.getJSON("data/sessions-100000.json", function(data) {
+$.getJSON("data/sessions-6000.json", function(data) {
 
     var buildDataset = function(data) {
 
         var decorations = {};
+        var eventCount = 0;
 
         var properDataset = new Dataset();
-        Object.keys(data).forEach(function(sessionKey, i) {
+        Object.keys(data).forEach(function(sessionKey) {
             var events = [];
             Object.keys(data[sessionKey]["events"]).forEach(function(eventKey) {
-                var event = new RawEvent(data[sessionKey]["events"][eventKey]["name"], data[sessionKey]["events"][eventKey]["timestamp"], "", data[sessionKey]["events"][eventKey]["data"], "");
+                var event = new RawEvent(data[sessionKey]["events"][eventKey]["name"], data[sessionKey]["events"][eventKey]["timestamp"], "", data[sessionKey]["events"][eventKey]["data"]);
+                eventCount += 1;
 
                 Object.keys(data[sessionKey]["events"][eventKey]["decorations"]).forEach(function (d) {
 
@@ -53,7 +55,7 @@ $.getJSON("data/sessions-100000.json", function(data) {
 
                     if (decorationValue.length > 0 && !schemes[decorations[d]].getCodeValues().has(decorationValue)) {
                         var scheme = schemes[decorations[d]];
-                        var newCodeId = sessionKey + "-" + UIUtils.randomId(Array.from(scheme.codes.keys()));
+                        var newCodeId = data[sessionKey]["id"] + "-" + UIUtils.randomId(Array.from(scheme.codes.keys()));
                         scheme.codes.set(newCodeId, new Code(scheme, newCodeId, decorationValue, "#ffffff", "", false));
                     }
 
@@ -62,11 +64,12 @@ $.getJSON("data/sessions-100000.json", function(data) {
                 events.push(event);
             });
 
-            var session = new Session(sessionKey, events);
-            properDataset.sessions.set(sessionKey, session);
+            var session = new Session(data[sessionKey]["id"], events);
+            properDataset.sessions.push(session);
         });
 
         properDataset.schemes = schemes;
+        properDataset.eventCount = eventCount;
         return properDataset;
 
     }(data);

@@ -90,6 +90,15 @@ var UIUtils = (
                     // move row bounding box back down to top of container, then move up to acc for bottom padding and about 2 rows
                     container.scrollTop = container.scrollTop - boundingBoxTop * (-1) - 20 - row.offsetHeight * 2;
                 }
+            },
+
+            isScrolledToBottom: function(tableContainer) {
+                return (Math.abs($(tableContainer)[0].scrollHeight - $(tableContainer).scrollTop() - $(tableContainer).outerHeight()) < 1)
+            },
+
+            isScrolledToTop: function(tableContainer) {
+                return $(tableContainer).scrollTop() === 0;
             }
+
         };
     }) ();

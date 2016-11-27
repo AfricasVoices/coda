@@ -2,11 +2,19 @@ var messageViewerManager = {
     messageContainer: {},
     table: {},
     codeSchemeOrder: [],
+    tablePages: [],
+    rowsPerPage : 0,
+    currentlyLoadedPages : [],
 
-    init: function(messageContainer, data) {
+    init: function(messageContainer, data, rowsPerPage) {
+
+        if (rowsPerPage === undefined) rowsPerPage = 20;
+        this.rowsPerPage = rowsPerPage;
+
         this.messageContainer = messageContainer;
         this.table = messageContainer.find("table");
-        this.buildTable(data);
+        this.buildTable(data, rowsPerPage);
+        this.currentlyLoadedPages.push(1);
 
         console.time("dropdown init");
         //var dropdowns = $(".decorator-column").find("select"); // MAJOR BOTTLENECK!!!!!
@@ -23,6 +31,8 @@ var messageViewerManager = {
            }
         });
 
+        $("#message-panel").scroll(this.infiniteScroll);
+
         console.timeEnd("dropdown init");
 
         console.time("shortcuts init");
@@ -31,8 +41,9 @@ var messageViewerManager = {
 
     },
 
-    buildTable: function(data) {
+    buildTable: function(data, rowsPerPage) {
         var schemes = newDataset.schemes;
+        var eventCount = newDataset.eventCount;
         var decoNumber = Object.keys(schemes).length;
         var decoColumnWidth = (12/decoNumber>>0);
         var bindEditSchemeButtonListener = this.bindEditSchemeButtonListener;
@@ -67,19 +78,39 @@ var messageViewerManager = {
          */
 
         var tbody = "";
+        var currentEventCount = 0;
 
         console.time("table building");
 
         newDataset.sessions.forEach(function(session) {
             session.events.forEach(function(event) {
-                tbody += "<tr class='message' id=" + event["name"] + ">";
-                tbody += "<td class='col-md-2'>" + event["timestamp"] + "</td>";
-                tbody += "<td class=col-md-4>" + event["data"] + "</td>";
-                tbody += "<td class=col-md-4>";
-                tbody += "<div class='row decorator-column'>";
 
+                if (currentEventCount > rowsPerPage) {
+                    // build new page
+                    messageViewerManager.tablePages.push(tbody);
+                    tbody = "";
+                    tbody += "<tr class='message' id=" + event["name"] + ">";
+                    tbody += "<td class='col-md-2'>" + event["timestamp"] + "</td>";
+                    tbody += "<td class=col-md-4>" + event["data"] + "</td>";
+                    tbody += "<td class=col-md-4>";
+                    tbody += "<div class='row decorator-column'>";
+
+                    currentEventCount = 1;
+
+                } else {
+                    // append to old page
+                    tbody += "<tr class='message' id=" + event["name"] + ">";
+                    tbody += "<td class='col-md-2'>" + event["timestamp"] + "</td>";
+                    tbody += "<td class=col-md-4>" + event["data"] + "</td>";
+                    tbody += "<td class=col-md-4>";
+                    tbody += "<div class='row decorator-column'>";
+
+                    currentEventCount += 1;
+
+                }
 
                 Object.keys(newDataset.schemes).forEach(function(schemeKey, index) {
+
                     var codes = Array.from(newDataset.schemes[schemeKey].codes.values());
                     tbody += "<div class='col-md-" + decoColumnWidth + "'>";
 
@@ -117,7 +148,6 @@ var messageViewerManager = {
 
                 });
 
-
                 tbody += "</div>";
                 tbody += "</td>";
                 tbody += "</td>";
@@ -126,13 +156,12 @@ var messageViewerManager = {
 
         });
 
-        $(this.table).find("tbody").append(tbody);
+        $(this.table).find("tbody").append(this.tablePages[0]);
         console.timeEnd("table building");
 
         /*
         ACTIVE ROW HANDLING
         */
-
 
         // init
         activeRow = this.table.find("tbody").find("tr:first");
@@ -394,8 +423,65 @@ var messageViewerManager = {
                 }
             }
         }
+    },
 
+    infiniteScroll : function(event) {
+        if (UIUtils.isScrolledToBottom(messageViewerManager.messageContainer)) {
+            var nextPage = messageViewerManager.currentlyLoadedPages[messageViewerManager.currentlyLoadedPages.length-1] + 1;
+            messageViewerManager.table.find("tbody").append(messageViewerManager.tablePages[nextPage]);
+        };
 
+    },
 
+    buildRow : function(eventObj) {
+
+        var decoNumber = Object.keys(schemes).length;
+        var decoColumnWidth = (12/decoNumber>>0);
+        var sessionRow = "";
+
+        sessionRow += "<tr class='message' id=" + eventObj["name"] + ">";
+        sessionRow += "<td class='col-md-2'>" + eventObj["timestamp"] + "</td>";
+        sessionRow += "<td class=col-md-4>" + eventObj["data"] + "</td>";
+        sessionRow += "<td class=col-md-4>";
+        sessionRow += "<div class='row decorator-column'>";
+
+        Object.keys(newDataset.schemes).forEach(function(schemeKey) {
+
+            var codes = Array.from(newDataset.schemes[schemeKey].codes.values());
+            sessionRow += "<div class='col-md-" + decoColumnWidth + "'>";
+
+            var selected = event["decorations"].get(schemes[schemeKey]["name"]).value;
+            var optionsString = "";
+            var selectClass = "uncoded";
+
+            codes.forEach(function(codeObj) {
+
+                if (event["decorations"].has(schemes[schemeKey]["name"])) {
+                    if (event["decorations"].get(schemes[schemeKey]["name"]).value === codeObj["value"]) {
+                        optionsString += "<option id='" + codeObj["id"] + "' selected>" + codeObj["value"] + "</option>";
+                        selectClass = "coded";
+                    } else {
+                        optionsString += "<option id='" + codeObj["id"] + "'>" + codeObj["value"] + "</option>";
+                    }
+                }
+
+            });
+
+            sessionRow += "<select class='form-control " + schemeKey + " " + selectClass + "'>";
+            sessionRow += optionsString;
+
+            sessionRow += "<option class='unassign'></option>";
+            sessionRow += "</select>";
+            sessionRow += "</div>";
+
+        });
+
+        sessionRow += "</div>";
+        sessionRow += "</td>";
+        sessionRow += "</td>";
+        sessionRow += "</tr>";
+
+        return sessionRow;
     }
+
 };
