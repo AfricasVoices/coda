@@ -112,6 +112,21 @@ class CodeScheme {
         });
         return newScheme;
     }
+    copyCodesFrom(otherScheme) {
+        for (let codeId of Array.from(otherScheme.codes.keys())) {
+            var otherCodeObj = otherScheme.codes.get(codeId);
+            if (this.codes.has(codeId)) {
+                var code = this.codes.get(codeId);
+                code.value = otherCodeObj.value;
+                code.words = otherCodeObj.words;
+                code.color = otherCodeObj.color;
+                code.shortcut = otherCodeObj.shortcut;
+            }
+            else {
+                this.codes.set(codeId, otherCodeObj);
+            }
+        }
+    }
     getShortcuts() {
         let shortcuts = new Map();
         for (let code of Array.from(this.codes.values())) {

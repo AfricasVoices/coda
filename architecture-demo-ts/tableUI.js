@@ -33,7 +33,7 @@ var messageViewerManager = {
         });
 
         $("#message-panel").scroll(function(event) {
-            console.log("scroll height: " + $("#message-table")[0].scrollHeight + ", scroll top: " + $("#message-panel").scrollTop() +  ", outer height: " + $("#message-panel").outerHeight(false));
+            //console.log("scroll height: " + $("#message-table")[0].scrollHeight + ", scroll top: " + $("#message-panel").scrollTop() +  ", outer height: " + $("#message-panel").outerHeight(false));
             messageViewerManager.infiniteScroll(event);
         });
 
@@ -246,11 +246,11 @@ var messageViewerManager = {
         if (value.length > 0) {
 
             // update data structure
-            var decoration = eventObj.decorationForName("schemeId");
+            var decoration = eventObj.decorationForName(schemeId);
             if (decoration === undefined) {
-                eventObj.decorate(schemes[schemeId]["name"], schemes[schemeId]["codes"].get(selectElement.attr("id")));
+                eventObj.decorate(schemes[schemeId]["name"], schemes[schemeId].getCodeByValue(value));
             } else {
-                decoration.code = schemes[schemeId]["codes"].get(selectElement.attr("id"));
+                decoration.code = schemes[schemeId].getCodeByValue(value);
             }
 
             selectElement.removeClass("uncoded");
@@ -291,6 +291,11 @@ var messageViewerManager = {
         Add decorations to datastructure
          */
         // TODO: happens already, move here
+        newDataset.sessions.forEach(function(session) {
+            session.events.forEach(function(eventObj) {
+               eventObj.decorate(scheme["name"]);
+            });
+        });
 
 
         var decorationCell = $("#header-decoration-column").find(".row");
@@ -381,6 +386,12 @@ var messageViewerManager = {
             if (shortcuts.has(event.keyCode)) {
                 var codeObj = shortcuts.get(event.keyCode);
                 $(activeRow).children("td").each(function(i, td) {
+
+                    var sessionId = $(td).parent(".message").attr("sessionid");
+                    var eventId = $(td).parent(".message").attr("eventid");
+
+                    newDataset.sessions[sessionId]["events"][eventId].decorate(codeObj.owner["name"], codeObj);
+
                     var color = codeObj["color"];
                     if (color) {
                         $(td).css("background-color", color);
@@ -425,7 +436,7 @@ var messageViewerManager = {
                 var events = sessions[i];
                 for (var j = 0; j <= endOfPage[1]; j++) {
                     if (i === startOfPage[0] && j < startOfPage[1]) continue;
-                    else tbody += messageViewerManager.buildRow(sessions[i]["events"][j], i, j);
+                    else tbody += messageViewerManager.buildRow(sessions[i]["events"][j], j, i);
                 }
             }
 
@@ -474,7 +485,7 @@ var messageViewerManager = {
                     var events = sessions[i];
                     for (var j = 0; j <= endOfPage[1]; j++) {
                         if (i === startOfPage[0] && j < startOfPage[1]) continue;
-                        else tbody += messageViewerManager.buildRow(sessions[i]["events"][j], i, j);
+                        else tbody += messageViewerManager.buildRow(sessions[i]["events"][j], j, i);
                     }
                 }
 
@@ -490,7 +501,7 @@ var messageViewerManager = {
 
                 // now need to bring the previous top row back into view
                 $("#message-panel").scrollTop(newScrollTop);
-                
+
                 console.timeEnd("infinite scroll UP");
 
 
@@ -505,11 +516,16 @@ var messageViewerManager = {
         var decoNumber = Object.keys(schemes).length;
         var decoColumnWidth = (12/decoNumber>>0);
         var sessionRow = "";
+        var activeDecoration = eventObj["decorations"].get(schemes[activeSchemeId]["name"]);
+        var rowColor = "#ffffff";
+        if (activeDecoration && activeDecoration !== undefined && activeDecoration.code !== null &&activeDecoration.code.color !== undefined) {
+            rowColor = activeDecoration.code.color;
+        }
 
         sessionRow += "<tr class='message' id=" + eventObj["name"] + " eventId = '" + eventIndex + "' sessionId = '" + sessionIndex + "'>";
-        sessionRow += "<td class='col-md-2'>" + eventObj["timestamp"] + "</td>";
-        sessionRow += "<td class=col-md-4>" + eventObj["data"] + "</td>";
-        sessionRow += "<td class=col-md-4>";
+        sessionRow += "<td class='col-md-2' style='background-color: " + rowColor+ "'>" + eventObj["timestamp"] + "</td>";
+        sessionRow += "<td class=col-md-4 style='background-color: " + rowColor+ "'>" + eventObj["data"] + "</td>";
+        sessionRow += "<td class=col-md-4 style='background-color: " + rowColor+ "'>";
         sessionRow += "<div class='row decorator-column'>";
 
         Object.keys(newDataset.schemes).forEach(function(schemeKey) {
@@ -517,16 +533,18 @@ var messageViewerManager = {
             var codes = Array.from(newDataset.schemes[schemeKey].codes.values());
             sessionRow += "<div class='col-md-" + decoColumnWidth + "'>";
 
-            var selected = eventObj["decorations"].get(schemes[schemeKey]["name"]).code;
             var optionsString = "";
             var selectClass = "uncoded";
+            var somethingSelected = false;
 
             codes.forEach(function(codeObj) {
 
                 if (eventObj["decorations"].has(schemes[schemeKey]["name"])) {
-                    if (eventObj["decorations"].get(schemes[schemeKey]["name"]).code === codeObj["value"]) {
+                    var currentEventCode = eventObj["decorations"].get(schemes[schemeKey]["name"]).code;
+                    if (currentEventCode !== null && currentEventCode["value"] === codeObj["value"]) {
                         optionsString += "<option id='" + codeObj["id"] + "' selected>" + codeObj["value"] + "</option>";
                         selectClass = "coded";
+                        somethingSelected = true;
                     } else {
                         optionsString += "<option id='" + codeObj["id"] + "'>" + codeObj["value"] + "</option>";
                     }
@@ -537,7 +555,9 @@ var messageViewerManager = {
             sessionRow += "<select class='form-control " + schemeKey + " " + selectClass + "'>";
             sessionRow += optionsString;
 
-            sessionRow += "<option class='unassign'></option>";
+            if (!somethingSelected) sessionRow += "<option class='unassign' selected></option>";
+            else sessionRow += "<option class='unassign'></option>";
+
             sessionRow += "</select>";
             sessionRow += "</div>";
 

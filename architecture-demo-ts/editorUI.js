@@ -224,7 +224,8 @@ var codeEditorManager =  {
             });
 
             //tempScheme.codes = tempScheme.codes.filter(function(code) { return code !== ""; });
-            schemes[tempScheme["id"]] = tempScheme;
+            //schemes[tempScheme["id"]] = tempScheme; // TODO NOOOOOOO MUST NOT DO THIS PLS
+            schemes[tempScheme["id"]].copyCodesFrom(tempScheme);
             editorContainer.hide();
             editorContainer.find("tbody").empty();
             codeEditorManager.bindAddCodeButtonListener();

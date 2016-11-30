@@ -43,9 +43,6 @@ $.getJSON("data/sessions-numbered-10000.json", function(data) {
                 Object.keys(data[sessionKey]["events"][eventKey]["decorations"]).forEach(function (d) {
 
                     var decorationValue = data[sessionKey]["events"][eventKey]["decorations"][d];
-                    if (decorationValue.length > 0) {
-                        event.decorate(d, decorationValue, "#ffffff");
-                    }
 
                     if (!decorations.hasOwnProperty(d)) {
                         // TODO: how to do scheme ids
@@ -53,11 +50,17 @@ $.getJSON("data/sessions-numbered-10000.json", function(data) {
                         decorations[d] = sessionKey;
                     }
 
-                    if (decorationValue.length > 0 && !schemes[decorations[d]].getCodeValues().has(decorationValue)) {
+                    if (decorationValue.length > 0) {
                         var scheme = schemes[decorations[d]];
-                        var newCodeId = sessionKey + "-" + UIUtils.randomId(Array.from(scheme.codes.keys()));
-                        scheme.codes.set(newCodeId, new Code(scheme, newCodeId, decorationValue, "#ffffff", "", false));
+                        if (!schemes[decorations[d]].getCodeValues().has(decorationValue)) {
+                            var newCodeId = sessionKey + "-" + UIUtils.randomId(Array.from(scheme.codes.keys()));
+                            scheme.codes.set(newCodeId, new Code(scheme, newCodeId, decorationValue, "#ffffff", "", false));
+                        }
+
+                        var code = scheme.getCodeByValue(decorationValue);
+                        event.decorate(d, code);
                     }
+
 
                 });
 
