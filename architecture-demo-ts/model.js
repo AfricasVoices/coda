@@ -35,13 +35,12 @@ class RawEvent {
     assignedCodes() {
         return Array.from(this.codes.values());
     }
-    decorate(decorationName, decorationValue, decorationColor) {
-        if (decorationColor) {
-            this.decorations.set(decorationName, new ColoredEventDecoration(this, decorationName, decorationValue, decorationColor));
-        }
-        else {
-            this.decorations.set(decorationName, new RawEventDecoration(this, decorationName, decorationValue));
-        }
+    decorate(decorationName, code) {
+        this.decorations.set(decorationName, new EventDecoration(this, decorationName, code));
+    }
+    uglify(decorationName) {
+        this.decorations.delete(decorationName);
+        this.codes.delete(decorationName);
     }
     decorationForName(name) {
         return this.decorations.get(name);
@@ -50,17 +49,16 @@ class RawEvent {
         return Array.from(this.decorations.keys());
     }
 }
-class RawEventDecoration {
-    constructor(owner, name, value) {
+class EventDecoration {
+    constructor(owner, name, code) {
         this.owner = owner;
         this.name = name;
-        this.value = value;
-    }
-}
-class ColoredEventDecoration extends RawEventDecoration {
-    constructor(owner, name, value, color) {
-        super(owner, name, value);
-        this.color = color;
+        if (code) {
+            this.code = code;
+        }
+        else {
+            this.code = null; // TODO: this will require null pointer checks
+        }
     }
 }
 class Session {

@@ -26,7 +26,7 @@ class RawEvent {
     timestamp: string;
     number : string; // phone number or other kind of identifier
     data : string;
-    decorations : Map<string, RawEventDecoration>;
+    decorations : Map<string, EventDecoration>;
     codes: Map<string, Code>;
 
     constructor(name : string, timestamp : string, number : string, data : string) {
@@ -34,7 +34,7 @@ class RawEvent {
         this.timestamp = timestamp;
         this.number = number;
         this.data = data;
-        this.decorations = new Map<string, RawEventDecoration>();
+        this.decorations = new Map<string, EventDecoration>();
         this.codes = new Map<string, Code>(); // string is code scheme id
 
     }
@@ -51,42 +51,39 @@ class RawEvent {
         return Array.from(this.codes.values());
     }
 
-  decorate(decorationName : string, decorationValue : string, decorationColor? : string) {
-      if (decorationColor) {
-          this.decorations.set(decorationName, new ColoredEventDecoration(this, decorationName, decorationValue, decorationColor));
-      } else {
-          this.decorations.set(decorationName, new RawEventDecoration(this, decorationName, decorationValue));
-      }
-  }
+    decorate(decorationName : string, code? : Code) {
+      this.decorations.set(decorationName, new EventDecoration(this, decorationName, code));
+    }
 
-  decorationForName(name : string) : RawEventDecoration {
-      return this.decorations.get(name);
-  }
+    uglify(decorationName: string) {
+        this.decorations.delete(decorationName);
+        this.codes.delete(decorationName);
+    }
 
-  decorationNames() : Array<string> {
-      return Array.from(this.decorations.keys());
-  }
+    decorationForName(name : string) : EventDecoration {
+        return this.decorations.get(name);
+    }
+
+    decorationNames() : Array<string> {
+        return Array.from(this.decorations.keys());
+    }
 }
 
-class RawEventDecoration {
+class EventDecoration {
   owner : RawEvent;
-  name : String;
-  value : String;
+  name : String; // will take scheme id
+  code : Code;
 
-  constructor(owner : RawEvent, name : String, value : String) {
+  constructor(owner : RawEvent, name : String, code?: Code) {
       this.owner = owner;
       this.name = name;
-      this.value = value;
+
+      if (code) {
+          this.code = code;
+      } else {
+          this.code = null; // TODO: this will require null pointer checks
+      }
   }
-}
-
-class ColoredEventDecoration extends RawEventDecoration {
-    color : String;
-
-    constructor(owner : RawEvent, name : String, value : String, color : String) {
-        super(owner, name, value);
-        this.color = color;
-    }
 }
 
 class Session {

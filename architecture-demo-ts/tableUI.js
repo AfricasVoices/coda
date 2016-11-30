@@ -14,6 +14,7 @@ var messageViewerManager = {
         this.messageContainer = messageContainer;
         this.table = messageContainer.find("table");
         this.buildTable(data, rowsPerPage);
+        this.currentlyLoadedPages.push(0);
         this.currentlyLoadedPages.push(1);
 
         console.time("dropdown init");
@@ -31,7 +32,10 @@ var messageViewerManager = {
            }
         });
 
-        $("#message-panel").scroll(this.infiniteScroll);
+        $("#message-panel").scroll(function(event) {
+            console.log("scroll height: " + $("#message-table")[0].scrollHeight + ", scroll top: " + $("#message-panel").scrollTop() +  ", outer height: " + $("#message-panel").outerHeight(false));
+            messageViewerManager.infiniteScroll(event);
+        });
 
         console.timeEnd("dropdown init");
 
@@ -79,84 +83,42 @@ var messageViewerManager = {
 
         var tbody = "";
         var currentEventCount = 0;
-
+        var pageStartEnd = {start: [0,0], end: []};
+        var rowsPerEachPage = Math.floor(rowsPerPage/2) - 1; // to account for zero indexing
         console.time("table building");
 
-        newDataset.sessions.forEach(function(session) {
-            session.events.forEach(function(event) {
+        var initialPages = 0;
+        newDataset.sessions.forEach(function(session, sessionIndex) {
+            session.events.forEach(function(event, eventIndex) {
 
-                if (currentEventCount > rowsPerPage) {
+                if (currentEventCount > rowsPerEachPage) {
                     // build new page
-                    messageViewerManager.tablePages.push(tbody);
-                    tbody = "";
-                    tbody += "<tr class='message' id=" + event["name"] + ">";
-                    tbody += "<td class='col-md-2'>" + event["timestamp"] + "</td>";
-                    tbody += "<td class=col-md-4>" + event["data"] + "</td>";
-                    tbody += "<td class=col-md-4>";
-                    tbody += "<div class='row decorator-column'>";
-
+                    messageViewerManager.tablePages.push(pageStartEnd);
                     currentEventCount = 1;
+                    pageStartEnd = {start: [sessionIndex, eventIndex], end: []};
+
+                    if (initialPages < 2) {
+                        initialPages += 1
+                        tbody += messageViewerManager.buildRow(event, eventIndex, sessionIndex);
+
+                    } else if (initialPages == 2) {
+                        initialPages += 1
+                        messageViewerManager.table.find("tbody").append(tbody);
+                    }
 
                 } else {
                     // append to old page
-                    tbody += "<tr class='message' id=" + event["name"] + ">";
-                    tbody += "<td class='col-md-2'>" + event["timestamp"] + "</td>";
-                    tbody += "<td class=col-md-4>" + event["data"] + "</td>";
-                    tbody += "<td class=col-md-4>";
-                    tbody += "<div class='row decorator-column'>";
-
                     currentEventCount += 1;
+                    pageStartEnd.end = [sessionIndex, eventIndex];
+                    if (initialPages < 2) tbody += messageViewerManager.buildRow(event, eventIndex, sessionIndex);
 
                 }
 
-                Object.keys(newDataset.schemes).forEach(function(schemeKey, index) {
-
-                    var codes = Array.from(newDataset.schemes[schemeKey].codes.values());
-                    tbody += "<div class='col-md-" + decoColumnWidth + "'>";
-
-                    var selected = event["decorations"].get(schemes[schemeKey]["name"]).value;
-                    var optionsString = "";
-                    var selectClass = "uncoded";
-                    codes.forEach(function(codeObj) {
-
-                        if (event["decorations"].has(schemes[schemeKey]["name"])) {
-                            if (event["decorations"].get(schemes[schemeKey]["name"]).value === codeObj["value"]) {
-                                optionsString += "<option id='" + codeObj["id"] + "' selected>" + codeObj["value"] + "</option>";
-                                selectClass = "coded";
-                            } else {
-                                optionsString += "<option id='" + codeObj["id"] + "'>" + codeObj["value"] + "</option>";
-                            }
-                        }
-
-                        /* TODO
-                        if (index == 0) {
-                            eventRow.children("td").each(function(i, td) {
-                                $(td).css("background-color", codeObj["color"]);
-                            });
-                        }
-                        */
-
-                    });
-
-                    tbody += "<select class='form-control " + schemeKey + " " + selectClass + "'>";
-                    tbody += optionsString;
-
-
-                    tbody += "<option class='unassign'></option>";
-                    tbody += "</select>";
-                    tbody += "</div>";
-
-                });
-
-                tbody += "</div>";
-                tbody += "</td>";
-                tbody += "</td>";
-                tbody += "</tr>";
             });
 
         });
 
-        $(this.table).find("tbody").append(this.tablePages[0]);
+
         console.timeEnd("table building");
 
         /*
@@ -279,7 +241,18 @@ var messageViewerManager = {
         var value = selectElement.val();
         var row = selectElement.parents(".message");
 
+        var eventObj = newDataset.sessions[$(row).attr("sessionid")]["events"][$(row).attr("eventid")];
+
         if (value.length > 0) {
+
+            // update data structure
+            var decoration = eventObj.decorationForName("schemeId");
+            if (decoration === undefined) {
+                eventObj.decorate(schemes[schemeId]["name"], schemes[schemeId]["codes"].get(selectElement.attr("id")));
+            } else {
+                decoration.code = schemes[schemeId]["codes"].get(selectElement.attr("id"));
+            }
+
             selectElement.removeClass("uncoded");
             selectElement.addClass("coded");
 
@@ -291,6 +264,11 @@ var messageViewerManager = {
             }
 
         } else {
+
+            // remove code from event in data structure
+            eventObj.uglify(schemes[schemeId]["name"]);
+
+
             selectElement.removeClass("coded");
             selectElement.addClass("uncoded");
 
@@ -307,6 +285,12 @@ var messageViewerManager = {
 
         // TODO: warning message in case of empty codes
         if (scheme["codes"].size === 0) return;
+
+
+        /*
+        Add decorations to datastructure
+         */
+        // TODO: happens already, move here
 
 
         var decorationCell = $("#header-decoration-column").find(".row");
@@ -427,19 +411,102 @@ var messageViewerManager = {
 
     infiniteScroll : function(event) {
         if (UIUtils.isScrolledToBottom(messageViewerManager.messageContainer)) {
+            console.time("infinite scroll DOWN");
+
             var nextPage = messageViewerManager.currentlyLoadedPages[messageViewerManager.currentlyLoadedPages.length-1] + 1;
-            messageViewerManager.table.find("tbody").append(messageViewerManager.tablePages[nextPage]);
-        };
+            messageViewerManager.currentlyLoadedPages.push(nextPage);
+
+            var tbody = "";
+            var sessions = newDataset.sessions;
+            var startOfPage = messageViewerManager.tablePages[nextPage].start;
+            var endOfPage = messageViewerManager.tablePages[nextPage].end;
+
+            for (var i = startOfPage[0]; i <= endOfPage[0]; i++) {
+                var events = sessions[i];
+                for (var j = 0; j <= endOfPage[1]; j++) {
+                    if (i === startOfPage[0] && j < startOfPage[1]) continue;
+                    else tbody += messageViewerManager.buildRow(sessions[i]["events"][j], i, j);
+                }
+            }
+
+            var tbodyElement = messageViewerManager.table.find("tbody");
+
+            var elementsToRemove = tbodyElement.find("tr:nth-child(-n+" + Math.floor(messageViewerManager.rowsPerPage/2) + ")");
+            var removedHeight = 0;
+            elementsToRemove.each(function(i, el){
+              removedHeight += $(el).height();
+            });
+
+            elementsToRemove.remove();
+            var newScrollTop = removedHeight - tbodyElement.height();
+
+            tbodyElement.append(tbody);
+            console.log("new page added");
+            messageViewerManager.currentlyLoadedPages.splice(0,1);
+
+            newScrollTop >= 0 ? $("#message-panel").scrollTop(newScrollTop) : $("#message-panel").scrollTop(0);
+            console.timeEnd("infinite scroll DOWN");
+
+
+        } else if (UIUtils.isScrolledToTop(messageViewerManager.messageContainer)){
+            if (messageViewerManager.currentlyLoadedPages[0] !== 0 ) {
+                console.time("infinite scroll UP");
+
+                var prevPage = messageViewerManager.currentlyLoadedPages[0] - 1;
+                messageViewerManager.currentlyLoadedPages.unshift(prevPage); // put at beginning to preserve ordering
+
+                tbody = "";
+                sessions = newDataset.sessions;
+                startOfPage = messageViewerManager.tablePages[prevPage].start;
+                endOfPage = messageViewerManager.tablePages[prevPage].end;
+
+                /*for (var i = startOfPage[0]; i <= endOfPage[0]; i++) {
+                    var events = sessions[i];
+                    for (var j = 0; j <= endOfPage[1]; j++) {
+                        if (i === startOfPage[0]) {
+                            if (j <= startOfPage[1]) continue;
+                            else tbody += messageViewerManager.buildRow(sessions[i]["events"][j], i, j);
+                        }
+                    }
+                }*/
+
+                for (var i = startOfPage[0]; i <= endOfPage[0]; i++) {
+                    var events = sessions[i];
+                    for (var j = 0; j <= endOfPage[1]; j++) {
+                        if (i === startOfPage[0] && j < startOfPage[1]) continue;
+                        else tbody += messageViewerManager.buildRow(sessions[i]["events"][j], i, j);
+                    }
+                }
+
+                tbodyElement = messageViewerManager.table.find("tbody");
+                var previousTopRow = tbodyElement.find(".message").first();
+                var newScrollTop = 0;
+                $(tbody).prependTo(tbodyElement).each(function(i,el) {
+                  newScrollTop += $(el).height();
+                });
+                tbodyElement.find("tr:nth-last-child(-n+" + Math.floor(messageViewerManager.rowsPerPage)/2 + ")").remove();
+                messageViewerManager.currentlyLoadedPages.splice(messageViewerManager.currentlyLoadedPages.length-1,1);
+
+
+                // now need to bring the previous top row back into view
+                $("#message-panel").scrollTop(newScrollTop);
+                
+                console.timeEnd("infinite scroll UP");
+
+
+
+            }
+        }
 
     },
 
-    buildRow : function(eventObj) {
+    buildRow : function(eventObj, eventIndex, sessionIndex) {
 
         var decoNumber = Object.keys(schemes).length;
         var decoColumnWidth = (12/decoNumber>>0);
         var sessionRow = "";
 
-        sessionRow += "<tr class='message' id=" + eventObj["name"] + ">";
+        sessionRow += "<tr class='message' id=" + eventObj["name"] + " eventId = '" + eventIndex + "' sessionId = '" + sessionIndex + "'>";
         sessionRow += "<td class='col-md-2'>" + eventObj["timestamp"] + "</td>";
         sessionRow += "<td class=col-md-4>" + eventObj["data"] + "</td>";
         sessionRow += "<td class=col-md-4>";
@@ -450,14 +517,14 @@ var messageViewerManager = {
             var codes = Array.from(newDataset.schemes[schemeKey].codes.values());
             sessionRow += "<div class='col-md-" + decoColumnWidth + "'>";
 
-            var selected = event["decorations"].get(schemes[schemeKey]["name"]).value;
+            var selected = eventObj["decorations"].get(schemes[schemeKey]["name"]).code;
             var optionsString = "";
             var selectClass = "uncoded";
 
             codes.forEach(function(codeObj) {
 
-                if (event["decorations"].has(schemes[schemeKey]["name"])) {
-                    if (event["decorations"].get(schemes[schemeKey]["name"]).value === codeObj["value"]) {
+                if (eventObj["decorations"].has(schemes[schemeKey]["name"])) {
+                    if (eventObj["decorations"].get(schemes[schemeKey]["name"]).code === codeObj["value"]) {
                         optionsString += "<option id='" + codeObj["id"] + "' selected>" + codeObj["value"] + "</option>";
                         selectClass = "coded";
                     } else {

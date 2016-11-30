@@ -34,6 +34,14 @@ div[class*=col-], #message-panel {
   background: transparent;   /* optional: just make scrollbar invisible */
 }
 
+#pagination-nav {
+  text-align: right;
+}
+
+.pagination {
+  margin: 2px 0;
+}
+
 
 #close-editor {
   float: right;

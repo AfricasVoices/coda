@@ -93,7 +93,8 @@ var UIUtils = (
             },
 
             isScrolledToBottom: function(tableContainer) {
-                return (Math.abs($(tableContainer)[0].scrollHeight - $(tableContainer).scrollTop() - $(tableContainer).outerHeight()) < 1)
+                // table is 18px above bottom of the panel...
+                return (Math.abs(messageViewerManager.table[0].scrollHeight - $(tableContainer).scrollTop() - $(tableContainer).outerHeight() + 18) < 1)
             },
 
             isScrolledToTop: function(tableContainer) {

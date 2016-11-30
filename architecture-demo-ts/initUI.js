@@ -26,7 +26,7 @@ var state = {
 $("#editor-row").css("height", codeEditorPanel.outerHeight(true) - codeEditorPanel.find(".panel-heading").outerHeight(true) - $('#panel-row').outerHeight(true) - $('#button-row').outerHeight(true) - 10);
 $("body").hide();
 
-$.getJSON("data/sessions-6000.json", function(data) {
+$.getJSON("data/sessions-numbered-10000.json", function(data) {
 
     var buildDataset = function(data) {
 
@@ -55,7 +55,7 @@ $.getJSON("data/sessions-6000.json", function(data) {
 
                     if (decorationValue.length > 0 && !schemes[decorations[d]].getCodeValues().has(decorationValue)) {
                         var scheme = schemes[decorations[d]];
-                        var newCodeId = data[sessionKey]["id"] + "-" + UIUtils.randomId(Array.from(scheme.codes.keys()));
+                        var newCodeId = sessionKey + "-" + UIUtils.randomId(Array.from(scheme.codes.keys()));
                         scheme.codes.set(newCodeId, new Code(scheme, newCodeId, decorationValue, "#ffffff", "", false));
                     }
 
@@ -64,7 +64,7 @@ $.getJSON("data/sessions-6000.json", function(data) {
                 events.push(event);
             });
 
-            var session = new Session(data[sessionKey]["id"], events);
+            var session = new Session(sessionKey, events);
             properDataset.sessions.push(session);
         });
 
