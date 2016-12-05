@@ -19,11 +19,17 @@ var UIUtils = (
             },
 
             nextUnfilledRow: function (activeRow, wrap, schemeId) {
-                if (wrap == null) wrap = false;
+                //if (wrap == null) wrap = false;
+                wrap = false;
                 if (schemeId == null) schemeId = ""; else schemeId = "." + schemeId;
 
                 var next = activeRow.nextAll().has("select.uncoded" + schemeId).first();
                 if (next.length > 0) return next;
+                else {
+                    messageViewerManager.infiniteScroll(); //todo debug
+                    next = activeRow.nextAll().has("select.uncoded" + schemeId).first();
+                    if (next.length > 0) return next;
+                }
 
                 if (wrap) {
                     var prev = activeRow.prevAll().has("select" + schemeId + ".uncoded:last").last();

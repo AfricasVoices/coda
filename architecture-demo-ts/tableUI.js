@@ -34,6 +34,7 @@ var messageViewerManager = {
 
         $("#message-panel").scroll(function(event) {
             //console.log("scroll height: " + $("#message-table")[0].scrollHeight + ", scroll top: " + $("#message-panel").scrollTop() +  ", outer height: " + $("#message-panel").outerHeight(false));
+            // todo need to know if scroll is from shortcut or manual
             messageViewerManager.infiniteScroll(event);
         });
 
@@ -60,7 +61,7 @@ var messageViewerManager = {
             messageViewerManager.codeSchemeOrder.push(schemeKey);
 
             var decoColumn = $("#header-decoration-column");
-            var col = $("<div class='col-md-" + decoColumnWidth + "' id = 'header" + schemeKey + "'><i>" + schemes[schemeKey]["name"] + "</i></div>").appendTo(decoColumn.find(".row"));
+            var col = $("<div class='col-md-" + decoColumnWidth + "' scheme='" + schemeKey + "'><i>" + schemes[schemeKey]["name"] + "</i></div>").appendTo(decoColumn.find(".row"));
 
             var button = $("<button type='button' class='btn btn-default btn-xs edit-scheme-button'>" +
                 "<i class='glyphicon glyphicon-edit'>" +
@@ -181,7 +182,7 @@ var messageViewerManager = {
 
 
                 // get next row and make it active
-                activeRow = UIUtils.nextUnfilledRow(activeRow, true, activeSchemeId);
+                activeRow = UIUtils.nextUnfilledRow(activeRow, true, activeSchemeId); // todo handle if have to load new page
                 activeRow.toggleClass("active");
 
 
@@ -200,7 +201,7 @@ var messageViewerManager = {
 
         $("#header-decoration-column").find("i").not(".glyphicon").css("text-decoration", "");
         $(this).css("text-decoration", "underline");
-        activeSchemeId = /header(.*)/.exec($(this).parents("div").attr("id"))[1];
+        activeSchemeId = $(this).parents("div").attr("scheme");
 
         var schemeObj = schemes[activeSchemeId];
         /*
@@ -248,7 +249,7 @@ var messageViewerManager = {
             // update data structure
             var decoration = eventObj.decorationForName(schemeId);
             if (decoration === undefined) {
-                eventObj.decorate(schemes[schemeId]["name"], schemes[schemeId].getCodeByValue(value));
+                eventObj.decorate(schemeId, schemes[schemeId].getCodeByValue(value));
             } else {
                 decoration.code = schemes[schemeId].getCodeByValue(value);
             }
@@ -266,7 +267,7 @@ var messageViewerManager = {
         } else {
 
             // remove code from event in data structure
-            eventObj.uglify(schemes[schemeId]["name"]);
+            eventObj.uglify(schemeId);
 
 
             selectElement.removeClass("coded");
@@ -286,6 +287,31 @@ var messageViewerManager = {
         // TODO: warning message in case of empty codes
         if (scheme["codes"].size === 0) return;
 
+        var tbody = "";
+        var sessions = newDataset.sessions;
+        var startOfPage = messageViewerManager.tablePages[0].start;
+        var endOfPage = messageViewerManager.tablePages[1].end;
+
+        for (var i = startOfPage[0]; i <= endOfPage[0]; i++) {
+            var events = sessions[i];
+            for (var j = 0; j <= endOfPage[1]; j++) {
+                if (i === startOfPage[0] && j < startOfPage[1]) continue;
+                else tbody += messageViewerManager.buildRow(sessions[i]["events"][j], j, i);
+            }
+        }
+
+        this.currentlyLoadedPages[0,1];
+
+        var tbodyObj = this.table.find("tbody");
+        tbodyObj.empty();
+        tbodyObj.append(tbody);
+        this.messageContainer.scrollTop(0);
+
+        // Move active row back to top because nothing will have been coded yet
+        activeRow.removeClass("active");
+        activeRow = $(".message").first().addClass("active");
+
+
 
         /*
         Add decorations to datastructure
@@ -293,7 +319,7 @@ var messageViewerManager = {
         // TODO: happens already, move here
         newDataset.sessions.forEach(function(session) {
             session.events.forEach(function(eventObj) {
-               eventObj.decorate(scheme["name"]);
+               eventObj.decorate(scheme["id"]);
             });
         });
 
@@ -306,7 +332,7 @@ var messageViewerManager = {
         Restructure the header
          */
 
-        var div = ($("<div class='col-md-" + newDecoColumnWidth + "' id='header" + scheme["id"] + "'><i>" + scheme["name"] + "</i></div>")).appendTo(decorationCell);
+        var div = ($("<div class='col-md-" + newDecoColumnWidth + "' scheme='" + scheme["id"] + "'><i>" + scheme["name"] + "</i></div>")).appendTo(decorationCell);
         var button = $("<button type='button' class='btn btn-default btn-xs edit-scheme-button'>" +
         "<i class='glyphicon glyphicon-edit'>" +
         "</i>" +
@@ -321,7 +347,7 @@ var messageViewerManager = {
         /*
         Restructure the body
          */
-
+/*
         this.table.find("tbody > tr").each(function(index, row) {
             var decoCell = $(row).children("td:last").find(".row"); // todo rewrite queries
 
@@ -342,7 +368,7 @@ var messageViewerManager = {
             var decoCell = $(row).children("td:last");
             decoCell.find("div[class*=col-]").attr("class", "col-md-" + newDecoColumnWidth);
         });
-
+*/
     },
 
     bindEditSchemeButtonListener: function(editButton, scheme) {
@@ -351,7 +377,7 @@ var messageViewerManager = {
 
         $(editButton).on("click", function() {
 
-            var schemeId = /header(.*)/.exec($(this).parent().attr("id"))[1];
+            var schemeId = $(this).parent().attr("scheme");
             scheme = schemes[schemeId];
             tempScheme = CodeScheme.clone(scheme);
 
@@ -382,6 +408,8 @@ var messageViewerManager = {
     manageShortcuts : function(event) {
         if (!editorOpen && activeSchemeId && activeRow && activeSchemeId.length > 0 && activeRow.length) {
 
+            // todo handle datastructure
+
             var shortcuts = schemes[activeSchemeId].getShortcuts();
             if (shortcuts.has(event.keyCode)) {
                 var codeObj = shortcuts.get(event.keyCode);
@@ -390,7 +418,7 @@ var messageViewerManager = {
                     var sessionId = $(td).parent(".message").attr("sessionid");
                     var eventId = $(td).parent(".message").attr("eventid");
 
-                    newDataset.sessions[sessionId]["events"][eventId].decorate(codeObj.owner["name"], codeObj);
+                    newDataset.sessions[sessionId]["events"][eventId].decorate(codeObj.owner["id"], codeObj);
 
                     var color = codeObj["color"];
                     if (color) {
@@ -516,10 +544,18 @@ var messageViewerManager = {
         var decoNumber = Object.keys(schemes).length;
         var decoColumnWidth = (12/decoNumber>>0);
         var sessionRow = "";
-        var activeDecoration = eventObj["decorations"].get(schemes[activeSchemeId]["name"]);
+        var activeDecoration = eventObj["decorations"].get(activeSchemeId);
         var rowColor = "#ffffff";
-        if (activeDecoration && activeDecoration !== undefined && activeDecoration.code !== null &&activeDecoration.code.color !== undefined) {
-            rowColor = activeDecoration.code.color;
+
+        // need to check if eventObj has a 'stale' decoration
+        // need to perform null checks for code! if event isn't coded yet it has a null code.
+        if ( activeDecoration != undefined && activeDecoration.code !== null) {
+            var parentSchemeCodes = activeDecoration.code.owner.codes;
+            if (!parentSchemeCodes.has(activeDecoration.code.id)) {
+                eventObj.uglify(activeDecoration.name);
+            } else if (activeDecoration.code.color !== undefined) {
+                rowColor = activeDecoration.code.color;
+            }
         }
 
         sessionRow += "<tr class='message' id=" + eventObj["name"] + " eventId = '" + eventIndex + "' sessionId = '" + sessionIndex + "'>";
@@ -531,7 +567,7 @@ var messageViewerManager = {
         Object.keys(newDataset.schemes).forEach(function(schemeKey) {
 
             var codes = Array.from(newDataset.schemes[schemeKey].codes.values());
-            sessionRow += "<div class='col-md-" + decoColumnWidth + "'>";
+            sessionRow += "<div class='col-md-" + decoColumnWidth + "' scheme='" + activeSchemeId + "'>";
 
             var optionsString = "";
             var selectClass = "uncoded";
@@ -539,8 +575,8 @@ var messageViewerManager = {
 
             codes.forEach(function(codeObj) {
 
-                if (eventObj["decorations"].has(schemes[schemeKey]["name"])) {
-                    var currentEventCode = eventObj["decorations"].get(schemes[schemeKey]["name"]).code;
+                if (eventObj["decorations"].has(schemeKey)) {
+                    var currentEventCode = eventObj["decorations"].get(schemeKey).code;
                     if (currentEventCode !== null && currentEventCode["value"] === codeObj["value"]) {
                         optionsString += "<option id='" + codeObj["id"] + "' selected>" + codeObj["value"] + "</option>";
                         selectClass = "coded";
@@ -548,6 +584,9 @@ var messageViewerManager = {
                     } else {
                         optionsString += "<option id='" + codeObj["id"] + "'>" + codeObj["value"] + "</option>";
                     }
+                } else {
+                    eventObj.decorate(schemeKey);
+                    optionsString += "<option id='" + codeObj["id"] + "'>" + codeObj["value"] + "</option>";
                 }
 
             });

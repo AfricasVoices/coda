@@ -4,6 +4,7 @@ class Dataset {
     sessions : Array<Session> = [];
     schemes : {};
 
+    /*
     getAllEventDecorationNames() {
         var decorations = new Set();
         this.sessions.forEach((session: Session, sessionKey: number, map:Array<Session>) => {
@@ -15,6 +16,7 @@ class Dataset {
         decorations.delete(undefined); // to handle empty decorations
         return decorations;
     }
+    */
 
     getAllSessionIds() {
         return this.sessions.map(function(session:Session) {return session.id;});
@@ -34,8 +36,8 @@ class RawEvent {
         this.timestamp = timestamp;
         this.number = number;
         this.data = data;
-        this.decorations = new Map<string, EventDecoration>();
-        this.codes = new Map<string, Code>(); // string is code scheme id
+        this.decorations = new Map<string, EventDecoration>(); // string is code scheme id
+        this.codes = new Map<string, Code>(); // string is code scheme id todo not necessary?
 
     }
 
@@ -51,13 +53,14 @@ class RawEvent {
         return Array.from(this.codes.values());
     }
 
-    decorate(decorationName : string, code? : Code) {
-      this.decorations.set(decorationName, new EventDecoration(this, decorationName, code));
+    decorate(decorationId : string, code? : Code) {
+        let stringId = "" + decorationId;
+        this.decorations.set(stringId, new EventDecoration(this, stringId, code));
     }
 
-    uglify(decorationName: string) {
-        this.decorations.delete(decorationName);
-        this.codes.delete(decorationName);
+    uglify(decorationId: string) {
+        this.decorations.delete(decorationId);
+        this.codes.delete(decorationId);
     }
 
     decorationForName(name : string) : EventDecoration {
@@ -71,12 +74,12 @@ class RawEvent {
 
 class EventDecoration {
   owner : RawEvent;
-  name : String; // will take scheme id
+  id : String; // will take scheme id
   code : Code;
 
-  constructor(owner : RawEvent, name : String, code?: Code) {
+  constructor(owner : RawEvent, id : String, code?: Code) {
       this.owner = owner;
-      this.name = name;
+      this.id = id;
 
       if (code) {
           this.code = code;
@@ -107,10 +110,10 @@ class Session {
 
    getAllDecorationNames() : Set<string>{
 
-    var names : Set<string> = new Set<string>();
+    let names : Set<string> = new Set<string>();
 
     for (let e of this.events) {
-      for (var key in e.decorations) {
+      for (let key in e.decorations) {
           names.add(key);
       }
     }
@@ -151,7 +154,7 @@ class CodeScheme {
     }
 
     static clone(original : CodeScheme) {
-        var newScheme : CodeScheme = new this(original["id"], original["name"], false);
+        let newScheme : CodeScheme = new this(original["id"], original["name"], false);
 
         newScheme.codes = new Map<string,Code>();
 
@@ -164,10 +167,20 @@ class CodeScheme {
 
     copyCodesFrom(otherScheme : CodeScheme) {
 
+        this.name = otherScheme.name;
+
+        for (let codeId of Array.from(this.codes.keys())) {
+            // delete extra ones!
+            if (!otherScheme.codes.has(codeId)) {
+                this.codes.delete(codeId);
+            }
+
+        }
+
         for (let codeId of Array.from(otherScheme.codes.keys())) {
-            var otherCodeObj = otherScheme.codes.get(codeId);
+            let otherCodeObj = otherScheme.codes.get(codeId);
             if (this.codes.has(codeId)) {
-                var code : Code = this.codes.get(codeId);
+                let code : Code = this.codes.get(codeId);
                 code.value = otherCodeObj.value;
                 code.words = otherCodeObj.words;
                 code.color = otherCodeObj.color;
@@ -199,7 +212,7 @@ class CodeScheme {
 
     getCodeByValue(value: string) : Code {
 
-        var match;
+        let match;
         // TS doesn't support iterating IterableIterator with ES5 target
         for (let code of Array.from(this.codes.values())) {
             if (code.value === value) {
@@ -286,7 +299,7 @@ class Code {
 
 
     static clone(original : Code) : Code {
-        var newCode = new Code(original["_owner"], original["_id"], original["_value"], original["_color"], original["_shortcut"], false);
+        let newCode = new Code(original["_owner"], original["_id"], original["_value"], original["_color"], original["_shortcut"], false);
         newCode._words = original["_words"].slice(0);
         return newCode;
     }

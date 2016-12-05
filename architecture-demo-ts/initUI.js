@@ -26,7 +26,7 @@ var state = {
 $("#editor-row").css("height", codeEditorPanel.outerHeight(true) - codeEditorPanel.find(".panel-heading").outerHeight(true) - $('#panel-row').outerHeight(true) - $('#button-row').outerHeight(true) - 10);
 $("body").hide();
 
-$.getJSON("data/sessions-numbered-10000.json", function(data) {
+$.getJSON("data/sessions--.json", function(data) {
 
     var buildDataset = function(data) {
 
@@ -58,7 +58,7 @@ $.getJSON("data/sessions-numbered-10000.json", function(data) {
                         }
 
                         var code = scheme.getCodeByValue(decorationValue);
-                        event.decorate(d, code);
+                        event.decorate(sessionKey, code);
                     }
 
 

@@ -3,16 +3,19 @@ class Dataset {
     constructor() {
         this.sessions = [];
     }
+    /*
     getAllEventDecorationNames() {
         var decorations = new Set();
-        this.sessions.forEach((session, sessionKey, map) => {
-            session.events.forEach((event, index, eventArr) => {
+        this.sessions.forEach((session: Session, sessionKey: number, map:Array<Session>) => {
+            session.events.forEach((event:RawEvent, index: number, eventArr: Array<RawEvent>) => {
                 //decorations.add(...event.decorationNames());
             });
         });
+
         decorations.delete(undefined); // to handle empty decorations
         return decorations;
     }
+    */
     getAllSessionIds() {
         return this.sessions.map(function (session) { return session.id; });
     }
@@ -23,8 +26,8 @@ class RawEvent {
         this.timestamp = timestamp;
         this.number = number;
         this.data = data;
-        this.decorations = new Map();
-        this.codes = new Map(); // string is code scheme id
+        this.decorations = new Map(); // string is code scheme id
+        this.codes = new Map(); // string is code scheme id todo not necessary?
     }
     codeForScheme(schemeId) {
         return this.codes.get(schemeId);
@@ -35,12 +38,13 @@ class RawEvent {
     assignedCodes() {
         return Array.from(this.codes.values());
     }
-    decorate(decorationName, code) {
-        this.decorations.set(decorationName, new EventDecoration(this, decorationName, code));
+    decorate(decorationId, code) {
+        let stringId = "" + decorationId;
+        this.decorations.set(stringId, new EventDecoration(this, stringId, code));
     }
-    uglify(decorationName) {
-        this.decorations.delete(decorationName);
-        this.codes.delete(decorationName);
+    uglify(decorationId) {
+        this.decorations.delete(decorationId);
+        this.codes.delete(decorationId);
     }
     decorationForName(name) {
         return this.decorations.get(name);
@@ -50,9 +54,9 @@ class RawEvent {
     }
 }
 class EventDecoration {
-    constructor(owner, name, code) {
+    constructor(owner, id, code) {
         this.owner = owner;
-        this.name = name;
+        this.id = id;
         if (code) {
             this.code = code;
         }
@@ -74,9 +78,9 @@ class Session {
         return this.decorations.get(decorationName);
     }
     getAllDecorationNames() {
-        var names = new Set();
+        let names = new Set();
         for (let e of this.events) {
-            for (var key in e.decorations) {
+            for (let key in e.decorations) {
                 names.add(key);
             }
         }
@@ -105,7 +109,7 @@ class CodeScheme {
         this.isNew = isNew;
     }
     static clone(original) {
-        var newScheme = new this(original["id"], original["name"], false);
+        let newScheme = new this(original["id"], original["name"], false);
         newScheme.codes = new Map();
         original.codes.forEach(function (code) {
             newScheme.codes.set(code.id, Code.clone(code));
@@ -113,10 +117,17 @@ class CodeScheme {
         return newScheme;
     }
     copyCodesFrom(otherScheme) {
+        this.name = otherScheme.name;
+        for (let codeId of Array.from(this.codes.keys())) {
+            // delete extra ones!
+            if (!otherScheme.codes.has(codeId)) {
+                this.codes.delete(codeId);
+            }
+        }
         for (let codeId of Array.from(otherScheme.codes.keys())) {
-            var otherCodeObj = otherScheme.codes.get(codeId);
+            let otherCodeObj = otherScheme.codes.get(codeId);
             if (this.codes.has(codeId)) {
-                var code = this.codes.get(codeId);
+                let code = this.codes.get(codeId);
                 code.value = otherCodeObj.value;
                 code.words = otherCodeObj.words;
                 code.color = otherCodeObj.color;
@@ -144,7 +155,7 @@ class CodeScheme {
         return values;
     }
     getCodeByValue(value) {
-        var match;
+        let match;
         // TS doesn't support iterating IterableIterator with ES5 target
         for (let code of Array.from(this.codes.values())) {
             if (code.value === value) {
@@ -206,7 +217,7 @@ class Code {
         this._isEdited = true;
     }
     static clone(original) {
-        var newCode = new Code(original["_owner"], original["_id"], original["_value"], original["_color"], original["_shortcut"], false);
+        let newCode = new Code(original["_owner"], original["_id"], original["_value"], original["_color"], original["_shortcut"], false);
         newCode._words = original["_words"].slice(0);
         return newCode;
     }

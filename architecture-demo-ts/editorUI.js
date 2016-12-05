@@ -103,9 +103,11 @@ var codeEditorManager =  {
 
                 // todo prevent saving when there is an empty code
 
+                schemes[newId] = tempScheme;
+
                 messageViewerManager.addNewSchemeColumn(tempScheme, name);
 
-                var header = headerDecoColumn.find("#header" + tempScheme["id"]);
+                var header = headerDecoColumn.find("[scheme='" + tempScheme["id"] + "']");
                 header.children("i").text(tempScheme["name"]);
 
                 editorContainer.hide();
@@ -114,7 +116,6 @@ var codeEditorManager =  {
                 editorContainer.find("#scheme-name-input").val("");
                 editorOpen = false;
 
-                schemes[newId] = tempScheme;
                 tempScheme = {};
 
             });
@@ -133,7 +134,8 @@ var codeEditorManager =  {
         var saveSchemeButton = this.saveSchemeButton;
         var headerDecoColumn = $("#header-decoration-column");
 
-        saveSchemeButton.off("click");
+        saveSchemeButton.off("click"); // only have one listener at a time
+
         saveSchemeButton.one("click", function () {
 
             tempScheme.codes.forEach(function(codeObj,codeIndex) {
@@ -154,12 +156,15 @@ var codeEditorManager =  {
                 }
             });
 
-            tempScheme["name"] = editorContainer.find("#scheme-name-input").val();
+            tempScheme["name"] = editorContainer.find("#scheme-name-input").val(); //todo codeobject should just have all this saved already
 
-            var header = headerDecoColumn.find("#header" + tempScheme["id"]);
+            // update header in message view
+            var header = headerDecoColumn.find("[scheme='" + tempScheme["id"] + "']");
             header.children("i").text(tempScheme["name"]);
 
 
+
+            /*
             $(".message").each(function (i, row) {
                 var dropdown = $(row).find("." + tempScheme["id"]);
                 var options = dropdown.children().not(".unassign");
@@ -222,10 +227,34 @@ var codeEditorManager =  {
                     });
                 }
             });
-
+            */
             //tempScheme.codes = tempScheme.codes.filter(function(code) { return code !== ""; });
             //schemes[tempScheme["id"]] = tempScheme; // TODO NOOOOOOO MUST NOT DO THIS PLS
             schemes[tempScheme["id"]].copyCodesFrom(tempScheme);
+
+            // redraw rows
+            var tbody = "";
+            var sessions = newDataset.sessions;
+            var startOfPage = messageViewerManager.tablePages[messageViewerManager.currentlyLoadedPages[0]].start;
+            var endOfPage = messageViewerManager.tablePages[messageViewerManager.currentlyLoadedPages[1]].end;
+
+            for (var i = startOfPage[0]; i <= endOfPage[0]; i++) {
+                var events = sessions[i];
+                for (var j = 0; j <= endOfPage[1]; j++) {
+                    if (i === startOfPage[0] && j < startOfPage[1]) continue;
+                    else tbody += messageViewerManager.buildRow(sessions[i]["events"][j], j, i);
+                }
+            }
+
+            var messagesTbody = messageViewerManager.messageContainer.find("tbody");
+            var previousScrollTop = messageViewerManager.messageContainer.scrollTop();
+            var previousActiveRow = activeRow.attr("id");
+
+            messagesTbody.empty();
+            messagesTbody.append(tbody);
+            messageViewerManager.messageContainer.scrollTop(previousScrollTop);
+            activeRow = $("#" + previousActiveRow).addClass("active");
+
             editorContainer.hide();
             editorContainer.find("tbody").empty();
             codeEditorManager.bindAddCodeButtonListener();
