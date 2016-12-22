@@ -53,14 +53,14 @@ class RawEvent {
         return Array.from(this.codes.values());
     }
 
-    decorate(decorationId : string, code? : Code) {
-        let stringId = "" + decorationId;
-        this.decorations.set(stringId, new EventDecoration(this, stringId, code));
+    decorate(schemeId : string, code? : Code) {
+        let stringSchemeId = "" + schemeId;
+        this.decorations.set(stringSchemeId, new EventDecoration(this, stringSchemeId, code));
     }
 
-    uglify(decorationId: string) {
-        this.decorations.delete(decorationId);
-        this.codes.delete(decorationId);
+    uglify(schemeId: string) {
+        this.decorations.delete(schemeId);
+        this.codes.delete(schemeId);
     }
 
     decorationForName(name : string) : EventDecoration {
@@ -74,12 +74,12 @@ class RawEvent {
 
 class EventDecoration {
   owner : RawEvent;
-  id : String; // will take scheme id
+  scheme_id : String; // will take scheme id
   code : Code;
 
   constructor(owner : RawEvent, id : String, code?: Code) {
       this.owner = owner;
-      this.id = id;
+      this.scheme_id = id;
 
       if (code) {
           this.code = code;

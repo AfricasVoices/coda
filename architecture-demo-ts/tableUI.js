@@ -8,7 +8,7 @@ var messageViewerManager = {
 
     init: function(messageContainer, data, rowsPerPage) {
 
-        if (rowsPerPage === undefined) rowsPerPage = 20;
+        if (rowsPerPage === undefined) rowsPerPage = 40;
         this.rowsPerPage = rowsPerPage;
 
         this.messageContainer = messageContainer;
@@ -89,8 +89,17 @@ var messageViewerManager = {
         console.time("table building");
 
         var initialPages = 0;
+
+        /* TODO build indices from where to where each subarray for subsampling is */
+        var subsamplingEventCount = 0;
+        var subsamplingIndices = [];
+
         newDataset.sessions.forEach(function(session, sessionIndex) {
             session.events.forEach(function(event, eventIndex) {
+
+                if (subsamplingEventCount == 500) {
+                    subsamplingIndices.push([sessionIndex, eventIndex]);
+                }
 
                 if (currentEventCount > rowsPerEachPage) {
                     // build new page
@@ -119,8 +128,8 @@ var messageViewerManager = {
 
         });
 
-
         console.timeEnd("table building");
+        scrollbarManager.init(newDataset.sessions, document.getElementById("scrollbar"), 100);
 
         /*
         ACTIVE ROW HANDLING
@@ -408,7 +417,8 @@ var messageViewerManager = {
     manageShortcuts : function(event) {
         if (!editorOpen && activeSchemeId && activeRow && activeSchemeId.length > 0 && activeRow.length) {
 
-            // todo handle datastructure
+            // todo handle datastructure ohhhh
+
 
             var shortcuts = schemes[activeSchemeId].getShortcuts();
             if (shortcuts.has(event.keyCode)) {
@@ -432,7 +442,6 @@ var messageViewerManager = {
                 $(activeRow).addClass("coded");
                 $(activeRow).find("select." + activeSchemeId).val(codeObj["value"]).removeClass("uncoded").addClass("coded");
 
-                //var next = activeRow.next();
                 var next = UIUtils.nextUnfilledRow(activeRow, true, activeSchemeId);
                 if (next.length !== 0) {
                     activeRow.removeClass('active');
@@ -443,6 +452,8 @@ var messageViewerManager = {
                         UIUtils.scrollRowToTop(next[0], messageViewerManager.messageContainer[0]);
                     }
 
+                } else {
+                    // todo handle behaviour when there are no unfilled rows... just proceed to next row
                 }
             }
         }
@@ -483,6 +494,12 @@ var messageViewerManager = {
             console.log("new page added");
             messageViewerManager.currentlyLoadedPages.splice(0,1);
 
+
+/*          ADJUST THE OFFSET AGAIN
+            var elementTop = document.getElementById('yourElementId').offsetTop;
+            var divTop = document.getElementById('yourDivId').offsetTop;
+            var elementRelativeTop = elementTop - divTop;
+*/
             newScrollTop >= 0 ? $("#message-panel").scrollTop(newScrollTop) : $("#message-panel").scrollTop(0);
             console.timeEnd("infinite scroll DOWN");
 

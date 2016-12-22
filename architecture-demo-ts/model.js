@@ -38,13 +38,13 @@ class RawEvent {
     assignedCodes() {
         return Array.from(this.codes.values());
     }
-    decorate(decorationId, code) {
-        let stringId = "" + decorationId;
-        this.decorations.set(stringId, new EventDecoration(this, stringId, code));
+    decorate(schemeId, code) {
+        let stringSchemeId = "" + schemeId;
+        this.decorations.set(stringSchemeId, new EventDecoration(this, stringSchemeId, code));
     }
-    uglify(decorationId) {
-        this.decorations.delete(decorationId);
-        this.codes.delete(decorationId);
+    uglify(schemeId) {
+        this.decorations.delete(schemeId);
+        this.codes.delete(schemeId);
     }
     decorationForName(name) {
         return this.decorations.get(name);
@@ -56,7 +56,7 @@ class RawEvent {
 class EventDecoration {
     constructor(owner, id, code) {
         this.owner = owner;
-        this.id = id;
+        this.scheme_id = id;
         if (code) {
             this.code = code;
         }

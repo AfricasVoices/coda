@@ -26,7 +26,9 @@ var state = {
 $("#editor-row").css("height", codeEditorPanel.outerHeight(true) - codeEditorPanel.find(".panel-heading").outerHeight(true) - $('#panel-row').outerHeight(true) - $('#button-row').outerHeight(true) - 10);
 $("body").hide();
 
-$.getJSON("data/sessions--.json", function(data) {
+
+// USE EITHER sessions--.json or sessions-numbered-10000.json for just numbers
+$.getJSON("data/sessions-6000.json", function(data) {
 
     var buildDataset = function(data) {
 
@@ -58,9 +60,10 @@ $.getJSON("data/sessions--.json", function(data) {
                         }
 
                         var code = scheme.getCodeByValue(decorationValue);
-                        event.decorate(sessionKey, code);
+                        event.decorate(decorations[d], code); // has to use decorations[d] as scheme key
                     }
 
+                    /* TODO  write tests for this */
 
                 });
 

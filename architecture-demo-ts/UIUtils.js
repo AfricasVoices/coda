@@ -4,7 +4,7 @@ var UIUtils = (
         return {
 
             randomId : function(array) {
-                var newId = Math.floor(Math.random()*100);
+                var newId = Math.floor(Math.random()*100); // todo : better way of generating random
 
                 if (array !== undefined && array.length !== 0) {
                     while (array.indexOf(newId) !== -1) {
@@ -16,6 +16,17 @@ var UIUtils = (
 
             ascii: function (a) {
                 return a.charCodeAt(0);
+            },
+
+            randomInteger :
+                /**
+                 * Returns a random integer between min (inclusive) and max (inclusive)
+                 * Using Math.round() will give you a non-uniform distribution!
+                 * http://stackoverflow.com/a/1527820
+                 */
+
+                function(min, max) {
+                return Math.floor(Math.random() * (max - min + 1)) + min;
             },
 
             nextUnfilledRow: function (activeRow, wrap, schemeId) {
@@ -100,11 +111,11 @@ var UIUtils = (
 
             isScrolledToBottom: function(tableContainer) {
                 // table is 18px above bottom of the panel...
-                return (Math.abs(messageViewerManager.table[0].scrollHeight - $(tableContainer).scrollTop() - $(tableContainer).outerHeight() + 18) < 1)
+                return (Math.abs(messageViewerManager.table[0].scrollHeight - $(tableContainer).scrollTop() - $(tableContainer).outerHeight()) -1  < 1)
             },
 
             isScrolledToTop: function(tableContainer) {
-                return $(tableContainer).scrollTop() === 0;
+                return $("#message-panel").scrollTop() === 0;
             }
 
         };

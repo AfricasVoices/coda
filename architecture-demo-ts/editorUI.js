@@ -114,10 +114,9 @@ var codeEditorManager =  {
                 editorContainer.find("tbody").empty();
                 codeEditorManager.bindAddCodeButtonListener();
                 editorContainer.find("#scheme-name-input").val("");
+                scrollbarManager.redraw(newDataset, newId);
                 editorOpen = false;
-
                 tempScheme = {};
-
             });
 
             $("#scheme-name-input").prop("readonly", false);
@@ -231,6 +230,7 @@ var codeEditorManager =  {
             //tempScheme.codes = tempScheme.codes.filter(function(code) { return code !== ""; });
             //schemes[tempScheme["id"]] = tempScheme; // TODO NOOOOOOO MUST NOT DO THIS PLS
             schemes[tempScheme["id"]].copyCodesFrom(tempScheme);
+            scrollbarManager.redraw(newDataset, tempScheme["id"]);
 
             // redraw rows
             var tbody = "";

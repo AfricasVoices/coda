@@ -27,6 +27,7 @@ div[class*=col-], #message-panel {
 #message-panel {
   height: 97%;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 #message-panel::-webkit-scrollbar {
