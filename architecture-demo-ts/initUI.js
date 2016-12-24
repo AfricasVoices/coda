@@ -28,7 +28,7 @@ $("body").hide();
 
 
 // USE EITHER sessions--.json or sessions-numbered-10000.json for just numbers
-$.getJSON("data/sessions-numbered-10000.json", function(data) {
+$.getJSON("data/sessions-10000.json", function(data) {
 
     var buildDataset = function(data) {
 

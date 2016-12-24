@@ -68,6 +68,8 @@ var scrollbarManager = {
 
 // todo make schemes an array not object so there is a concept of order
 
+        // todo keep scrollthumb in place when reloading the table from editscheme dialog
+
         this.redraw(newDataset, Object.keys(newDataset.schemes)[0]);
 /*
         $("#scrollbar").drawRect({
@@ -142,7 +144,7 @@ var scrollbarManager = {
         $(this.scrollbarEl).removeLayer('scrollthumb');
         $("#scrollbar").drawRect({
             strokeStyle: '#black',
-            strokeWidth: 4,
+            strokeWidth: 2,
             x: 2, y: 2,
             width: context.canvas.width-4, height: 20, // set height according to dataset size vs elems on screen
             cornerRadius: 0,
@@ -155,10 +157,25 @@ var scrollbarManager = {
             restrictDragToAxis: 'y',
             dragstop: function(layer) {
 
+                if (layer.dy + layer.y < 0) {
+                    event.stopPropagation();
+                    event.cancelBubble = true;
+                    layer.y = 2; // todo connect to stroke width of the grey border
+                }
+
+                else if (layer.dy + layer.y + layer.height + layer.strokeWidth > context.canvas.height) {
+                    event.stopPropagation();
+                    event.cancelBubble = true;
+                    layer.y = context.canvas.height - layer.height - 2; // todo connect to stroke width of the grey border
+                }
+
                 scrollbarManager.scrolling(layer);
+                $(this).drawLayers();
 
             },
+
             dragcancel: function(layer) {
+
                 console.log("DRAGCANCEL");
                 // want to prevent dragging layer out of canvas element
                 // check if layer coordinates are out of bounds
@@ -253,17 +270,23 @@ var scrollbarManager = {
 
 
         // ON END OF SCROLL EVENT IN THE SCROLLBAR!!!
-        var thumbTop = scrollthumbLayer.y;
+
+
+        // need to take into account the border of the scrollthumb! e.g. the only lines visible in the scrollthumb...
+
+        var thumbTop = scrollthumbLayer.y + 4; // for stroke width of the scrollthumb
         var pageSize = messageViewerManager.rowsPerPage;
         var rowsPerPixel = scrollbarManager.subsamplingNum;
 
         var firstItemInPixel = (thumbTop - 1) * rowsPerPixel;
-        var pageToLoadIndex = Math.floor(firstItemInPixel / pageSize);
+        var percentage = Math.round((thumbTop / scrollbarManager.scrollbarEl.height) * 100 ) / 100;
+        var percentagePageToLoad = Math.floor((messageViewerManager.tablePages.length-1) * percentage);
+        //var pageToLoadIndex = thumbTop <= 0 ? 0 : Math.floor(firstItemInPixel / pageSize);
 
         messageViewerManager.currentlyLoadedPages = [];
 
-        var page1 = messageViewerManager.createPageHTML(pageToLoadIndex);
-        var page2 = messageViewerManager.createPageHTML(pageToLoadIndex+1);
+        var page1 = messageViewerManager.createPageHTML(percentagePageToLoad);
+        var page2 = messageViewerManager.createPageHTML(percentagePageToLoad+1);
 
         var tbodyElement = messageViewerManager.table.find("tbody");
         tbodyElement.empty();

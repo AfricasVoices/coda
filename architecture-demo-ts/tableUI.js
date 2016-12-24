@@ -468,10 +468,10 @@ var messageViewerManager = {
         var endOfPage = messageViewerManager.tablePages[index].end;
 
         for (var i = startOfPage[0]; i <= endOfPage[0]; i++) {
-            var events = sessions[i];
+            var events = sessions[i]["events"];
             for (var j = 0; j <= endOfPage[1]; j++) {
                 if (i === startOfPage[0] && j < startOfPage[1]) continue;
-                else tbody += messageViewerManager.buildRow(sessions[i]["events"][j], j, i);
+                else if (j < events.length) tbody += messageViewerManager.buildRow(sessions[i]["events"][j], j, i);
             }
         }
 
@@ -582,6 +582,9 @@ var messageViewerManager = {
         var decoNumber = Object.keys(schemes).length;
         var decoColumnWidth = (12/decoNumber>>0);
         var sessionRow = "";
+        if (eventObj == undefined) {
+            console.log("undefined");
+        }
         var activeDecoration = eventObj["decorations"].get(activeSchemeId);
         var rowColor = "#ffffff";
 
