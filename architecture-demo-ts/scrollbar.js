@@ -153,6 +153,11 @@ var scrollbarManager = {
             fromCenter: false,
             draggable: true,
             restrictDragToAxis: 'y',
+            dragstop: function(layer) {
+
+                scrollbarManager.scrolling(layer);
+
+            },
             dragcancel: function(layer) {
                 console.log("DRAGCANCEL");
                 // want to prevent dragging layer out of canvas element
@@ -161,17 +166,13 @@ var scrollbarManager = {
                 if (layer.dy + layer.y < 0) {
                     event.stopPropagation();
                     event.cancelBubble = true;
-
-                    layer.y = 0;
-
+                    layer.y = 2; // todo connect to stroke width of the grey border
                 }
 
                 else if (layer.dy + layer.y + layer.height + layer.strokeWidth > context.canvas.height) {
                     event.stopPropagation();
                     event.cancelBubble = true;
-
-                    layer.y = context.canvas.height - layer.height - layer.strokeWidth;
-
+                    layer.y = context.canvas.height - layer.height - 2; // todo connect to stroke width of the grey border
                 }
 
             },
@@ -222,7 +223,60 @@ var scrollbarManager = {
         }
 
         return sampleColours;
+    },
+
+
+    scrolling : function(scrollthumbLayer) {
+
+        /*
+         IDEA:
+         In the scrollbar each 1px line represents n data entries. If mapping is 1-1 then 1 line - 1 data entry, otherwise
+         subsampling was used so n > 1. The navigation rectangle is set to be 20px high, so it includes approx 20 x n data entries.
+
+         Additionally, for the purposes of lazy loading the table, the data is split into k-sized "pages". Only 2 * k data items
+         are ever present at the same time in the table. The number of data items present in the table at the same time and the
+         number of data items included in the scrollthumb are considerably different.
+
+         Consequently,
+         1) scrolling the table won't necessarily scroll the table
+         2) scrolling the scrollbar will have to jump multiple data pages
+         3) scrolling the scrollbar will have to load new pages in! The jumps are likely to be considerably big.
+
+
+         As a result, on each scroll of the scrollbar
+         1) determine at which pixel the scrollthumb is
+         2) figure out the sample of what data entries is that pixel
+         3) load in the pages that include the first 2 * k entries of that pixel. Alternatively, can pick and load from the middle
+         of the scrollthumb
+
+         */
+
+
+        // ON END OF SCROLL EVENT IN THE SCROLLBAR!!!
+        var thumbTop = scrollthumbLayer.y;
+        var pageSize = messageViewerManager.rowsPerPage;
+        var rowsPerPixel = scrollbarManager.subsamplingNum;
+
+        var firstItemInPixel = (thumbTop - 1) * rowsPerPixel;
+        var pageToLoadIndex = Math.floor(firstItemInPixel / pageSize);
+
+        messageViewerManager.currentlyLoadedPages = [];
+
+        var page1 = messageViewerManager.createPageHTML(pageToLoadIndex);
+        var page2 = messageViewerManager.createPageHTML(pageToLoadIndex+1);
+
+        var tbodyElement = messageViewerManager.table.find("tbody");
+        tbodyElement.empty();
+        tbodyElement.append(page1);
+        tbodyElement.append(page2);
+
+        messageViewerManager.messageContainer.scrollTop(0);
+
     }
+
+
+
+
 
 
 }

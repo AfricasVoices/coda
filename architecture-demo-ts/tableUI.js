@@ -2,7 +2,7 @@ var messageViewerManager = {
     messageContainer: {},
     table: {},
     codeSchemeOrder: [],
-    tablePages: [],
+    tablePages: [], // list of objects {start: [sessionIndex, eventIndex], end: [sessionIndex, eventIndex]}
     rowsPerPage : 0,
     currentlyLoadedPages : [],
 
@@ -457,6 +457,27 @@ var messageViewerManager = {
                 }
             }
         }
+    },
+
+    createPageHTML: function(index) {
+
+        messageViewerManager.currentlyLoadedPages.push(index);
+        var tbody = "";
+        var sessions = newDataset.sessions;
+        var startOfPage = messageViewerManager.tablePages[index].start;
+        var endOfPage = messageViewerManager.tablePages[index].end;
+
+        for (var i = startOfPage[0]; i <= endOfPage[0]; i++) {
+            var events = sessions[i];
+            for (var j = 0; j <= endOfPage[1]; j++) {
+                if (i === startOfPage[0] && j < startOfPage[1]) continue;
+                else tbody += messageViewerManager.buildRow(sessions[i]["events"][j], j, i);
+            }
+        }
+
+       return tbody;
+
+
     },
 
     infiniteScroll : function(event) {
