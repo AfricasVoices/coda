@@ -2,9 +2,11 @@ var messageViewerManager = {
     messageContainer: {},
     table: {},
     codeSchemeOrder: [],
+    activeScheme: "",
     tablePages: [], // list of objects {start: [sessionIndex, eventIndex], end: [sessionIndex, eventIndex]}
     rowsPerPage : 0,
     currentlyLoadedPages : [],
+    wordBuffer: {}, // format {sessionId :{ eventId: {}} ... }
 
     init: function(messageContainer, data, rowsPerPage) {
 
@@ -32,10 +34,34 @@ var messageViewerManager = {
            }
         });
 
+        $("#message-table").on("mouseup", function(event) {
+            console.log("burek");
+            let targetElement = event.originalEvent.target;
+
+
+            /*
+            All this
+             */
+            if (targetElement.nodeName != "TD") {
+                targetElement = targetElement.parentElement;
+            }
+
+            if (targetElement.nodeName === "TD" && targetElement.className.split(" ").indexOf("message-text") != -1) {
+                messageViewerManager.collectWords(targetElement);
+            }
+        });
+
         $("#message-panel").scroll(function(event) {
             //console.log("scroll height: " + $("#message-table")[0].scrollHeight + ", scroll top: " + $("#message-panel").scrollTop() +  ", outer height: " + $("#message-panel").outerHeight(false));
             // todo need to know if scroll is from shortcut or manual
             messageViewerManager.infiniteScroll(event);
+        });
+
+        $("#message-table").dblclick(function(event) {
+           if (event.originalEvent.target.className === "highlight") {
+               $(event.originalEvent.target).replaceWith($(event.originalEvent.target).text());
+           }
+
         });
 
         console.timeEnd("dropdown init");
@@ -70,6 +96,7 @@ var messageViewerManager = {
 
             if (i==0) {
                 activeSchemeId = schemeKey;
+                messageViewerManager.activeScheme = activeSchemeId;
                 col.children("i").css("text-decoration", "underline");
             }
             col.children("i").on("click", messageViewerManager.changeActiveScheme);
@@ -137,12 +164,14 @@ var messageViewerManager = {
 
         // init
         activeRow = this.table.find("tbody").find("tr:first");
+        prevActiveRow = activeRow;
         activeRow.toggleClass("active");
 
 
         // click select
         this.table.on('click', 'tbody tr', function() {
             $(this).addClass('active').siblings().removeClass('active');
+            prevActiveRow = activeRow;
             activeRow = $(this);
         });
 
@@ -211,6 +240,7 @@ var messageViewerManager = {
         $("#header-decoration-column").find("i").not(".glyphicon").css("text-decoration", "");
         $(this).css("text-decoration", "underline");
         activeSchemeId = $(this).parents("div").attr("scheme");
+        messageViewerManager.activeScheme = activeSchemeId;
 
         var schemeObj = schemes[activeSchemeId];
         /*
@@ -224,10 +254,43 @@ var messageViewerManager = {
         });
         */
 
+        // todo redraw the scrollbar!
+        scrollbarManager.redraw(newDataset, activeSchemeId);
+
+
+        // todo think about whether inactive select should be disabled or just greyed out!
+
+
         $(".message").each(function(i, tr) {
             // find code object via selected option
+            let selectFields = $(tr).find("select");
+            selectFields.each(function(i, field) {
+
+            });
             var selectedOption = $(tr).find("select." + activeSchemeId).find("option:selected").not(".unassign");
 
+            $(tr).find("select").each(function(index,el){
+               if ($(el).hasClass(activeSchemeId)) {
+                   $(el).removeAttr("disabled");
+                   let selectedOption = $(el).find("option:selected").not(".unassign");
+                   if (selectedOption.length !== 0) {
+                       var color = schemeObj.codes.get(selectedOption.attr("id"))["color"];
+                       $(tr).children("td").each(function(i, td) {
+                           $(td).css("background-color", color);
+                       });
+                   } else {
+                       $(tr).children("td").each(function(i, td) {
+                           $(td).css("background-color", "#ffffff");
+                       });
+                   }
+
+               } else {
+                   $(el).attr("disabled", "");
+               }
+
+            });
+
+            /*
             if (selectedOption.length !== 0) {
                 var color = schemeObj.codes.get(selectedOption.attr("id"))["color"];
                 $(tr).children("td").each(function(i, td) {
@@ -238,25 +301,28 @@ var messageViewerManager = {
                     $(td).css("background-color", "#ffffff");
                 });
             }
-
+            */
         });
 
     },
 
     dropdownChange : function(event) {
 
-        var selectElement = $(event.target);
+        let selectElement = $(event.target);
 
         var schemeId = /form-control (.*) (uncoded|coded)/.exec(selectElement.attr("class"))[1];
-        var value = selectElement.val();
-        var row = selectElement.parents(".message");
+        let value = selectElement.val();
+        let row = selectElement.parents(".message");
+        let sessionId = $(row).attr("sessionid");
+        let eventId = $(row).attr("eventid");
 
-        var eventObj = newDataset.sessions[$(row).attr("sessionid")]["events"][$(row).attr("eventid")];
+        var eventObj = newDataset.sessions[sessionId]["events"][eventId];
+        var codeObj = schemes[schemeId].getCodeByValue(value);
 
         if (value.length > 0) {
 
-            // update data structure
-            var decoration = eventObj.decorationForName(schemeId);
+            // add decoration
+            let decoration = eventObj.decorationForName(schemeId);
             if (decoration === undefined) {
                 eventObj.decorate(schemeId, schemes[schemeId].getCodeByValue(value));
             } else {
@@ -266,18 +332,29 @@ var messageViewerManager = {
             selectElement.removeClass("uncoded");
             selectElement.addClass("coded");
 
+            // set color
             if (activeSchemeId === schemeId) {
-                var color = schemes[schemeId].getCodeByValue(value)["color"];
+                let color = schemes[schemeId].getCodeByValue(value)["color"];
                 row.children("td").each(function(i, td) {
                     $(td).css("background-color", color);
                 });
             }
 
+
+            // if words in buffer, add to scheme dataset
+            if (messageViewerManager.wordBuffer.hasOwnProperty(sessionId)
+                && messageViewerManager.wordBuffer.hasOwnProperty(eventId)
+                && messageViewerManager.wordBuffer[sessionId][eventId].length > 0) {
+
+                codeObj.words = Object.keys(messageViewerManager.wordBuffer[sessionId][eventId]);
+                messageViewerManager.wordBuffer[sessionId][eventId] = {}
+            }
+
+
         } else {
 
             // remove code from event in data structure
             eventObj.uglify(schemeId);
-
 
             selectElement.removeClass("coded");
             selectElement.addClass("uncoded");
@@ -287,8 +364,14 @@ var messageViewerManager = {
                     $(td).css("background-color", "#ffffff");
                 });
             }
-        }
 
+            // remove words from dataset, get words from message text
+            let words = $(row).find("td.message-text span.highlight").map(function(index, element) {
+                console.log($(element).text());
+                return $(element).text()});
+            //schemes[schemeId].deleteWords(words); // todo keep track which message is the origin of the added words... ?
+
+        }
     },
 
     addNewSchemeColumn: function(scheme) {
@@ -296,20 +379,20 @@ var messageViewerManager = {
         // TODO: warning message in case of empty codes
         if (scheme["codes"].size === 0) return;
 
-        var tbody = "";
-        var sessions = newDataset.sessions;
-        var startOfPage = messageViewerManager.tablePages[0].start;
-        var endOfPage = messageViewerManager.tablePages[1].end;
+        let tbody = "";
+        let sessions = newDataset.sessions;
+        let startOfPage = messageViewerManager.tablePages[0].start;
+        let endOfPage = messageViewerManager.tablePages[1].end;
 
-        for (var i = startOfPage[0]; i <= endOfPage[0]; i++) {
-            var events = sessions[i];
+        for (let i = startOfPage[0]; i <= endOfPage[0]; i++) {
+            let events = sessions[i];
             for (var j = 0; j <= endOfPage[1]; j++) {
                 if (i === startOfPage[0] && j < startOfPage[1]) continue;
                 else tbody += messageViewerManager.buildRow(sessions[i]["events"][j], j, i);
             }
         }
 
-        this.currentlyLoadedPages[0,1];
+        this.currentlyLoadedPages[0,1]; // todo store which page was loaded
 
         var tbodyObj = this.table.find("tbody");
         tbodyObj.empty();
@@ -395,7 +478,7 @@ var messageViewerManager = {
                 editorOpen = true;
 
                 Array.from(tempScheme.codes.values()).forEach(function (codeObj, index) {
-                    codeEditorManager.addCodeInputRow(codeObj["value"], codeObj["shortcut"], codeObj["color"], codeObj["id"]);
+                    codeEditorManager.addCodeInputRow(codeObj["value"], codeObj["shortcut"], codeObj["color"], codeObj["id"], codeObj["words"]);
                 });
 
 
@@ -481,51 +564,61 @@ var messageViewerManager = {
     },
 
     infiniteScroll : function(event) {
+
+        // todo on every infinite scroll refresh the scrollthumb position!!!!
+
         if (UIUtils.isScrolledToBottom(messageViewerManager.messageContainer)) {
             console.time("infinite scroll DOWN");
 
             var nextPage = messageViewerManager.currentlyLoadedPages[messageViewerManager.currentlyLoadedPages.length-1] + 1;
-            messageViewerManager.currentlyLoadedPages.push(nextPage);
 
-            var tbody = "";
-            var sessions = newDataset.sessions;
-            var startOfPage = messageViewerManager.tablePages[nextPage].start;
-            var endOfPage = messageViewerManager.tablePages[nextPage].end;
+            if (nextPage < messageViewerManager.tablePages.length) {
 
-            for (var i = startOfPage[0]; i <= endOfPage[0]; i++) {
-                var events = sessions[i];
-                for (var j = 0; j <= endOfPage[1]; j++) {
-                    if (i === startOfPage[0] && j < startOfPage[1]) continue;
-                    else tbody += messageViewerManager.buildRow(sessions[i]["events"][j], j, i);
+                messageViewerManager.currentlyLoadedPages.push(nextPage);
+
+                var tbody = "";
+                var sessions = newDataset.sessions;
+                var startOfPage = messageViewerManager.tablePages[nextPage].start;
+                var endOfPage = messageViewerManager.tablePages[nextPage].end;
+
+                for (var i = startOfPage[0]; i <= endOfPage[0]; i++) {
+                    var events = sessions[i];
+                    for (var j = 0; j <= endOfPage[1]; j++) {
+                        if (i === startOfPage[0] && j < startOfPage[1]) continue;
+                        else tbody += messageViewerManager.buildRow(sessions[i]["events"][j], j, i);
+                    }
                 }
+
+                var tbodyElement = messageViewerManager.table.find("tbody");
+
+                var elementsToRemove = tbodyElement.find("tr:nth-child(-n+" + Math.floor(messageViewerManager.rowsPerPage/2) + ")");
+                var removedHeight = 0;
+                elementsToRemove.each(function(i, el){
+                    removedHeight += $(el).height();
+                });
+
+                elementsToRemove.remove();
+                var newScrollTop = removedHeight - tbodyElement.height();
+
+                tbodyElement.append(tbody);
+                console.log("new page added");
+                messageViewerManager.currentlyLoadedPages.splice(0,1);
+
+
+                /*          ADJUST THE OFFSET AGAIN
+                 var elementTop = document.getElementById('yourElementId').offsetTop;
+                 var divTop = document.getElementById('yourDivId').offsetTop;
+                 var elementRelativeTop = elementTop - divTop;
+                 */
+                newScrollTop >= 0 ? $("#message-panel").scrollTop(newScrollTop) : $("#message-panel").scrollTop(0);
+
+                scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);
+
+                console.timeEnd("infinite scroll DOWN");
             }
 
-            var tbodyElement = messageViewerManager.table.find("tbody");
-
-            var elementsToRemove = tbodyElement.find("tr:nth-child(-n+" + Math.floor(messageViewerManager.rowsPerPage/2) + ")");
-            var removedHeight = 0;
-            elementsToRemove.each(function(i, el){
-              removedHeight += $(el).height();
-            });
-
-            elementsToRemove.remove();
-            var newScrollTop = removedHeight - tbodyElement.height();
-
-            tbodyElement.append(tbody);
-            console.log("new page added");
-            messageViewerManager.currentlyLoadedPages.splice(0,1);
-
-
-/*          ADJUST THE OFFSET AGAIN
-            var elementTop = document.getElementById('yourElementId').offsetTop;
-            var divTop = document.getElementById('yourDivId').offsetTop;
-            var elementRelativeTop = elementTop - divTop;
-*/
-            newScrollTop >= 0 ? $("#message-panel").scrollTop(newScrollTop) : $("#message-panel").scrollTop(0);
-            console.timeEnd("infinite scroll DOWN");
-
-
         } else if (UIUtils.isScrolledToTop(messageViewerManager.messageContainer)){
+
             if (messageViewerManager.currentlyLoadedPages[0] !== 0 ) {
                 console.time("infinite scroll UP");
 
@@ -585,6 +678,10 @@ var messageViewerManager = {
         if (eventObj == undefined) {
             console.log("undefined");
         }
+
+        if (eventObj == undefined) {
+            console.log(eventObj);
+        }
         var activeDecoration = eventObj["decorations"].get(activeSchemeId);
         var rowColor = "#ffffff";
 
@@ -601,14 +698,14 @@ var messageViewerManager = {
 
         sessionRow += "<tr class='message' id=" + eventObj["name"] + " eventId = '" + eventIndex + "' sessionId = '" + sessionIndex + "'>";
         sessionRow += "<td class='col-md-2' style='background-color: " + rowColor+ "'>" + eventObj["timestamp"] + "</td>";
-        sessionRow += "<td class=col-md-4 style='background-color: " + rowColor+ "'>" + eventObj["data"] + "</td>";
-        sessionRow += "<td class=col-md-4 style='background-color: " + rowColor+ "'>";
+        sessionRow += "<td class='col-md-4 message-text' style='background-color: " + rowColor+ "'><p>" + eventObj["data"] + "</p></td>";
+        sessionRow += "<td class='col-md-4 decorations' style='background-color: " + rowColor+ "'>";
         sessionRow += "<div class='row decorator-column'>";
 
         Object.keys(newDataset.schemes).forEach(function(schemeKey) {
 
             var codes = Array.from(newDataset.schemes[schemeKey].codes.values());
-            sessionRow += "<div class='col-md-" + decoColumnWidth + "' scheme='" + activeSchemeId + "'>";
+            sessionRow += "<div class='col-md-" + decoColumnWidth + " deco-container' scheme='" + activeSchemeId + "'>";
 
             var optionsString = "";
             var selectClass = "uncoded";
@@ -632,7 +729,8 @@ var messageViewerManager = {
 
             });
 
-            sessionRow += "<select class='form-control " + schemeKey + " " + selectClass + "'>";
+            let disabled = schemeKey == messageViewerManager.activeScheme ? "" : "disabled";
+            sessionRow += "<select class='form-control " + schemeKey + " " + selectClass + "' " + disabled + ">";
             sessionRow += optionsString;
 
             if (!somethingSelected) sessionRow += "<option class='unassign' selected></option>";
@@ -649,6 +747,45 @@ var messageViewerManager = {
         sessionRow += "</tr>";
 
         return sessionRow;
+    },
+
+    collectWords : function(element) {
+
+        if ($(element).prop("tagName") == "TD") {
+
+            let highlightContext = $(element);
+            let words = [];
+
+            if (window.getSelection && window.getSelection() && window.getSelection().toString().length > 0) {
+
+                let highlightResult = highlightContext.mark(window.getSelection().toString(),  {"element": "span",
+                    "className": "highlight", "diacritics": false, "accuracy": "exactly"});
+                words = highlightResult["words"];
+            }
+
+            console.log(words);
+
+            // check if current row has an assigned code and if yes, add the words to the data structure
+            var sessionId = $(element).attr("sessionid");
+            var eventId = $(element).attr("eventid");
+            let activeDeco = $(element).nextAll("td.decorations").first().find(".deco-container[scheme='"+ messageViewerManager.activeScheme +"']");
+            let selectElement = activeDeco.find("select.coded");
+            let isCoded = selectElement.length > 0;
+
+            if (isCoded) {
+
+                schemes[messageViewerManager.activeScheme].getCodeByValue(selectElement.val()).words = words;
+
+            } else {
+                for (let i = 0; i < words.length; i++){
+                    if (messageViewerManager.wordBuffer[sessionId][eventId][words[i]]!= 1) { // todo what do we do about strings of len = 1
+                        messageViewerManager.wordBuffer[sessionId][eventId][words[i]] = 1;
+                    }
+                }
+            }
+        }
+
+
     }
 
 };

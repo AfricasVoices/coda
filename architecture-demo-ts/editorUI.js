@@ -239,8 +239,9 @@ var codeEditorManager =  {
             var endOfPage = messageViewerManager.tablePages[messageViewerManager.currentlyLoadedPages[1]].end;
 
             for (var i = startOfPage[0]; i <= endOfPage[0]; i++) {
-                var events = sessions[i];
-                for (var j = 0; j <= endOfPage[1]; j++) {
+                var events = sessions[i]["events"];
+                var eventsToPrint = (i == endOfPage[0]) ? endOfPage[1] : events.length-1;
+                for (var j = 0; j <= eventsToPrint; j++) {
                     if (i === startOfPage[0] && j < startOfPage[1]) continue;
                     else tbody += messageViewerManager.buildRow(sessions[i]["events"][j], j, i);
                 }
@@ -306,13 +307,13 @@ var codeEditorManager =  {
             '</tr>');
 
         $(".add-code-row").on("click", function() {
-            addCodeInputRow("","", "#ffffff", "");
+            addCodeInputRow("","", "#ffffff", "", []);
         });
 
 
     },
 
-    addCodeInputRow: function(code, shortcut, color, id) {
+    addCodeInputRow: function(code, shortcut, color, id, words) {
 
         var bindInputListeners = codeEditorManager.bindInputListeners;
 
@@ -349,16 +350,19 @@ var codeEditorManager =  {
             $("#color-pick").colorpicker('setValue', "#ffffff");
         }
 
+        $("#word-textarea").val(words);
+
         row.on("click", function() {
             state.activeEditorRow.removeClass("active");
             state.activeEditorRow = $(this);
             state.activeEditorRow.addClass("active");
 
-            var code = Array.from(tempScheme.codes.values())[$(this).attr("id")]; // todo fetch by id
+            var code = tempScheme.codes.get($(this).attr("id"));
 
             if (code) {
-                var color = code["color"].length > 0 ? code["color"] : "#ffffff";
-                codeEditorManager.updateCodePanel(color);
+                let color = code["color"].length > 0 ? code["color"] : "#ffffff";
+                let words = code["words"].length > 0 ? code["words"] : ""
+                codeEditorManager.updateCodePanel(color, words);
             }
         });
 
@@ -367,11 +371,14 @@ var codeEditorManager =  {
     },
 
 
-    updateCodePanel: function(color) {
+    updateCodePanel: function(color, words) {
 
-        var colorPicker = $("#color-pick");
+        let colorPicker = $("#color-pick");
         colorPicker.find("input").attr("value", color);
         colorPicker.colorpicker('setValue', color);
+
+        let wordsArea = $("#word-textarea");
+        wordsArea.val(words);
     },
 
 

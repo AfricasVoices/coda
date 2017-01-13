@@ -129,7 +129,7 @@ class CodeScheme {
             if (this.codes.has(codeId)) {
                 let code = this.codes.get(codeId);
                 code.value = otherCodeObj.value;
-                code.words = otherCodeObj.words;
+                code.words = otherCodeObj.words.slice(0); // take care to clone
                 code.color = otherCodeObj.color;
                 code.shortcut = otherCodeObj.shortcut;
             }
@@ -212,9 +212,22 @@ class Code {
         this._shortcut = value;
         this._isEdited = true;
     }
-    set words(value) {
-        this._words = value;
+    set words(words) {
+        // todo Do we need to count occurrences of these words too or not?
+        let newWords = this._words.concat(words);
+        newWords.sort();
+        this._words = newWords.filter(function (word, index) {
+            return newWords.indexOf(word) === index;
+        });
         this._isEdited = true;
+    }
+    deleteWords(words) {
+        for (let word of words) {
+            let index = this._words.indexOf(word);
+            if (index != -1) {
+                this._words.splice(index, 1);
+            }
+        }
     }
     static clone(original) {
         let newCode = new Code(original["_owner"], original["_id"], original["_value"], original["_color"], original["_shortcut"], false);

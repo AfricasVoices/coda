@@ -4,6 +4,8 @@ var scrollbarManager = {
 
     scrollbarEl : {},
     subsamplingNum: 0,
+    thumbWidth: 2,
+    scale: 1,
 
     init : function(sessionData, scrollbarEl, subsamplingNum){
 
@@ -16,7 +18,7 @@ var scrollbarManager = {
         // check if any code has colour set
 
         var scrollContext = scrollbarEl.getContext('2d')
-        $("body").show();
+        $("body").show(); // todo this is nasty
         scrollContext.canvas.height = $("#table-col").height()
             - parseInt(messageViewerManager.messageContainer.css("margin-bottom"))
             - parseInt(messageViewerManager.messageContainer.css("margin-top"));
@@ -120,22 +122,43 @@ var scrollbarManager = {
 
     },
 
-    redraw : function (dataset, activeSchemeId) {
+    redraw : function (dataset, activeSchemeId, loadedPages) {
 
-        var colors = this.subsample(dataset, activeSchemeId);
+        var colors = [];
+        var sessionData = dataset.sessions;
+        if (this.subsamplingNum > 0) {
+            colors = this.subsample(dataset, activeSchemeId);
+        } else {
+            for (var i = 0; i < sessionData.length; i++) {
+                var numEvents = sessionData[i].events.length;
+                for (var j = 0; j < numEvents; j++) {
+                    if (sessionData[i]["events"][j]["decorations"].has(activeSchemeId) && sessionData[i]["events"][j]["decorations"].get(activeSchemeId)["code"] != null) {
+                        var color = sessionData[i]["events"][j]["decorations"].get(activeSchemeId)["code"]["color"];
+                        colors.push(color);
+                    } else {
+                        colors.push("#ffffff"); // todo: or some other default color
+                    }
+                }
+            }
+        }
+
+        this.scale = (this.scrollbarEl.height-4)/colors.length;
+
 
         $(this.scrollbarEl).removeLayerGroup('scrollbarlines');
 
         for (var c = 0; c < this.scrollbarEl.height-2; c++) { // todo: fix this
+            var strokeWidth = Math.floor((this.scrollbarEl.height-4)/colors.length);
 
             $(this.scrollbarEl).drawLine({
                 strokeStyle: colors[c] != undefined ? colors[c] : "#ffffff",
-                strokeWidth: 1,
-                x1: 1, y1: c + 2,
-                x2: this.scrollbarEl.width - 1, y2: c + 2,
+                strokeWidth: strokeWidth,
+                x1: 1, y1: c * strokeWidth,
+                x2: this.scrollbarEl.width - 1, y2: c * strokeWidth,
                 layer: true,
                 groups: ['scrollbar', 'scrollbarlines'],
-                fromCenter: false
+                fromCenter: false,
+                scaleY : this.scale
             });
 
         }
@@ -144,8 +167,8 @@ var scrollbarManager = {
         $(this.scrollbarEl).removeLayer('scrollthumb');
         $("#scrollbar").drawRect({
             strokeStyle: '#black',
-            strokeWidth: 2,
-            x: 2, y: 2,
+            strokeWidth: 1.5,
+            x: 2, y: loadedPages ? loadedPages[0] == 0 ? 2 : this.height * (loadedPages[0]/messageViewerManager.tablePages.length) : 2,
             width: context.canvas.width-4, height: 20, // set height according to dataset size vs elems on screen
             cornerRadius: 0,
             layer: true,
@@ -200,6 +223,8 @@ var scrollbarManager = {
                 mouseup: 'pointer'
             }
         });
+
+        $("#scrollbar").drawLayers();
 
     },
 
@@ -268,10 +293,6 @@ var scrollbarManager = {
 
          */
 
-
-        // ON END OF SCROLL EVENT IN THE SCROLLBAR!!!
-
-
         // need to take into account the border of the scrollthumb! e.g. the only lines visible in the scrollthumb...
 
         var thumbTop = scrollthumbLayer.y + 4; // for stroke width of the scrollthumb
@@ -279,7 +300,9 @@ var scrollbarManager = {
         var rowsPerPixel = scrollbarManager.subsamplingNum;
 
         var firstItemInPixel = (thumbTop - 1) * rowsPerPixel;
-        var percentage = Math.round((thumbTop / scrollbarManager.scrollbarEl.height) * 100 ) / 100;
+
+        // todo need to take scaling into account
+        var percentage = thumbTop == 6 ? 0 : Math.round((thumbTop / scrollbarManager.scrollbarEl.height) * 100 ) / 100; // force it to 0 if top is 6px displaced, 2px for border, 4px for scrollthumb
         var percentagePageToLoad = Math.floor((messageViewerManager.tablePages.length-1) * percentage);
         //var pageToLoadIndex = thumbTop <= 0 ? 0 : Math.floor(firstItemInPixel / pageSize);
 

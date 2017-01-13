@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html xmlns="http://www.w3.org/1999/html">
   <head>
     <title>Coding Assistant</title>
 
@@ -45,9 +45,32 @@
                   <li role="separator" class="divider"></li>
                   <li><a href="#">Quit</a></li>
                 </ul>
-              </li>          <li><p class="navbar-btn">
-              <a href="#" class="btn btn-success">Save</a>
-            </p></li>
+              </li>
+              <li>
+
+              </li>
+              <li>
+                <div class="btn-toolbar" role="toolbar">
+                  <div class="btn-group" role="group" aria-label="save">
+                    <button type="button" class="navbar-btn btn btn-success">
+                      Save
+                    </button>
+                  </div>
+                  <!-- Navigate between recent active messages -->
+                  <div class="btn-group" role="group" aria-label="message navigation">
+                    <button type="button" class="btn btn-default btn-xs navbar-btn">
+                      <i class="glyphicon glyphicon-chevron-left" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="btn btn-default btn-xs navbar-btn">
+                      <i class="glyphicon glyphicon-chevron-right" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                </div>
+              </li>
+              </li>
+              <li>
+
+              </li>
             </ul>
           </div><!--/.nav-collapse -->
         </div>
@@ -135,6 +158,10 @@
                     <input type="text" value="#00AABB" class="form-control"/>
                     <span class="input-group-addon" id="colorpicker-trigger"><i></i></span>
                   </div>
+                  <div id="word-list" class="input-group">
+                    <span class="input-group-addon">Words</span>
+                    <textarea value="" class="form-control" rows="3" id="word-textarea"/></textarea>
+                  </div>
                 </div>
               </div>
             </div>
@@ -159,11 +186,12 @@
 
   <!-- MAIN UI JS -->
   <script src="external/jquery/jquery.stickytableheaders.js"></script>
+  <script src="external/mark/jquery.mark.es6.js"></script>
   <script src="model.js"></script>
   <script src="UIUtils.js"></script>
-  <script src="initUI.js"></script>
-  <script src="scrollbar.js"></script>
   <script src="tableUI.js"></script>
   <script src="editorUI.js"></script>
+  <script src="scrollbar.js"></script>
+  <script src="initUI.js"></script>
 
 </html>

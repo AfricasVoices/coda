@@ -128,6 +128,25 @@ tr.active.code-row > td {
   background-color: transparent !important;
 }
 
+.highlight {
+  background-color: rgba(157, 157, 157, 1);
+}
+
+.highlight:hover {
+  background-color: rgba(157, 157, 157, 0.5);
+}
+
+#color-pick {
+  margin-bottom: 5px;
+}
+
+/*
+
+ */
+select[disabled] {
+  -webkit-appearance:none;
+}
+
 /*
 TODO prevent code header column wrapping to next row - keep button always on top and hide the excess text
 */
