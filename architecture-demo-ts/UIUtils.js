@@ -90,6 +90,20 @@ var UIUtils = (
 
             },
 
+
+            // BETTER!!!
+            checkVisible: function(elm) {
+                var rect = elm.getBoundingClientRect();
+                if (rect.bottom === 0 && rect.top === 0) {
+                    return false;
+                } else {
+                    var viewHeight = Math.max(document.documentElement.clientHeight, window.innerHeight);
+                    var visible = !(rect.bottom < 0 || rect.top - viewHeight >= 0);
+                    return visible;
+
+                }
+            },
+
             scrollRowToTop: function (row, container) {
 
                 // TODO: be given the offsetHeight of the row with biggest height
@@ -110,12 +124,16 @@ var UIUtils = (
             },
 
             isScrolledToBottom: function(tableContainer) {
-                // table is 18px above bottom of the panel...
-                return (Math.abs(messageViewerManager.table[0].scrollHeight - $(tableContainer).scrollTop() - $(tableContainer).outerHeight()) -1  < 1)
+                // alternatively, get the last row in table, and see if its visible:
+               // return UIUtils.isRowVisible($(".message").last()[0], tableContainer[0]);
+                return UIUtils.checkVisible($(".message").last()[0]);
+                    // table is 18px above bottom of the panel...
+               // return (Math.abs(messageViewerManager.table[0].scrollHeight - $(tableContainer).scrollTop() - $(tableContainer).outerHeight()) -1  < 1)
             },
 
             isScrolledToTop: function(tableContainer) {
-                return $("#message-panel").scrollTop() === 0;
+                return UIUtils.checkVisible($(".message").first()[0]);
+                    //return $("#message-panel").scrollTop() === 0;
             }
 
         };

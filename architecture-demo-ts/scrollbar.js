@@ -117,7 +117,7 @@ var scrollbarManager = {
             }
         });
 */
-
+        // todo check if no schemes are loaded in - if not, then dont draw the lines!
         console.timeEnd("scrollbar init");
 
     },

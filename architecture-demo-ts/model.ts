@@ -1,38 +1,89 @@
 let ENDING_PATTERN : string = "_";
 
 class Dataset {
-    sessions : Array<Session> = [];
-    schemes : {};
+    sessions: Array<Session> = [];
+    schemes: {};
+    events: Array<RawEvent> = [];
+
 
     /*
-    getAllEventDecorationNames() {
-        var decorations = new Set();
-        this.sessions.forEach((session: Session, sessionKey: number, map:Array<Session>) => {
-            session.events.forEach((event:RawEvent, index: number, eventArr: Array<RawEvent>) => {
-                //decorations.add(...event.decorationNames());
-            });
-        });
+     getAllEventDecorationNames() {
+     var decorations = new Set();
+     this.sessions.forEach((session: Session, sessionKey: number, map:Array<Session>) => {
+     session.events.forEach((event:RawEvent, index: number, eventArr: Array<RawEvent>) => {
+     //decorations.add(...event.decorationNames());
+     });
+     });
 
-        decorations.delete(undefined); // to handle empty decorations
-        return decorations;
-    }
-    */
+     decorations.delete(undefined); // to handle empty decorations
+     return decorations;
+     }
+     */
 
     getAllSessionIds() {
-        return this.sessions.map(function(session:Session) {return session.id;});
+        return this.sessions.map(function (session: Session) {
+            return session.id;
+        });
+    }
+
+    // todo WHAT IS THE DEFAULT SORTING, remember it? :)
+
+    sortEventsByScheme(schemeId: string, isToDoList: boolean): Array<RawEvent> {
+
+        schemeId = schemeId + ""; // force it to string todo: here or make sure decorationForName processes it ok?
+
+        if (this.schemes.hasOwnProperty(schemeId)) {
+            let codes = Array.from(this.schemes[schemeId].codes.values()).map((code:Code) => {return code.value;});
+
+            this.events.sort((e1, e2) => {
+
+                let code1 = e1.decorationForName(schemeId) ? codes.indexOf(e1.decorationForName(schemeId).code.value ) : -1; //todo what if null - doesnt have a code assigned?
+                let code2 = e2.decorationForName(schemeId)? codes.indexOf(e2.decorationForName(schemeId).code.value ) : -1;
+
+                if (code1 == -1 && code2 != -1) {
+                    // one assigned, one unassigned
+                    return isToDoList ? -1 : 1;
+                }
+
+                if (code2 == -1 && code1 != -1) {
+                    // one assigned, one unassigned
+                    return isToDoList ? 1 : -1;
+                }
+
+                if (code1 == code2) {
+
+                    if (code1 == -1) {
+                        // neither event has a code assigned
+                        return 0;
+                    }
+
+                    // same codes, now sort by confidence
+                    // todo sort for confidence
+                    return 0;
+                }
+
+                // both have assigned codes that are different
+                return code1 - code2; // todo sort ascending by index of code, which is arbitrary - do we enforce an order?
+
+            });
+
+        }
+        return this.events;
     }
 }
 
 class RawEvent {
     name : string; // TODO: label for question this event is answering OR label to mark it's not a direct answer to anything?
+    owner: string;
     timestamp: string;
     number : string; // phone number or other kind of identifier
     data : string;
     decorations : Map<string, EventDecoration>;
     codes: Map<string, Code>;
 
-    constructor(name : string, timestamp : string, number : string, data : string) {
+    constructor(name : string, owner : string, timestamp : string, number : string, data : string) {
         this.name = name;
+        this.owner = owner;
         this.timestamp = timestamp;
         this.number = number;
         this.data = data;

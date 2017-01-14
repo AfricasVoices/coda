@@ -33,11 +33,20 @@ var messageViewerManager = {
                messageViewerManager.dropdownChange(event.originalEvent);
            }
         });
-
+        /*
+        $("body").on("mousewheel", function(event){
+            console.log("mousewheel");
+            if(event.originalEvent.wheelDelta > 0) {
+                console.log('up 3');
+            }
+            else {
+                console.log('down 3');
+            }
+        });
+*/
         $("#message-table").on("mouseup", function(event) {
             console.log("burek");
             let targetElement = event.originalEvent.target;
-
 
             /*
             All this
@@ -51,7 +60,7 @@ var messageViewerManager = {
             }
         });
 
-        $("#message-panel").scroll(function(event) {
+        $("body").on("mousewheel", function(event) {
             //console.log("scroll height: " + $("#message-table")[0].scrollHeight + ", scroll top: " + $("#message-panel").scrollTop() +  ", outer height: " + $("#message-panel").outerHeight(false));
             // todo need to know if scroll is from shortcut or manual
             messageViewerManager.infiniteScroll(event);
@@ -566,8 +575,9 @@ var messageViewerManager = {
     infiniteScroll : function(event) {
 
         // todo on every infinite scroll refresh the scrollthumb position!!!!
+        // calculate new position better
 
-        if (UIUtils.isScrolledToBottom(messageViewerManager.messageContainer)) {
+        if (event.originalEvent.wheelDelta <= 0 && UIUtils.isScrolledToBottom(messageViewerManager.messageContainer)) {
             console.time("infinite scroll DOWN");
 
             var nextPage = messageViewerManager.currentlyLoadedPages[messageViewerManager.currentlyLoadedPages.length-1] + 1;
@@ -617,7 +627,7 @@ var messageViewerManager = {
                 console.timeEnd("infinite scroll DOWN");
             }
 
-        } else if (UIUtils.isScrolledToTop(messageViewerManager.messageContainer)){
+        } else if (event.originalEvent.wheelDelta > 50 && UIUtils.isScrolledToTop(messageViewerManager.messageContainer)){
 
             if (messageViewerManager.currentlyLoadedPages[0] !== 0 ) {
                 console.time("infinite scroll UP");
@@ -784,8 +794,15 @@ var messageViewerManager = {
                 }
             }
         }
+    },
+
+    sort: function() {
+        // first sort by category, then within category sort by confidence
+        // manual > automatic > automatic below threshold + unlabelled
+
 
 
     }
+
 
 };
