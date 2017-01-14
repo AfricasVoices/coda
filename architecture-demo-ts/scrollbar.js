@@ -296,7 +296,7 @@ var scrollbarManager = {
         // need to take into account the border of the scrollthumb! e.g. the only lines visible in the scrollthumb...
 
         var thumbTop = scrollthumbLayer.y + 4; // for stroke width of the scrollthumb
-        var pageSize = messageViewerManager.rowsPerPage;
+        var pageSize = messageViewerManager.rowsInTable;
         var rowsPerPixel = scrollbarManager.subsamplingNum;
 
         var firstItemInPixel = (thumbTop - 1) * rowsPerPixel;
@@ -306,7 +306,7 @@ var scrollbarManager = {
         var percentagePageToLoad = Math.floor((messageViewerManager.tablePages.length-1) * percentage);
         //var pageToLoadIndex = thumbTop <= 0 ? 0 : Math.floor(firstItemInPixel / pageSize);
 
-        messageViewerManager.currentlyLoadedPages = [];
+        messageViewerManager.lastLoadedPageIndex = [];
 
         var page1 = messageViewerManager.createPageHTML(percentagePageToLoad);
         var page2 = messageViewerManager.createPageHTML(percentagePageToLoad+1);

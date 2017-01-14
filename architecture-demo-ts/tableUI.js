@@ -4,20 +4,19 @@ var messageViewerManager = {
     codeSchemeOrder: [],
     activeScheme: "",
     tablePages: [], // list of objects {start: [sessionIndex, eventIndex], end: [sessionIndex, eventIndex]}
-    rowsPerPage : 0,
-    currentlyLoadedPages : [],
+    rowsInTable : 0,
+    lastLoadedPageIndex : 0,
     wordBuffer: {}, // format {sessionId :{ eventId: {}} ... }
 
-    init: function(messageContainer, data, rowsPerPage) {
+    init: function(messageContainer, data, rowsInTable) {
 
-        if (rowsPerPage === undefined) rowsPerPage = 40;
-        this.rowsPerPage = rowsPerPage;
+        if (rowsInTable === undefined) rowsInTable = 40;
+        this.rowsInTable = rowsInTable;
 
         this.messageContainer = messageContainer;
         this.table = messageContainer.find("table");
-        this.buildTable(data, rowsPerPage);
-        this.currentlyLoadedPages.push(0);
-        this.currentlyLoadedPages.push(1);
+        this.buildTable(data, rowsInTable);
+        this.lastLoadedPageIndex = 1;
 
         console.time("dropdown init");
         //var dropdowns = $(".decorator-column").find("select"); // MAJOR BOTTLENECK!!!!!
@@ -130,6 +129,13 @@ var messageViewerManager = {
         var subsamplingEventCount = 0;
         var subsamplingIndices = [];
 
+        for (let i = 0; i < rowsPerPage; i++) {
+            tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner["id"]);
+        }
+
+        messageViewerManager.table.find("tbody").append(tbody);
+
+        /*
         newDataset.sessions.forEach(function(session, sessionIndex) {
             session.events.forEach(function(event, eventIndex) {
 
@@ -163,6 +169,7 @@ var messageViewerManager = {
             });
 
         });
+        */
 
         console.timeEnd("table building");
         scrollbarManager.init(newDataset.sessions, document.getElementById("scrollbar"), 100);
@@ -401,7 +408,7 @@ var messageViewerManager = {
             }
         }
 
-        this.currentlyLoadedPages[0,1]; // todo store which page was loaded
+        this.lastLoadedPageIndex = 1; // todo store which page was loaded
 
         var tbodyObj = this.table.find("tbody");
         tbodyObj.empty();
@@ -553,7 +560,7 @@ var messageViewerManager = {
 
     createPageHTML: function(index) {
 
-        messageViewerManager.currentlyLoadedPages.push(index);
+        messageViewerManager.lastLoadedPageIndex = index;
         var tbody = "";
         var sessions = newDataset.sessions;
         var startOfPage = messageViewerManager.tablePages[index].start;
@@ -580,39 +587,49 @@ var messageViewerManager = {
         if (event.originalEvent.wheelDelta <= 0 && UIUtils.isScrolledToBottom(messageViewerManager.messageContainer)) {
             console.time("infinite scroll DOWN");
 
-            var nextPage = messageViewerManager.currentlyLoadedPages[messageViewerManager.currentlyLoadedPages.length-1] + 1;
+            let nextPage = messageViewerManager.lastLoadedPageIndex + 1;
 
-            if (nextPage < messageViewerManager.tablePages.length) {
+            //if (nextPage < messageViewerManager.tablePages.length) {
+            if (nextPage <= Math.floor(newDataset.events.length / messageViewerManager.rowsInTable) + 1) {
 
-                messageViewerManager.currentlyLoadedPages.push(nextPage);
+                messageViewerManager.lastLoadedPageIndex = nextPage;
 
-                var tbody = "";
-                var sessions = newDataset.sessions;
-                var startOfPage = messageViewerManager.tablePages[nextPage].start;
-                var endOfPage = messageViewerManager.tablePages[nextPage].end;
+                let tbody = "";
+                let sessions = newDataset.sessions;
+                //var startOfPage = messageViewerManager.tablePages[nextPage].start;
+                //var endOfPage = messageViewerManager.tablePages[nextPage].end;
 
+                /*
                 for (var i = startOfPage[0]; i <= endOfPage[0]; i++) {
+
                     var events = sessions[i];
                     for (var j = 0; j <= endOfPage[1]; j++) {
                         if (i === startOfPage[0] && j < startOfPage[1]) continue;
                         else tbody += messageViewerManager.buildRow(sessions[i]["events"][j], j, i);
                     }
                 }
+                */
 
-                var tbodyElement = messageViewerManager.table.find("tbody");
+                let halfPage = Math.floor(messageViewerManager.rowsInTable/2);
+                let stoppingCondition = nextPage * halfPage + halfPage > newDataset.events.length ? newDataset.events.length : nextPage * halfPage + halfPage;
+                for (let i = nextPage * halfPage; i < stoppingCondition; i++) {
+                    tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner["id"]);
+                }
 
-                var elementsToRemove = tbodyElement.find("tr:nth-child(-n+" + Math.floor(messageViewerManager.rowsPerPage/2) + ")");
-                var removedHeight = 0;
+
+                let tbodyElement = messageViewerManager.table.find("tbody");
+
+                let elementsToRemove = tbodyElement.find("tr:nth-child(-n+" + Math.floor(messageViewerManager.rowsInTable/2) + ")");
+                let removedHeight = 0;
                 elementsToRemove.each(function(i, el){
                     removedHeight += $(el).height();
                 });
 
                 elementsToRemove.remove();
-                var newScrollTop = removedHeight - tbodyElement.height();
+                let newScrollTop = removedHeight - tbodyElement.height();
 
                 tbodyElement.append(tbody);
                 console.log("new page added");
-                messageViewerManager.currentlyLoadedPages.splice(0,1);
 
 
                 /*          ADJUST THE OFFSET AGAIN
@@ -629,11 +646,11 @@ var messageViewerManager = {
 
         } else if (event.originalEvent.wheelDelta > 50 && UIUtils.isScrolledToTop(messageViewerManager.messageContainer)){
 
-            if (messageViewerManager.currentlyLoadedPages[0] !== 0 ) {
+            if (messageViewerManager.lastLoadedPageIndex !== 1 ) {
                 console.time("infinite scroll UP");
 
-                var prevPage = messageViewerManager.currentlyLoadedPages[0] - 1;
-                messageViewerManager.currentlyLoadedPages.unshift(prevPage); // put at beginning to preserve ordering
+                var prevPage = messageViewerManager.lastLoadedPageIndex[0] - 1;
+                messageViewerManager.lastLoadedPageIndex.unshift(prevPage); // put at beginning to preserve ordering
 
                 tbody = "";
                 sessions = newDataset.sessions;
@@ -664,8 +681,8 @@ var messageViewerManager = {
                 $(tbody).prependTo(tbodyElement).each(function(i,el) {
                   newScrollTop += $(el).height();
                 });
-                tbodyElement.find("tr:nth-last-child(-n+" + Math.floor(messageViewerManager.rowsPerPage)/2 + ")").remove();
-                messageViewerManager.currentlyLoadedPages.splice(messageViewerManager.currentlyLoadedPages.length-1,1);
+                tbodyElement.find("tr:nth-last-child(-n+" + Math.floor(messageViewerManager.rowsInTable)/2 + ")").remove();
+                messageViewerManager.lastLoadedPageIndex.splice(messageViewerManager.lastLoadedPageIndex.length-1,1);
 
 
                 // now need to bring the previous top row back into view
@@ -795,14 +812,4 @@ var messageViewerManager = {
             }
         }
     },
-
-    sort: function() {
-        // first sort by category, then within category sort by confidence
-        // manual > automatic > automatic below threshold + unlabelled
-
-
-
-    }
-
-
 };

@@ -235,8 +235,8 @@ var codeEditorManager =  {
             // redraw rows
             var tbody = "";
             var sessions = newDataset.sessions;
-            var startOfPage = messageViewerManager.tablePages[messageViewerManager.currentlyLoadedPages[0]].start;
-            var endOfPage = messageViewerManager.tablePages[messageViewerManager.currentlyLoadedPages[1]].end;
+            var startOfPage = messageViewerManager.tablePages[messageViewerManager.lastLoadedPageIndex[0]].start;
+            var endOfPage = messageViewerManager.tablePages[messageViewerManager.lastLoadedPageIndex[1]].end;
 
             for (var i = startOfPage[0]; i <= endOfPage[0]; i++) {
                 var events = sessions[i]["events"];
