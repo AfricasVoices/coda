@@ -17,12 +17,19 @@ var scrollbarManager = {
         // check for active column
         // check if any code has colour set
 
-        var scrollContext = scrollbarEl.getContext('2d')
+        var scrollContext = scrollbarEl.getContext('2d');
+        var scrollContext2 = document.getElementById("scrollthumb").getContext('2d');
         $("body").show(); // todo this is nasty
         scrollContext.canvas.height = $("#table-col").height()
             - parseInt(messageViewerManager.messageContainer.css("margin-bottom"))
             - parseInt(messageViewerManager.messageContainer.css("margin-top"));
         scrollContext.canvas.width = $("#scrollbar-col").width();
+
+        scrollContext2.canvas.height = scrollContext.canvas.height;
+        scrollContext2.canvas.width = scrollContext.canvas.width;
+
+        $("#scrollthumb").css({position: 'absolute', top: '0px', left: $(scrollbarEl).position().left + 'px'});
+
         $("body").hide();
 
         this.subsamplingNum = Math.floor(newDataset.eventCount / scrollbarEl.height);
@@ -129,6 +136,8 @@ var scrollbarManager = {
         if (this.subsamplingNum > 0) {
             colors = this.subsample(dataset, activeSchemeId);
         } else {
+
+            /*
             for (var i = 0; i < sessionData.length; i++) {
                 var numEvents = sessionData[i].events.length;
                 for (var j = 0; j < numEvents; j++) {
@@ -140,6 +149,18 @@ var scrollbarManager = {
                     }
                 }
             }
+            */
+
+            for (event of newDataset.events) {
+                if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code != null) {
+                    colors.push(event.decorations.get(activeSchemeId).code.color);
+                } else {
+                    colors.push("#ffffff");
+                }
+
+            }
+
+
         }
 
         this.scale = (this.scrollbarEl.height-4)/colors.length;
@@ -165,7 +186,7 @@ var scrollbarManager = {
 
         var context = this.scrollbarEl.getContext('2d');
         $(this.scrollbarEl).removeLayer('scrollthumb');
-        $("#scrollbar").drawRect({
+        $("#scrollthumb").drawRect({
             strokeStyle: '#black',
             strokeWidth: 1.5,
             x: 2, y: loadedPages ? loadedPages[0] == 0 ? 2 : this.height * (loadedPages[0]/messageViewerManager.tablePages.length) : 2,
@@ -244,6 +265,8 @@ var scrollbarManager = {
         // CHECK IF IT FITS INTO SCROLLBAR PX OF SUBSAMPLING NEEDED!
 
         var colors = [];
+
+        /*
         for (var i = 0; i < sessionData.length; i++) {
             var numEvents = sessionData[i].events.length;
             for (var j = 0; j < numEvents; j++) {
@@ -261,6 +284,20 @@ var scrollbarManager = {
 
                 }
 
+            }
+        }
+        */
+
+        for (event of newDataset.events) {
+            if (colors.length == this.subsamplingNum) {
+                sampleColours.push(colors[UIUtils.randomInteger(0, colors.length-1)]);
+                colors = [];
+            } else {
+                if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code != null) {
+                    colors.push(event.decorations.get(activeSchemeId).code.color);
+                } else {
+                    colors.push("#ffffff");
+                }
             }
         }
 

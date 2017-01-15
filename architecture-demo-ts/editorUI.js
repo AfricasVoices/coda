@@ -235,9 +235,10 @@ var codeEditorManager =  {
             // redraw rows
             var tbody = "";
             var sessions = newDataset.sessions;
-            var startOfPage = messageViewerManager.tablePages[messageViewerManager.lastLoadedPageIndex[0]].start;
-            var endOfPage = messageViewerManager.tablePages[messageViewerManager.lastLoadedPageIndex[1]].end;
+            //var startOfPage = messageViewerManager.tablePages[messageViewerManager.lastLoadedPageIndex[0]].start;
+            //var endOfPage = messageViewerManager.tablePages[messageViewerManager.lastLoadedPageIndex[1]].end;
 
+            /*
             for (var i = startOfPage[0]; i <= endOfPage[0]; i++) {
                 var events = sessions[i]["events"];
                 var eventsToPrint = (i == endOfPage[0]) ? endOfPage[1] : events.length-1;
@@ -246,6 +247,13 @@ var codeEditorManager =  {
                     else tbody += messageViewerManager.buildRow(sessions[i]["events"][j], j, i);
                 }
             }
+            */
+
+            let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
+            for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex + halfPage; i++) {
+                tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
+            }
+
 
             var messagesTbody = messageViewerManager.messageContainer.find("tbody");
             var previousScrollTop = messageViewerManager.messageContainer.scrollTop();

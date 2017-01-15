@@ -72,6 +72,36 @@ var messageViewerManager = {
 
         });
 
+        $("a").on("click", function(event) {
+            var targetElement = event.originalEvent.target;
+            if (targetElement.className === "sort-button" || targetElement.className.split(" ")[0] === "glyphicon") {
+                // find which icon was clicked... and use the appropriate sort
+                let iconClassName = targetElement.className === "sort-button" ? $(targetElement).children(".glyphicon")[0].className.split(" ")[1] : $(targetElement).attr("class").split(" ")[1];
+                let schemeId = $(targetElement).closest("div").attr("scheme");
+                if (iconClassName === "glyphicon-sort-by-attributes") {
+                    // sort as todolist
+                    newDataset.sortEventsByScheme(schemeId, true);
+
+                } else if (iconClassName === "glyphicon-sort-by-attributes-alt"){
+                    newDataset.sortEventsByScheme(schemeId, false);
+                }
+
+                let tbody = "";
+                let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
+                for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex + halfPage; i++) {
+                    tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
+                }
+
+                $(messageViewerManager.table.find("tbody").empty()).append(tbody);
+                // todo adjust scroll offset appropriately!
+
+                scrollbarManager.redraw(newDataset, schemeId);
+
+            }
+
+
+        });
+
         console.timeEnd("dropdown init");
 
         console.time("shortcuts init");
@@ -94,21 +124,22 @@ var messageViewerManager = {
         Object.keys(schemes).forEach(function(schemeKey, i) {
             messageViewerManager.codeSchemeOrder.push(schemeKey);
 
-            var decoColumn = $("#header-decoration-column");
-            var col = $("<div class='col-md-" + decoColumnWidth + "' scheme='" + schemeKey + "'><i>" + schemes[schemeKey]["name"] + "</i></div>").appendTo(decoColumn.find(".row"));
+            let triangleIcon = "<a href='#' class='sort-button'><small><span class='glyphicon glyphicon-sort-by-attributes'></span></small></a>";
+            let editButton = "<button type='button' class='btn btn-default btn-xs edit-scheme-button'><i class='glyphicon glyphicon-edit'></i></button>";
+            let columnDiv = "<div class='col-md-" + decoColumnWidth + "' scheme='" + schemeKey + "'>" + triangleIcon + "<i>" + schemes[schemeKey]["name"] + "</i>" + editButton + "</div>";
 
-            var button = $("<button type='button' class='btn btn-default btn-xs edit-scheme-button'>" +
-                "<i class='glyphicon glyphicon-edit'>" +
-                "</i>" +
-                "</button>").appendTo(col);
+
+
+            var decoColumn = $("#header-decoration-column");
+            var appendedElements = $(columnDiv).appendTo(decoColumn.find(".row"));
 
             if (i==0) {
                 activeSchemeId = schemeKey;
                 messageViewerManager.activeScheme = activeSchemeId;
-                col.children("i").css("text-decoration", "underline");
+                $(appendedElements).children("i").css("text-decoration", "underline");
             }
-            col.children("i").on("click", messageViewerManager.changeActiveScheme);
-            bindEditSchemeButtonListener(button, schemes[schemeKey]);
+            $(appendedElements).children("i").on("click", messageViewerManager.changeActiveScheme);
+            bindEditSchemeButtonListener(appendedElements.children("button"), schemes[schemeKey]);
         });
 
 
@@ -130,7 +161,7 @@ var messageViewerManager = {
         var subsamplingIndices = [];
 
         for (let i = 0; i < rowsPerPage; i++) {
-            tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner["id"]);
+            tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
         }
 
         messageViewerManager.table.find("tbody").append(tbody);
@@ -562,6 +593,8 @@ var messageViewerManager = {
 
         messageViewerManager.lastLoadedPageIndex = index;
         var tbody = "";
+
+        /*
         var sessions = newDataset.sessions;
         var startOfPage = messageViewerManager.tablePages[index].start;
         var endOfPage = messageViewerManager.tablePages[index].end;
@@ -572,6 +605,12 @@ var messageViewerManager = {
                 if (i === startOfPage[0] && j < startOfPage[1]) continue;
                 else if (j < events.length) tbody += messageViewerManager.buildRow(sessions[i]["events"][j], j, i);
             }
+        }
+        */
+
+        let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
+        for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex + halfPage; i++) {
+            tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
         }
 
        return tbody;
@@ -613,11 +652,14 @@ var messageViewerManager = {
                 let halfPage = Math.floor(messageViewerManager.rowsInTable/2);
                 let stoppingCondition = nextPage * halfPage + halfPage > newDataset.events.length ? newDataset.events.length : nextPage * halfPage + halfPage;
                 for (let i = nextPage * halfPage; i < stoppingCondition; i++) {
-                    tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner["id"]);
+                    tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
                 }
 
 
                 let tbodyElement = messageViewerManager.table.find("tbody");
+
+                let lastMessagePosition = $(".message").last()[0].offsetTop;
+
 
                 let elementsToRemove = tbodyElement.find("tr:nth-child(-n+" + Math.floor(messageViewerManager.rowsInTable/2) + ")");
                 let removedHeight = 0;

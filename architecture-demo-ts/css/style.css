@@ -140,6 +140,16 @@ tr.active.code-row > td {
   margin-bottom: 5px;
 }
 
+.sort-button {
+  margin-right: 5px;
+}
+
+#scrollthumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
 /*
 
  */
