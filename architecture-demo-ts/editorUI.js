@@ -315,7 +315,8 @@ var codeEditorManager =  {
             '</tr>');
 
         $(".add-code-row").on("click", function() {
-            addCodeInputRow("","", "#ffffff", "", []);
+            let newCode = addCodeInputRow("","", "#ffffff", "", []); // todo will return codeObject
+            codeEditorManager.updateCodePanel(newCode);
         });
 
 
@@ -324,11 +325,13 @@ var codeEditorManager =  {
     addCodeInputRow: function(code, shortcut, color, id, words) {
 
         var bindInputListeners = codeEditorManager.bindInputListeners;
+        var codeObject;
 
         var newId = id;
         if (id.length === 0) {
             newId = tempScheme["id"] + "-" + UIUtils.randomId();
-            tempScheme.codes.set(newId, new Code(tempScheme, newId, code, color, shortcut, false)); // todo: fix owner when saving to parent scheme
+            codeObject = new Code(tempScheme, newId, code, color, shortcut, false)
+            tempScheme.codes.set(newId, codeObject); // todo: fix owner when saving to parent scheme - what does this mean
         }
 
         $(".code-row").each(function(i,row) {$(row).removeClass("active")});
@@ -352,13 +355,16 @@ var codeEditorManager =  {
             "<i class='glyphicon glyphicon-remove'></i>" +
             "</button>").appendTo(buttonCell);
 
-        if (code.length != 0 && color.length != 0) {
-            $("#color-pick").colorpicker('setValue', color);
-        } else {
-            $("#color-pick").colorpicker('setValue', "#ffffff");
-        }
 
-        $("#word-textarea").val(words);
+        /*
+        if (code.length != 0 && color.length != 0) {
+            //$("#color-pick").colorpicker('setValue', color);
+            codeEditorManager.updateCodePanel(color, words);
+        } else {
+            //$("#color-pick").colorpicker('setValue', "#ffffff");
+            codeEditorManager.updateCodePanel("#ffffff", words);
+        }
+        */
 
         row.on("click", function() {
             state.activeEditorRow.removeClass("active");
@@ -368,25 +374,77 @@ var codeEditorManager =  {
             var code = tempScheme.codes.get($(this).attr("id"));
 
             if (code) {
-                let color = code["color"].length > 0 ? code["color"] : "#ffffff";
-                let words = code["words"].length > 0 ? code["words"] : ""
-                codeEditorManager.updateCodePanel(color, words);
+                let textAreaParent = $("#word-textarea").parent();
+                textAreaParent.empty().append("<div id='word-textarea'></div>");
+                codeEditorManager.updateCodePanel(code);
             }
         });
 
         codeInput.focus();
         bindInputListeners(row);
+
+        return codeObject;
     },
 
 
-    updateCodePanel: function(color, words) {
+    updateCodePanel: function(codeObj) {
 
+        // todo problem when new row is added - codeObj doesn't exist yet, so can't bind the event handler for tags
+        // assume called with valid codeObject
+
+        let color = codeObj["color"].length > 0 ? codeObj["color"] : "#ffffff";
+        let words = codeObj["words"].length > 0 ? codeObj["words"].splice(0) : [];
         let colorPicker = $("#color-pick");
+        let wordTextarea = $("#word-textarea");
         colorPicker.find("input").attr("value", color);
         colorPicker.colorpicker('setValue', color);
 
-        let wordsArea = $("#word-textarea");
-        wordsArea.val(words);
+
+        wordTextarea.tags({
+            tagData: words,
+            caseInsensitive: true,
+            tagSize: "sm",
+            promptText: "Type here to add new words",
+            afterAddingTag: function(tag) {
+                // can't add to the same array used for "tag data"!!!!!
+                codeObj["words"] = [tag];
+            },
+            afterDeletingTag: function(tag) {
+                codeObj.deleteWords([tag]);
+            }
+        });
+
+/*
+        wordTextarea.tags({
+            caseInsensitive: true,
+            tagSize: "sm",
+            promptText: "Type here to add new words",
+        });
+
+        for (let word of wordTextarea.tags().getTags()) {
+            wordTextarea.tags().removeTag(word);
+        }
+
+        wordTextarea.tags().afterAddingTag = function(tag) {
+            // can't add to the same array used for "tag data"!!!!!
+            codeObj["words"] = [tag];
+        };
+
+        wordTextarea.tags().afterDeletingTag = function(tag) {
+            codeObj.deleteWords([tag]);
+        };
+
+        for (let word of words) {
+            wordTextarea.tags().addTag(word);
+        }
+
+        let tagsInput = wordTextarea.find(".tags-input");
+        if (parseInt(tagsInput.css("width"),10) <= 0) {
+
+            tagsInput.css("width", wordTextarea.css("width"));
+
+        }
+        */
     },
 
 
@@ -489,9 +547,25 @@ var codeEditorManager =  {
             // TODO: unbind shortcuts
             // TODO: remove code from dropdowns
             // TODO: stop relying on Map keys as indices...
-            var id= $(this).parents("tr").attr("id");
+            let id = $(this).parents("tr").attr("id");
+            let next = $(inputRow).next(".code-row");
+            let prev = $(inputRow).prev(".code-row");
             $(inputRow).remove();
             tempScheme.codes.delete(id);
+
+            if (next.length != 0) {
+                $(next).addClass("active");
+                state.activeEditorRow = $(next);
+                codeEditorManager.updateCodePanel(tempScheme.codes.get($(next).attr("id")));
+
+            } else if (prev.length != 0){
+                $(prev).addClass("active");
+                state.activeEditorRow = $(prev);
+                codeEditorManager.updateCodePanel(tempScheme.codes.get($(prev).attr("id")));
+
+            } else {
+                // todo important - what happens when all codes are deleted from list
+            }
 
         });
 

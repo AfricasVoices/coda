@@ -32,7 +32,7 @@ var scrollbarManager = {
 
         $("body").hide();
 
-        this.subsamplingNum = Math.floor(newDataset.eventCount / scrollbarEl.height);
+        this.subsamplingNum = Math.floor(newDataset.eventCount/(scrollbarEl.height-4));
 
 
         /*

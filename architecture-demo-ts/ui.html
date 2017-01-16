@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="external/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="external/jquery/jquery-ui/jquery-ui.css"/>
     <link rel="stylesheet" href="external/colorpicker/css/bootstrap-colorpicker.min.css"/>
+    <link rel="stylesheet" type="text/css" href="external/bootstrap-tags/css/bootstrap-tags.css" />
     <link rel="stylesheet" href="css/style.css"/>
 
     <!-- LIB JS -->
@@ -15,9 +16,14 @@
     <script src="external/bootstrap/js/bootstrap.min.js"></script>
     <script src="external/colorpicker/js/bootstrap-colorpicker.min.js"></script>
     <script src="external/jcanvas/jcanvas.js"></script>
+    <script src='external/bootstrap-tags/js/bootstrap-tags.js'></script>
+    <script src="external/jquery/jquery.stickytableheaders.js"></script>
+    <script src="external/mark/jquery.mark.es6.js"></script>
+    <script src="external/underscore/underscore.js"></script>
 
     <!-- Toolbar UI -->
     <script src="ui.js"></script>
+
   </head>
 
   <!-- MAIN UI -->
@@ -152,17 +158,25 @@
 
             <!-- CODE EDITOR PANEL -->
             <div class="row" id="panel-row">
-              <div class="panel panel-default">
+              <div class="panel panel-default" id="code-details-panel">
                 <div class="panel-body">
                   <div id="color-pick" class="input-group colorpicker-component">
                     <span class="input-group-addon" id="">Code Color</span>
                     <input type="text" value="#00AABB" class="form-control"/>
                     <span class="input-group-addon" id="colorpicker-trigger"><i></i></span>
                   </div>
-                  <div id="word-list" class="input-group">
-                    <span class="input-group-addon">Words</span>
-                    <textarea value="" class="form-control" rows="3" id="word-textarea"/></textarea>
+
+                  <div class="panel panel-default" id="word-list">
+                    <div class="panel-heading">Words</div>
+                    <div class="panel-body">
+                      <div id="word-textarea"></div>
+                    </div>
                   </div>
+
+
+                  <!--<div id="word-list" class="input-group">
+                    <span class="input-group-addon">Words</span>
+                  </div>-->
                 </div>
               </div>
             </div>
@@ -186,8 +200,6 @@
   </body>
 
   <!-- MAIN UI JS -->
-  <script src="external/jquery/jquery.stickytableheaders.js"></script>
-  <script src="external/mark/jquery.mark.es6.js"></script>
   <script src="model.js"></script>
   <script src="UIUtils.js"></script>
   <script src="tableUI.js"></script>

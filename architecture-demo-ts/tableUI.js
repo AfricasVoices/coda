@@ -7,6 +7,8 @@ var messageViewerManager = {
     rowsInTable : 0,
     lastLoadedPageIndex : 0,
     wordBuffer: {}, // format {sessionId :{ eventId: {}} ... }
+    lastTableY: 0,
+    isProgramaticallyScrolling: false,
 
     init: function(messageContainer, data, rowsInTable) {
 
@@ -59,15 +61,25 @@ var messageViewerManager = {
             }
         });
 
-        $("body").on("mousewheel", function(event) {
+        $("#message-panel").on("scroll", (throttle(function(event) {
             //console.log("scroll height: " + $("#message-table")[0].scrollHeight + ", scroll top: " + $("#message-panel").scrollTop() +  ", outer height: " + $("#message-panel").outerHeight(false));
             // todo need to know if scroll is from shortcut or manual
+            console.log("scrollEvent");
             messageViewerManager.infiniteScroll(event);
+
+        }, 200)));
+
+        $("#message-panel").on("scroll", function(){
+            messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
         });
 
         $("#message-table").dblclick(function(event) {
            if (event.originalEvent.target.className === "highlight") {
-               $(event.originalEvent.target).replaceWith($(event.originalEvent.target).text());
+               // open editor
+               $(".edit-scheme-button").trigger("click");
+
+
+               //$(event.originalEvent.target).replaceWith($(event.originalEvent.target).text());
            }
 
         });
@@ -96,10 +108,7 @@ var messageViewerManager = {
                 // todo adjust scroll offset appropriately!
 
                 scrollbarManager.redraw(newDataset, schemeId);
-
             }
-
-
         });
 
         console.timeEnd("dropdown init");
@@ -255,27 +264,28 @@ var messageViewerManager = {
 
                     }
                 }
-            }
 
-            if (event.keyCode == 13) { // ENTER
+                if (event.keyCode == 13) { // ENTER
 
-                if ($(document.activeElement).is("input")) {
-                    return;
+                    if ($(document.activeElement).is("input")) {
+                        return;
+                    }
+
+                    activeRow.toggleClass("active");
+
+
+                    // get next row and make it active
+                    activeRow = UIUtils.nextUnfilledRow(activeRow, true, activeSchemeId); // todo handle if have to load new page
+                    activeRow.toggleClass("active");
+
+
+                    var isVisible = UIUtils.isRowVisible(activeRow[0], messagePanel[0]);
+
+                    if (!isVisible) {
+                        UIUtils.scrollRowToTop(activeRow[0], messagePanel[0]);
+                    }
                 }
 
-                activeRow.toggleClass("active");
-
-
-                // get next row and make it active
-                activeRow = UIUtils.nextUnfilledRow(activeRow, true, activeSchemeId); // todo handle if have to load new page
-                activeRow.toggleClass("active");
-
-
-                var isVisible = UIUtils.isRowVisible(activeRow[0], messagePanel[0]);
-
-                if (!isVisible) {
-                    UIUtils.scrollRowToTop(activeRow[0], messagePanel[0]);
-                }
             }
 
         });
@@ -513,33 +523,39 @@ var messageViewerManager = {
     bindEditSchemeButtonListener: function(editButton, scheme) {
 
         var codeEditor = $("#code-editor");
-
         $(editButton).on("click", function() {
 
-            var schemeId = $(this).parent().attr("scheme");
+            let schemeId = $(this).parent().attr("scheme");
             scheme = schemes[schemeId];
             tempScheme = CodeScheme.clone(scheme);
 
             if (!(codeEditor.is(":visible"))) {
 
                 editorOpen = true;
-
-                Array.from(tempScheme.codes.values()).forEach(function (codeObj, index) {
+                let values = Array.from(tempScheme.codes.values()); // todo rewrite to use iterator
+                values.forEach(function (codeObj) {
                     codeEditorManager.addCodeInputRow(codeObj["value"], codeObj["shortcut"], codeObj["color"], codeObj["id"], codeObj["words"]);
                 });
 
-
+                /*
                 var index;
                 $(this).closest(".row").find("div").each(function(i, columnDiv) {
                     if ($(columnDiv).text() === scheme["name"])
                         index = i;
                 });
-
+                */
 
                 codeEditorManager.bindSaveEditListener();
 
                 $("#scheme-name-input").val(scheme["name"]);
+
+                let textAreaParent = $("#word-textarea").parent();
+                textAreaParent.empty().append("<div id='word-textarea'></div>"); // in order to reinitialize tags interface
                 codeEditor.show();
+
+                // need to update code panel after editor is displayed so that the width is set correctly!
+                codeEditorManager.updateCodePanel(values[values.length-1]);
+
             }
         });
     },
@@ -621,114 +637,73 @@ var messageViewerManager = {
     infiniteScroll : function(event) {
 
         // todo on every infinite scroll refresh the scrollthumb position!!!!
-        // calculate new position better
 
-        if (event.originalEvent.wheelDelta <= 0 && UIUtils.isScrolledToBottom(messageViewerManager.messageContainer)) {
+        let currentY = messageViewerManager.messageContainer.scrollTop();
+        if (currentY === messageViewerManager.lastTableY || messageViewerManager.isProgramaticallyScrolling) {
+            return;
+        }
+
+        if (currentY > messageViewerManager.lastTableY && UIUtils.isScrolledToBottom(messageViewerManager.messageContainer)) {
             console.time("infinite scroll DOWN");
 
             let nextPage = messageViewerManager.lastLoadedPageIndex + 1;
 
-            //if (nextPage < messageViewerManager.tablePages.length) {
             if (nextPage <= Math.floor(newDataset.events.length / messageViewerManager.rowsInTable) + 1) {
 
                 messageViewerManager.lastLoadedPageIndex = nextPage;
 
                 let tbody = "";
-                let sessions = newDataset.sessions;
-                //var startOfPage = messageViewerManager.tablePages[nextPage].start;
-                //var endOfPage = messageViewerManager.tablePages[nextPage].end;
-
-                /*
-                for (var i = startOfPage[0]; i <= endOfPage[0]; i++) {
-
-                    var events = sessions[i];
-                    for (var j = 0; j <= endOfPage[1]; j++) {
-                        if (i === startOfPage[0] && j < startOfPage[1]) continue;
-                        else tbody += messageViewerManager.buildRow(sessions[i]["events"][j], j, i);
-                    }
-                }
-                */
-
                 let halfPage = Math.floor(messageViewerManager.rowsInTable/2);
                 let stoppingCondition = nextPage * halfPage + halfPage > newDataset.events.length ? newDataset.events.length : nextPage * halfPage + halfPage;
                 for (let i = nextPage * halfPage; i < stoppingCondition; i++) {
                     tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
                 }
 
-
                 let tbodyElement = messageViewerManager.table.find("tbody");
-
-                let lastMessagePosition = $(".message").last()[0].offsetTop;
-
+                let lastMessage = $(".message").last();
+                let lastMessagePosition = lastMessage.position().top;
 
                 let elementsToRemove = tbodyElement.find("tr:nth-child(-n+" + Math.floor(messageViewerManager.rowsInTable/2) + ")");
-                let removedHeight = 0;
-                elementsToRemove.each(function(i, el){
-                    removedHeight += $(el).height();
-                });
-
                 elementsToRemove.remove();
-                let newScrollTop = removedHeight - tbodyElement.height();
-
                 tbodyElement.append(tbody);
                 console.log("new page added");
 
-
-                /*          ADJUST THE OFFSET AGAIN
-                 var elementTop = document.getElementById('yourElementId').offsetTop;
-                 var divTop = document.getElementById('yourDivId').offsetTop;
-                 var elementRelativeTop = elementTop - divTop;
-                 */
-                newScrollTop >= 0 ? $("#message-panel").scrollTop(newScrollTop) : $("#message-panel").scrollTop(0);
-
+                messageViewerManager.isProgramaticallyScrolling = true;
+                messageViewerManager.messageContainer.scrollTop($("#message-panel").scrollTop() + (-1 * (lastMessagePosition - lastMessage.position().top)));
+                messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
+                messageViewerManager.isProgramaticallyScrolling = false;
                 scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);
-
                 console.timeEnd("infinite scroll DOWN");
             }
 
-        } else if (event.originalEvent.wheelDelta > 50 && UIUtils.isScrolledToTop(messageViewerManager.messageContainer)){
+        } else if (currentY < messageViewerManager.lastTableY && UIUtils.isScrolledToTop(messageViewerManager.messageContainer)){
 
             if (messageViewerManager.lastLoadedPageIndex !== 1 ) {
                 console.time("infinite scroll UP");
 
-                var prevPage = messageViewerManager.lastLoadedPageIndex[0] - 1;
-                messageViewerManager.lastLoadedPageIndex.unshift(prevPage); // put at beginning to preserve ordering
+                var prevPage = messageViewerManager.lastLoadedPageIndex - 2;
+                messageViewerManager.lastLoadedPageIndex--;
+                let firstRow = $(".message").first();
+                let originalOffset = firstRow.position().top;
 
-                tbody = "";
-                sessions = newDataset.sessions;
-                startOfPage = messageViewerManager.tablePages[prevPage].start;
-                endOfPage = messageViewerManager.tablePages[prevPage].end;
+                let tbody = "";
 
-                /*for (var i = startOfPage[0]; i <= endOfPage[0]; i++) {
-                    var events = sessions[i];
-                    for (var j = 0; j <= endOfPage[1]; j++) {
-                        if (i === startOfPage[0]) {
-                            if (j <= startOfPage[1]) continue;
-                            else tbody += messageViewerManager.buildRow(sessions[i]["events"][j], i, j);
-                        }
-                    }
-                }*/
-
-                for (var i = startOfPage[0]; i <= endOfPage[0]; i++) {
-                    var events = sessions[i];
-                    for (var j = 0; j <= endOfPage[1]; j++) {
-                        if (i === startOfPage[0] && j < startOfPage[1]) continue;
-                        else tbody += messageViewerManager.buildRow(sessions[i]["events"][j], j, i);
-                    }
+                let halfPage = Math.floor(messageViewerManager.rowsInTable/2);
+                let stoppingCondition = prevPage * halfPage + halfPage;
+                for (let i = prevPage * halfPage; i < stoppingCondition; i++) {
+                    tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
                 }
 
-                tbodyElement = messageViewerManager.table.find("tbody");
-                var previousTopRow = tbodyElement.find(".message").first();
-                var newScrollTop = 0;
-                $(tbody).prependTo(tbodyElement).each(function(i,el) {
-                  newScrollTop += $(el).height();
-                });
+                let tbodyElement = messageViewerManager.table.find("tbody");
                 tbodyElement.find("tr:nth-last-child(-n+" + Math.floor(messageViewerManager.rowsInTable)/2 + ")").remove();
-                messageViewerManager.lastLoadedPageIndex.splice(messageViewerManager.lastLoadedPageIndex.length-1,1);
+                tbodyElement.prepend(tbody);
 
-
-                // now need to bring the previous top row back into view
-                $("#message-panel").scrollTop(newScrollTop);
+                // adjust scrollTop of the panel so that the previous top row stays on top of the table (and not out of view)
+                let newOffset = firstRow.position().top;
+                messageViewerManager.isProgramaticallyScrolling = true;
+                messageViewerManager.messageContainer.scrollTop(messageViewerManager.messageContainer.scrollTop()+ (-1 * (originalOffset - newOffset)));
+                messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
+                messageViewerManager.isProgramaticallyScrolling = false;
 
                 console.timeEnd("infinite scroll UP");
 
@@ -736,7 +711,6 @@ var messageViewerManager = {
 
             }
         }
-
     },
 
     buildRow : function(eventObj, eventIndex, sessionIndex) {

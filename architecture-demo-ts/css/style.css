@@ -150,6 +150,25 @@ tr.active.code-row > td {
   left: 0;
 }
 
+#code-details-panel {
+  overflow-y: scroll;
+}
+
+
+
+#word-list > .panel-heading {
+  padding: 5px 15px;
+  background-color: rgb(242,242,242);
+}
+
+#word-list {
+  margin-bottom: 0;
+}
+
+#word-textarea {
+  padding-bottom: 0 !important;
+}
+
 /*
 
  */

@@ -7,7 +7,9 @@ All files located in the 'external' directory are externally maintained librarie
         - jQuery Javascript Library, Copyright (c) 2016 jQuery Foundation and other contributors
         - jQuery UI, Copyright (c) 2016 jQuery Foundation and other contributors
         - StickyTableHeaders, Copyright (c) 2011 Jonas Mosbech
-	- mark.js, Copyright (c) 2014–2017 Julian Motz
+	    - mark.js, Copyright (c) 2014–2017 Julian Motz
+	    - jcanvas, Copyright (c) 2016 Caleb Evans
+	    - underscore.js Copyright (c) 2009-2017 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 -----------------------------------------------------------------------------
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:

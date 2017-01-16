@@ -93,13 +93,12 @@ var UIUtils = (
 
             // BETTER!!!
             checkVisible: function(elm) {
-                var rect = elm.getBoundingClientRect();
+                let rect = elm.getBoundingClientRect();
                 if (rect.bottom === 0 && rect.top === 0) {
                     return false;
                 } else {
-                    var viewHeight = Math.max(document.documentElement.clientHeight, window.innerHeight);
-                    var visible = !(rect.bottom < 0 || rect.top - viewHeight >= 0);
-                    return visible;
+                    let viewHeight = Math.max(document.documentElement.clientHeight, window.innerHeight);
+                    return !(rect.bottom < 0 || rect.top - viewHeight >= 0);
 
                 }
             },

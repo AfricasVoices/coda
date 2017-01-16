@@ -233,7 +233,7 @@ class CodeScheme {
             if (this.codes.has(codeId)) {
                 let code : Code = this.codes.get(codeId);
                 code.value = otherCodeObj.value;
-                code.words = otherCodeObj.words.slice(0); // take care to clone
+                code.words = otherCodeObj.words.slice(0); // todo take care to deep clone if necessary
                 code.color = otherCodeObj.color;
                 code.shortcut = otherCodeObj.shortcut;
             } else {
