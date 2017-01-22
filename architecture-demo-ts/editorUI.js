@@ -392,10 +392,10 @@ var codeEditorManager =  {
         // todo problem when new row is added - codeObj doesn't exist yet, so can't bind the event handler for tags
         // assume called with valid codeObject
 
-        let color = codeObj["color"].length > 0 ? codeObj["color"] : "#ffffff";
+        var color = codeObj["color"].length > 0 ? codeObj["color"] : "#ffffff";
         let words = codeObj["words"].length > 0 ? codeObj["words"].splice(0) : [];
         let colorPicker = $("#color-pick");
-        let wordTextarea = $("#word-textarea");
+        var wordTextarea = $("#word-textarea");
         colorPicker.find("input").attr("value", color);
         colorPicker.colorpicker('setValue', color);
 
@@ -408,11 +408,15 @@ var codeEditorManager =  {
             afterAddingTag: function(tag) {
                 // can't add to the same array used for "tag data"!!!!!
                 codeObj["words"] = [tag];
+                wordTextarea.find(".tag").css({"background-color": color, "color": "black"});
+
             },
             afterDeletingTag: function(tag) {
                 codeObj.deleteWords([tag]);
             }
         });
+
+        wordTextarea.find(".tag").css({"background-color": color, "color": "black"});
 
 /*
         wordTextarea.tags({

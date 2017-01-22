@@ -92,8 +92,11 @@ class RawEvent {
 
     }
 
+    // todo refactor to not use codes just decorations
+
     codeForScheme(schemeId : string) : Code {
-        return this.codes.get(schemeId);
+        //return this.codes.get(schemeId);
+        return this.decorations.get(schemeId).code;
     }
 
     schemeNames(): Array<string> {
@@ -104,9 +107,9 @@ class RawEvent {
         return Array.from(this.codes.values());
     }
 
-    decorate(schemeId : string, code? : Code) {
+    decorate(schemeId : string, manual: boolean, code? : Code, confidence?: number) {
         let stringSchemeId = "" + schemeId;
-        this.decorations.set(stringSchemeId, new EventDecoration(this, stringSchemeId, code));
+        this.decorations.set(stringSchemeId, new EventDecoration(this, stringSchemeId, manual, code, confidence));
     }
 
     uglify(schemeId: string) {
@@ -114,23 +117,28 @@ class RawEvent {
         this.codes.delete(schemeId);
     }
 
-    decorationForName(name : string) : EventDecoration {
-        return this.decorations.get(name);
+    decorationForName(schemeId : string) : EventDecoration {
+        return this.decorations.get(schemeId);
     }
 
     decorationNames() : Array<string> {
         return Array.from(this.decorations.keys());
     }
+
 }
 
 class EventDecoration {
   owner : RawEvent;
   scheme_id : String; // will take scheme id
   code : Code;
+  confidence: number;
+  manual: boolean;
 
-  constructor(owner : RawEvent, id : String, code?: Code) {
+  constructor(owner : RawEvent, id : String, manual: boolean, code?: Code, confidence?: number) {
       this.owner = owner;
       this.scheme_id = id;
+      this.manual = manual;
+      (confidence == undefined) ? this.confidence = 0.98 : this.confidence = confidence;
 
       if (code) {
           this.code = code;

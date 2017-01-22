@@ -64,8 +64,10 @@ class RawEvent {
         this.decorations = new Map(); // string is code scheme id
         this.codes = new Map(); // string is code scheme id todo not necessary?
     }
+    // todo refactor to not use codes just decorations
     codeForScheme(schemeId) {
-        return this.codes.get(schemeId);
+        //return this.codes.get(schemeId);
+        return this.decorations.get(schemeId).code;
     }
     schemeNames() {
         return Array.from(this.codes.keys());
@@ -73,25 +75,27 @@ class RawEvent {
     assignedCodes() {
         return Array.from(this.codes.values());
     }
-    decorate(schemeId, code) {
+    decorate(schemeId, manual, code, confidence) {
         let stringSchemeId = "" + schemeId;
-        this.decorations.set(stringSchemeId, new EventDecoration(this, stringSchemeId, code));
+        this.decorations.set(stringSchemeId, new EventDecoration(this, stringSchemeId, manual, code, confidence));
     }
     uglify(schemeId) {
         this.decorations.delete(schemeId);
         this.codes.delete(schemeId);
     }
-    decorationForName(name) {
-        return this.decorations.get(name);
+    decorationForName(schemeId) {
+        return this.decorations.get(schemeId);
     }
     decorationNames() {
         return Array.from(this.decorations.keys());
     }
 }
 class EventDecoration {
-    constructor(owner, id, code) {
+    constructor(owner, id, manual, code, confidence) {
         this.owner = owner;
         this.scheme_id = id;
+        this.manual = manual;
+        (confidence == undefined) ? this.confidence = 0.98 : this.confidence = confidence;
         if (code) {
             this.code = code;
         }

@@ -67,7 +67,7 @@ var messageViewerManager = {
             console.log("scrollEvent");
             messageViewerManager.infiniteScroll(event);
 
-        }, 200)));
+        }, 50)));
 
         $("#message-panel").on("scroll", function(){
             messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
@@ -85,6 +85,7 @@ var messageViewerManager = {
         });
 
         $("a").on("click", function(event) {
+            console.time("sort");
             var targetElement = event.originalEvent.target;
             if (targetElement.className === "sort-button" || targetElement.className.split(" ")[0] === "glyphicon") {
                 // find which icon was clicked... and use the appropriate sort
@@ -109,6 +110,7 @@ var messageViewerManager = {
 
                 scrollbarManager.redraw(newDataset, schemeId);
             }
+            console.timeEnd("sort");
         });
 
         console.timeEnd("dropdown init");
@@ -363,10 +365,80 @@ var messageViewerManager = {
 
     },
 
+    dropdownChangeHandler: function(selectElement) {
+
+        var schemeId = /form-control (.*) (uncoded|coded)/.exec(selectElement.attr("class"))[1];
+        let value = selectElement.val();
+        let row = selectElement.parents(".message");
+        let sessionId = $(row).attr("sessionid");
+        let eventId = $(row).attr("eventid");
+
+        //var eventObj = newDataset.sessions[sessionId]["events"][eventId];
+        var eventObj = newDataset.events[eventId];
+        var codeObj = schemes[schemeId].getCodeByValue(value);
+
+        if (value.length > 0) {
+
+            // add decoration
+            let decoration = eventObj.decorationForName(schemeId);
+            if (decoration === undefined) {
+                eventObj.decorate(schemeId, schemes[schemeId].getCodeByValue(value));
+            } else {
+                decoration.code = schemes[schemeId].getCodeByValue(value);
+            }
+
+            selectElement.removeClass("uncoded");
+            selectElement.addClass("coded");
+
+            // set color
+            if (activeSchemeId === schemeId) {
+                let color = schemes[schemeId].getCodeByValue(value)["color"];
+                row.children("td").each(function(i, td) {
+                    $(td).css("background-color", color);
+                });
+            }
+
+
+            // if words in buffer, add to scheme dataset
+            if (messageViewerManager.wordBuffer.hasOwnProperty(sessionId)
+                && messageViewerManager.wordBuffer.hasOwnProperty(eventId)
+                && messageViewerManager.wordBuffer[sessionId][eventId].length > 0) {
+
+                codeObj.words = Object.keys(messageViewerManager.wordBuffer[sessionId][eventId]);
+                messageViewerManager.wordBuffer[sessionId][eventId] = {}
+            }
+
+
+        } else {
+
+            // remove code from event in data structure
+            eventObj.uglify(schemeId);
+
+            selectElement.removeClass("coded");
+            selectElement.addClass("uncoded");
+
+            if (activeSchemeId === schemeId) {
+                row.children("td").each(function (i, td) {
+                    $(td).css("background-color", "#ffffff");
+                });
+            }
+
+            // remove words from dataset, get words from message text
+            let words = $(row).find("td.message-text span.highlight").map(function(index, element) {
+                console.log($(element).text());
+                return $(element).text()});
+            //schemes[schemeId].deleteWords(words); // todo keep track which message is the origin of the added words... ?
+
+        }
+
+    },
+
     dropdownChange : function(event) {
 
         let selectElement = $(event.target);
+        messageViewerManager.dropdownChangeHandler(selectElement);
 
+        /*
         var schemeId = /form-control (.*) (uncoded|coded)/.exec(selectElement.attr("class"))[1];
         let value = selectElement.val();
         let row = selectElement.parents(".message");
@@ -429,6 +501,7 @@ var messageViewerManager = {
             //schemes[schemeId].deleteWords(words); // todo keep track which message is the origin of the added words... ?
 
         }
+        */
     },
 
     addNewSchemeColumn: function(scheme) {
@@ -531,6 +604,8 @@ var messageViewerManager = {
 
             if (!(codeEditor.is(":visible"))) {
 
+                let selectedOptionId = activeRow.find("option[selected]");
+
                 editorOpen = true;
                 let values = Array.from(tempScheme.codes.values()); // todo rewrite to use iterator
                 values.forEach(function (codeObj) {
@@ -607,7 +682,6 @@ var messageViewerManager = {
 
     createPageHTML: function(index) {
 
-        messageViewerManager.lastLoadedPageIndex = index;
         var tbody = "";
 
         /*
@@ -625,7 +699,7 @@ var messageViewerManager = {
         */
 
         let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-        for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex + halfPage; i++) {
+        for (let i = index * halfPage; i < index * halfPage + halfPage; i++) {
             tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
         }
 
@@ -741,6 +815,7 @@ var messageViewerManager = {
 
         sessionRow += "<tr class='message' id=" + eventObj["name"] + " eventId = '" + eventIndex + "' sessionId = '" + sessionIndex + "'>";
         sessionRow += "<td class='col-md-2' style='background-color: " + rowColor+ "'>" + eventObj["timestamp"] + "</td>";
+        //sessionRow += "<td class='col-md-4 message-text' style='background-color: " + rowColor+ "'><p>" + eventObj["data"] + "</p></td>";
         sessionRow += "<td class='col-md-4 message-text' style='background-color: " + rowColor+ "'><p>" + eventObj["data"] + "</p></td>";
         sessionRow += "<td class='col-md-4 decorations' style='background-color: " + rowColor+ "'>";
         sessionRow += "<div class='row decorator-column'>";

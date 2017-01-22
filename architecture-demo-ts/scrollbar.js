@@ -340,13 +340,14 @@ var scrollbarManager = {
 
         // todo need to take scaling into account
         var percentage = thumbTop == 6 ? 0 : Math.round((thumbTop / scrollbarManager.scrollbarEl.height) * 100 ) / 100; // force it to 0 if top is 6px displaced, 2px for border, 4px for scrollthumb
-        var percentagePageToLoad = Math.floor((messageViewerManager.tablePages.length-1) * percentage);
+        var percentagePageToLoad = Math.floor((Math.floor(newDataset.events.length / messageViewerManager.rowsInTable) - 1) * percentage);
         //var pageToLoadIndex = thumbTop <= 0 ? 0 : Math.floor(firstItemInPixel / pageSize);
 
         messageViewerManager.lastLoadedPageIndex = [];
 
         var page1 = messageViewerManager.createPageHTML(percentagePageToLoad);
         var page2 = messageViewerManager.createPageHTML(percentagePageToLoad+1);
+        messageViewerManager.lastLoadedPageIndex = percentagePageToLoad + 1;
 
         var tbodyElement = messageViewerManager.table.find("tbody");
         tbodyElement.empty();

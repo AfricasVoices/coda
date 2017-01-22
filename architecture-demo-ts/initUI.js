@@ -28,7 +28,7 @@ $("body").hide();
 
 
 // USE EITHER sessions--.json or sessions-numbered-10000.json for just numbers
-$.getJSON("data/sessions-numbered-10000.json", function(data) {
+$.getJSON("data/sessions-10000.json", function(data) {
 
     // todo ensure ALL IDs are unique
     var buildDataset = function(data) {
@@ -39,8 +39,9 @@ $.getJSON("data/sessions-numbered-10000.json", function(data) {
         var properDataset = new Dataset();
         Object.keys(data).forEach(function(sessionKey) {
             var events = [];
-            Object.keys(data[sessionKey]["events"]).forEach(function(eventKey) {
-                var event = new RawEvent(data[sessionKey]["events"][eventKey]["name"], sessionKey, data[sessionKey]["events"][eventKey]["timestamp"], "", data[sessionKey]["events"][eventKey]["data"]);
+            Object.keys(data[sessionKey]["events"]).forEach(function(eventKey, index) {
+                //var event = new RawEvent(data[sessionKey]["events"][eventKey]["name"], sessionKey, data[sessionKey]["events"][eventKey]["timestamp"], "", data[sessionKey]["events"][eventKey]["data"]);
+                var event = new RawEvent(eventCount, sessionKey, data[sessionKey]["events"][eventKey]["timestamp"], "", data[sessionKey]["events"][eventKey]["data"]);
                 properDataset.events.push(event);
                 eventCount += 1;
 
@@ -62,7 +63,7 @@ $.getJSON("data/sessions-numbered-10000.json", function(data) {
                         }
 
                         var code = scheme.getCodeByValue(decorationValue);
-                        event.decorate(decorations[d], code); // has to use decorations[d] as scheme key
+                        event.decorate(decorations[d], true, code); // has to use decorations[d] as scheme key
                     }
 
                     /* TODO  write tests for this */
