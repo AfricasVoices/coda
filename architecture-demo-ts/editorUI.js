@@ -39,6 +39,8 @@ var codeEditorManager =  {
                 }
             }
 
+            $("#word-textarea").find(".tag").css({"background-color": event.color.toHex()});
+
         });
 
     },
@@ -230,7 +232,9 @@ var codeEditorManager =  {
             //tempScheme.codes = tempScheme.codes.filter(function(code) { return code !== ""; });
             //schemes[tempScheme["id"]] = tempScheme; // TODO NOOOOOOO MUST NOT DO THIS PLS
             schemes[tempScheme["id"]].copyCodesFrom(tempScheme);
+            const thumbPosition = scrollbarManager.getThumbPosition();
             scrollbarManager.redraw(newDataset, tempScheme["id"]);
+            scrollbarManager.redrawThumb(thumbPosition);
 
             // redraw rows
             var tbody = "";
@@ -250,7 +254,7 @@ var codeEditorManager =  {
             */
 
             let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-            for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex + halfPage; i++) {
+            for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex * halfPage + halfPage; i++) {
                 tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
             }
 
@@ -374,8 +378,10 @@ var codeEditorManager =  {
             var code = tempScheme.codes.get($(this).attr("id"));
 
             if (code) {
+                /*
                 let textAreaParent = $("#word-textarea").parent();
                 textAreaParent.empty().append("<div id='word-textarea'></div>");
+                */
                 codeEditorManager.updateCodePanel(code);
             }
         });
@@ -393,13 +399,33 @@ var codeEditorManager =  {
         // assume called with valid codeObject
 
         var color = codeObj["color"].length > 0 ? codeObj["color"] : "#ffffff";
-        let words = codeObj["words"].length > 0 ? codeObj["words"].splice(0) : [];
+        let words = codeObj["words"].length > 0 ? codeObj["words"].slice(0) : [];
         let colorPicker = $("#color-pick");
         var wordTextarea = $("#word-textarea");
         colorPicker.find("input").attr("value", color);
         colorPicker.colorpicker('setValue', color);
 
+        if (color == "#ffffff") color = "#9e9e9e"; // set the tags to a darker grey color
+        let selectObj= wordTextarea.find("select");
+        selectObj.tagsinput('removeAll');
 
+        $(selectObj).off('itemAdded');
+
+        for (let word of words) {
+            selectObj.tagsinput('add', word);
+        }
+
+        $("span.tag").css({'background-color': color});
+
+        $(selectObj).on('itemAdded', function(event) {
+            // event.item: contains the item
+            // event.cancel: set to true to prevent the item getting added
+            let color = (codeObj["color"] == "#ffffff" ? "#9e9e9e" : codeObj["color"]);
+            wordTextarea.find(".tag").css({'background-color': color});
+            codeObj.words = [event.item];
+        });
+
+        /*
         wordTextarea.tags({
             tagData: words,
             caseInsensitive: true,
@@ -415,9 +441,13 @@ var codeEditorManager =  {
                 codeObj.deleteWords([tag]);
             }
         });
+        */
 
-        wordTextarea.find(".tag").css({"background-color": color, "color": "black"});
-
+        /*
+        let tag = wordTextarea.find(".tag");
+        tag.css({"background-color": color, "color": "black"});
+        tag.find(".remove").css({"color": "#e5e0e0"});
+*/
 /*
         wordTextarea.tags({
             caseInsensitive: true,

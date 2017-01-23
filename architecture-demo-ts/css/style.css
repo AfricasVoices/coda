@@ -169,6 +169,11 @@ tr.active.code-row > td {
   padding-bottom: 0 !important;
 }
 
+.bootstrap-tagsinput {
+  width: 100%;
+  padding: 2px 6px 3px;
+}
+
 /*
 
  */

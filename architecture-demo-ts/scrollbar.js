@@ -7,6 +7,7 @@ var scrollbarManager = {
     thumbWidth: 2,
     thumbHeight: 20,
     scale: 1,
+    scrollThumb: $("#scrollthumb"),
 
     init : function(sessionData, scrollbarEl, subsamplingNum){
 
@@ -349,14 +350,12 @@ var scrollbarManager = {
         //var pageToLoadIndex = thumbTop <= 0 ? 0 : Math.floor(firstItemInPixel / pageSize);
 
         let percentage = scrollthumbLayer.y + scrollbarManager.thumbWidth == 6 ? 0 : Math.round(((thumbMid - 10) / (scrollbarManager.scrollbarEl.height-20) * 100 )) / 100; // force it to 0 if top is 6px displaced, 2px for border, 4px for scrollthumb
-        let eventIndexToLoad = Math.floor(newDataset.events.length * percentage);
+        let eventIndexToLoad = scrollthumbLayer.y > 2 ? Math.floor(newDataset.events.length * percentage) : 0;
         const halfPage = Math.floor(messageViewerManager.rowsInTable/2);
         let pagesToLoad = Math.floor(eventIndexToLoad / halfPage);
 
-        if ((pagesToLoad * halfPage + halfPage) > newDataset.events.length) {
-
-            pagesToLoad--;
-
+        if ((pagesToLoad * halfPage + halfPage) >= newDataset.events.length) {
+            pagesToLoad = pagesToLoad-2;
         }
 
         messageViewerManager.lastLoadedPageIndex = [];
@@ -378,11 +377,23 @@ var scrollbarManager = {
 
         messageViewerManager.messageContainer.scrollTop(0);
 
+    },
+
+    redrawThumb : function(ycoord) {
+        console.time("thumbredraw");
+        let scrollthumbLayer = this.scrollThumb.getLayer(0);
+        if (ycoord < 2) ycoord = 2;
+        if (ycoord > scrollbarManager.scrollbarEl - scrollbarManager.thumbHeight -2 ) ycoord = scrollbarManager.scrollbarEl - scrollbarManager.thumbHeight -2;
+
+
+        scrollthumbLayer.y = ycoord;
+        this.scrollThumb.drawLayers();
+        console.timeEnd("thumbredraw");
+    },
+
+    getThumbPosition: function() {
+        const layer = this.scrollThumb.getLayer(0);
+        return layer ? layer.y : 0;
     }
-
-
-
-
-
 
 }

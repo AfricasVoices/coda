@@ -7,7 +7,8 @@
     <link rel="stylesheet" href="external/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="external/jquery/jquery-ui/jquery-ui.css"/>
     <link rel="stylesheet" href="external/colorpicker/css/bootstrap-colorpicker.min.css"/>
-    <link rel="stylesheet" type="text/css" href="external/bootstrap-tags/css/bootstrap-tags.css" />
+    <link rel="stylesheet" type="text/css" href="external/bootstrap-tags/css/bootstrap-tags.css"/>
+    <link rel="stylesheet" type="text/css" href="external/bootstrap-tagsinput/bootstrap-tagsinput.css"/>
     <link rel="stylesheet" href="css/style.css"/>
 
     <!-- LIB JS -->
@@ -19,6 +20,7 @@
     <script src='external/bootstrap-tags/js/bootstrap-tags.js'></script>
     <script src="external/jquery/jquery.stickytableheaders.js"></script>
     <script src="external/mark/jquery.mark.es6.js"></script>
+    <script src="external/bootstrap-tagsinput/bootstrap-tagsinput.js"></script>
     <script src="external/underscore/underscore.js"></script>
 
     <!-- Toolbar UI -->
@@ -169,7 +171,11 @@
                   <div class="panel panel-default" id="word-list">
                     <div class="panel-heading">Words</div>
                     <div class="panel-body">
-                      <div id="word-textarea"></div>
+                      <div id="word-textarea">
+                        <select multiple data-role="tagsinput">
+                        </select>
+                        <!--<input type="text" data-role="tagsinput"/>-->
+                      </div>
                     </div>
                   </div>
 

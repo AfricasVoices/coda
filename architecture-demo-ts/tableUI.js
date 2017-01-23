@@ -30,7 +30,9 @@ var messageViewerManager = {
         */
 
         $(document).on("change", function(event) {
-           if (event.originalEvent.target.nodeName === "SELECT") {
+            if (event.originalEvent == undefined) return;
+
+                if (event.originalEvent.target.nodeName === "SELECT") {
                messageViewerManager.dropdownChange(event.originalEvent);
            }
         });
@@ -67,9 +69,13 @@ var messageViewerManager = {
             console.log("scrollEvent");
             messageViewerManager.infiniteScroll(event);
 
-        }, 50)));
+        }, 1)));
 
         $("#message-panel").on("scroll", function(){
+            let yDifference = (messageViewerManager.lastTableY - messageViewerManager.messageContainer.scrollTop())/messageViewerManager.table.height();
+            scrollbarManager.redrawThumb(scrollbarManager.getThumbPosition() - scrollbarManager.scrollbarEl.height * yDifference * (messageViewerManager.rowsInTable/newDataset.events.length));
+
+
             messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
         });
 
@@ -624,9 +630,12 @@ var messageViewerManager = {
 
                 $("#scheme-name-input").val(scheme["name"]);
 
+                /*
                 let textAreaParent = $("#word-textarea").parent();
                 textAreaParent.empty().append("<div id='word-textarea'></div>"); // in order to reinitialize tags interface
+                */
                 codeEditor.show();
+
 
                 // need to update code panel after editor is displayed so that the width is set correctly!
                 codeEditorManager.updateCodePanel(values[values.length-1]);
@@ -724,7 +733,7 @@ var messageViewerManager = {
 
             let nextPage = messageViewerManager.lastLoadedPageIndex + 1;
 
-            if (nextPage <= Math.floor(newDataset.events.length / messageViewerManager.rowsInTable) + 1) {
+            if (nextPage < Math.floor(newDataset.events.length / Math.floor(messageViewerManager.rowsInTable/2)) - 1) {
 
                 messageViewerManager.lastLoadedPageIndex = nextPage;
 
@@ -874,33 +883,43 @@ var messageViewerManager = {
         if ($(element).prop("tagName") == "TD") {
 
             let highlightContext = $(element);
-            let words = [];
+            var sessionId = $(element).closest('tr').attr("sessionid");
+            var eventId = $(element).closest('tr').attr("eventid");
 
             if (window.getSelection && window.getSelection() && window.getSelection().toString().length > 0) {
-
+                /*
                 let highlightResult = highlightContext.mark(window.getSelection().toString(),  {"element": "span",
                     "className": "highlight", "diacritics": false, "accuracy": "exactly"});
                 words = highlightResult["words"];
-            }
+                */
 
-            console.log(words);
+                var selection = window.getSelection().toString(); // todo do we preprocess this in any way?
+                console.log(selection);
 
-            // check if current row has an assigned code and if yes, add the words to the data structure
-            var sessionId = $(element).attr("sessionid");
-            var eventId = $(element).attr("eventid");
-            let activeDeco = $(element).nextAll("td.decorations").first().find(".deco-container[scheme='"+ messageViewerManager.activeScheme +"']");
-            let selectElement = activeDeco.find("select.coded");
-            let isCoded = selectElement.length > 0;
+                // check if current row has an assigned code and if yes, add the words to the data structure
+                // todo FIX THIS - check in data structure
 
-            if (isCoded) {
+                /*
+                 let activeDeco = $(element).nextAll("td.decorations").first().find(".deco-container[scheme='"+ messageViewerManager.activeScheme +"']");
+                 let selectElement = activeDeco.find("select.coded");
+                 let isCoded = selectElement.length > 0;
+                 */
 
-                schemes[messageViewerManager.activeScheme].getCodeByValue(selectElement.val()).words = words;
+                const code = newDataset.events[eventId].codeForScheme(messageViewerManager.activeScheme);
+                const isCoded = code!=undefined;
 
-            } else {
-                for (let i = 0; i < words.length; i++){
-                    if (messageViewerManager.wordBuffer[sessionId][eventId][words[i]]!= 1) { // todo what do we do about strings of len = 1
-                        messageViewerManager.wordBuffer[sessionId][eventId][words[i]] = 1;
+                if (isCoded) {
+
+                    if (selection.length > 0) regexMatcher.matchAndHighlight(newDataset.events[eventId], new RegExp(selection, "ig"), true, code.id);
+                    //schemes[messageViewerManager.activeScheme].getCodeByValue(selectElement.val()).words = words;
+                    code.words = [selection];
+
+                } else {
+                    //for (let i = 0; i < words.length; i++){
+                    if (messageViewerManager.wordBuffer[sessionId][eventId][selection]!= 1) { // todo what do we do about strings of len = 1
+                        messageViewerManager.wordBuffer[sessionId][eventId][selection] = 1;
                     }
+                    //}
                 }
             }
         }

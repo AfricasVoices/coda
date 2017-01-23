@@ -20,7 +20,7 @@ var regexMatcher = {
         //let keywords = code.words;
         let regex = new RegExp('\\b('+keywords.join('|')+')\\b', 'ig');
         for (let i = 0; i < texts.length; i++) {
-            let matchCount = this.matchAndHighlight(newDataset.events[i], codeId, regex, true);
+            let matchCount = this.matchAndHighlight(newDataset.events[i], regex, true, codeId);
             //callback(i,matchCount);
             regexMatcher.codeEvent(newDataset.events[i], schemes["1"].getCodeByValue("Incoming"), matchCount);
         }
@@ -72,7 +72,7 @@ var regexMatcher = {
 
 
 
-    matchAndHighlight : function(eventObj, codeId, regex, highlight) {
+    matchAndHighlight : function(eventObj, regex, highlight, codeId) {
 
         let matches;
         let matchCount = new Map();
@@ -81,11 +81,11 @@ var regexMatcher = {
         var eventEl = $("#" + eventObj.name).find(".message-text");
         while (matches = regex.exec(eventObj.data)) {
 
-            if (matchCount.has(matches[1])) {
-                let matchPosArr = matchCount.get(matches[1]);
+            if (matchCount.has(matches[0])) {
+                let matchPosArr = matchCount.get(matches[0]);
                 matchPosArr.push(matches.index);
             } else {
-                matchCount.set(matches[1], [matches.index]);
+                matchCount.set(matches[0], [matches.index]);
             }
 
             if (highlight) {
@@ -94,7 +94,7 @@ var regexMatcher = {
                 let newNode = textNode.splitText(matches[0].length);
                 let newSpan = document.createElement("span");
                 newSpan.setAttribute("class", "highlight");
-                newSpan.setAttribute("codeid", codeId);
+                if (codeId != undefined) newSpan.setAttribute("codeid", codeId);
                 newSpan.textContent = textNode.textContent;
                 textNode.parentNode.replaceChild(newSpan, textNode);
 
