@@ -5,6 +5,7 @@ var scrollbarManager = {
     scrollbarEl : {},
     subsamplingNum: 0,
     thumbWidth: 2,
+    thumbHeight: 20,
     scale: 1,
 
     init : function(sessionData, scrollbarEl, subsamplingNum){
@@ -59,24 +60,23 @@ var scrollbarManager = {
 
         $("#scrollbar").drawRect({
             fillStyle: 'white',
-            x: 0, y: 0,
-            width: scrollbarEl.width, height: scrollbarEl.height,
+            x: 9 , y: 0,
+            width: scrollbarEl.width-19.5, height: scrollbarEl.height,
             layer: true,
             fromCenter: false,
             groups: ['scrollbar']
         }).drawRect({
             strokeStyle: '#ddd',
             strokeWidth: 2,
-            x: 0, y: 0,
-            width: scrollContext.canvas.width, height: scrollContext.canvas.height,
+            x: 9, y: 0,
+            width: scrollContext.canvas.width-19.5, height: scrollContext.canvas.height,
             cornerRadius: 5,
             layer: true,
             groups: ['scrollbar'],
             fromCenter: false
         });
 
-// todo make schemes an array not object so there is a concept of order
-
+        // todo make schemes an array not object so there is a concept of order
         // todo keep scrollthumb in place when reloading the table from editscheme dialog
 
         this.redraw(newDataset, Object.keys(newDataset.schemes)[0]);
@@ -168,14 +168,14 @@ var scrollbarManager = {
 
         $(this.scrollbarEl).removeLayerGroup('scrollbarlines');
 
-        for (var c = 0; c < this.scrollbarEl.height-2; c++) { // todo: fix this
+        for (let c = 0; c < this.scrollbarEl.height-2; c++) { // todo: fix this
             var strokeWidth = Math.floor((this.scrollbarEl.height-4)/colors.length);
 
             $(this.scrollbarEl).drawLine({
                 strokeStyle: colors[c] != undefined ? colors[c] : "#ffffff",
                 strokeWidth: strokeWidth,
-                x1: 1, y1: c * strokeWidth,
-                x2: this.scrollbarEl.width - 1, y2: c * strokeWidth,
+                x1: 10, y1: c * strokeWidth,
+                x2: this.scrollbarEl.width - 10, y2: c * strokeWidth,
                 layer: true,
                 groups: ['scrollbar', 'scrollbarlines'],
                 fromCenter: false,
@@ -190,7 +190,7 @@ var scrollbarManager = {
             strokeStyle: '#black',
             strokeWidth: 1.5,
             x: 2, y: loadedPages ? loadedPages[0] == 0 ? 2 : this.height * (loadedPages[0]/messageViewerManager.tablePages.length) : 2,
-            width: context.canvas.width-4, height: 20, // set height according to dataset size vs elems on screen
+            width: context.canvas.width-4, height: scrollbarManager.thumbHeight, // set height according to dataset size vs elems on screen
             cornerRadius: 0,
             layer: true,
             name: 'scrollthumb',
@@ -235,6 +235,10 @@ var scrollbarManager = {
                     event.cancelBubble = true;
                     layer.y = context.canvas.height - layer.height - 2; // todo connect to stroke width of the grey border
                 }
+
+                scrollbarManager.scrolling(layer);
+                $(this).drawLayers();
+
 
             },
             cursors: {
@@ -332,22 +336,40 @@ var scrollbarManager = {
 
         // need to take into account the border of the scrollthumb! e.g. the only lines visible in the scrollthumb...
 
-        var thumbTop = scrollthumbLayer.y + 4; // for stroke width of the scrollthumb
+        //var thumbTop = scrollthumbLayer.y + scrollbarManager.thumbWidth + Math.floor(scrollbarManager.thumbHeight/2); // for stroke width of the scrollthumb
+        var thumbMid = scrollthumbLayer.y + scrollbarManager.thumbWidth + Math.floor(scrollbarManager.thumbHeight/2); // for stroke width of the scrollthumb
         var pageSize = messageViewerManager.rowsInTable;
         var rowsPerPixel = scrollbarManager.subsamplingNum;
 
-        var firstItemInPixel = (thumbTop - 1) * rowsPerPixel;
+       // var firstItemInPixel = (thumbTop - 1) * rowsPerPixel;
 
         // todo need to take scaling into account
-        var percentage = thumbTop == 6 ? 0 : Math.round((thumbTop / scrollbarManager.scrollbarEl.height) * 100 ) / 100; // force it to 0 if top is 6px displaced, 2px for border, 4px for scrollthumb
-        var percentagePageToLoad = Math.floor((Math.floor(newDataset.events.length / messageViewerManager.rowsInTable) - 1) * percentage);
+        //var percentage = thumbTop == 6 ? 0 : Math.round((thumbTop / scrollbarManager.scrollbarEl.height) * 100 ) / 100; // force it to 0 if top is 6px displaced, 2px for border, 4px for scrollthumb
+        //var percentagePageToLoad = Math.floor((Math.floor(newDataset.events.length / messageViewerManager.rowsInTable) - 1) * percentage);
         //var pageToLoadIndex = thumbTop <= 0 ? 0 : Math.floor(firstItemInPixel / pageSize);
+
+        let percentage = scrollthumbLayer.y + scrollbarManager.thumbWidth == 6 ? 0 : Math.round(((thumbMid - 10) / (scrollbarManager.scrollbarEl.height-20) * 100 )) / 100; // force it to 0 if top is 6px displaced, 2px for border, 4px for scrollthumb
+        let eventIndexToLoad = Math.floor(newDataset.events.length * percentage);
+        const halfPage = Math.floor(messageViewerManager.rowsInTable/2);
+        let pagesToLoad = Math.floor(eventIndexToLoad / halfPage);
+
+        if ((pagesToLoad * halfPage + halfPage) > newDataset.events.length) {
+
+            pagesToLoad--;
+
+        }
 
         messageViewerManager.lastLoadedPageIndex = [];
 
+        var page1 = messageViewerManager.createPageHTML(pagesToLoad);
+        var page2 = messageViewerManager.createPageHTML(pagesToLoad+1);
+        messageViewerManager.lastLoadedPageIndex = pagesToLoad + 1;
+
+        /*
         var page1 = messageViewerManager.createPageHTML(percentagePageToLoad);
         var page2 = messageViewerManager.createPageHTML(percentagePageToLoad+1);
         messageViewerManager.lastLoadedPageIndex = percentagePageToLoad + 1;
+        */
 
         var tbodyElement = messageViewerManager.table.find("tbody");
         tbodyElement.empty();

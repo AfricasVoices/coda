@@ -698,8 +698,10 @@ var messageViewerManager = {
         }
         */
 
-        let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-        for (let i = index * halfPage; i < index * halfPage + halfPage; i++) {
+        const halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
+        let stoppingCondition = (index * halfPage + halfPage > newDataset.events.length) ? newDataset.events.length : index * halfPage + halfPage;
+
+        for (let i = index * halfPage; i < stoppingCondition; i++) {
             tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
         }
 
