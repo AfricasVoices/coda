@@ -757,7 +757,7 @@ var messageViewerManager = {
                 messageViewerManager.messageContainer.scrollTop($("#message-panel").scrollTop() + (-1 * (lastMessagePosition - lastMessage.position().top)));
                 messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
                 messageViewerManager.isProgramaticallyScrolling = false;
-                scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);
+                //scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);
                 console.timeEnd("infinite scroll DOWN");
             }
 
