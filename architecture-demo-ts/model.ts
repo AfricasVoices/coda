@@ -5,21 +5,6 @@ class Dataset {
     schemes: {};
     events: Array<RawEvent> = [];
 
-
-    /*
-     getAllEventDecorationNames() {
-     var decorations = new Set();
-     this.sessions.forEach((session: Session, sessionKey: number, map:Array<Session>) => {
-     session.events.forEach((event:RawEvent, index: number, eventArr: Array<RawEvent>) => {
-     //decorations.add(...event.decorationNames());
-     });
-     });
-
-     decorations.delete(undefined); // to handle empty decorations
-     return decorations;
-     }
-     */
-
     getAllSessionIds() {
         return this.sessions.map(function (session: Session) {
             return session.id;
@@ -27,6 +12,26 @@ class Dataset {
     }
 
     // todo WHAT IS THE DEFAULT SORTING, remember it? :)
+    /*
+    NB: event names/ids are the initial indices when read from file for the first time!
+    Once initialized, they aren't changed regardles of sorting and can be used to restore the default on-load ordering.
+    */
+
+    restoreDefaultSort() : Array<RawEvent> {
+
+        this.events.sort((e1,e2) => {
+
+           let name1 = parseInt(e1.name,10);
+           let name2 = parseInt(e2.name,10);
+
+           return name1-name2;
+
+        });
+
+        return this.events;
+
+    }
+
 
     sortEventsByScheme(schemeId: string, isToDoList: boolean): Array<RawEvent> {
 
@@ -70,6 +75,45 @@ class Dataset {
         }
         return this.events;
     }
+
+    sortEventsByConfidenceOnly(schemeId: string) : Array<RawEvent> {
+
+        schemeId = schemeId + ""; // force it to string todo: here or make sure decorationForName processes it ok?
+
+        if (this.schemes.hasOwnProperty(schemeId)) {
+            let codes = Array.from(this.schemes[schemeId].codes.values()).map((code:Code) => {return code.value;});
+
+            this.events.sort((e1, e2) => {
+
+                let deco1 = e1.decorationForName(schemeId);
+                let deco2 = e2.decorationForName(schemeId);
+
+                // always manual coding behind automatic!
+
+                if (deco1.manual) {
+
+                    if (deco2.manual) {
+                        return 0;
+                    }
+
+                    // deco2 is before deco1
+                    return 1;
+
+                } else {
+                    if (deco2.manual) {
+
+                        // deco1 is behind deco2
+                        return -1;
+                    }
+
+                    //both are automatic in which case compare confidence!
+                    return deco1.confidence - deco2.confidence;
+                }
+            });
+        }
+        return this.events;
+    }
+
 }
 
 class RawEvent {

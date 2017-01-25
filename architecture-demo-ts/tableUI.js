@@ -127,6 +127,21 @@ var messageViewerManager = {
 
     },
 
+    restorePreviousPosition: function() {
+
+        let tbody = "";
+        let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
+        for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex + halfPage; i++) {
+            tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
+        }
+
+        $(messageViewerManager.table.find("tbody").empty()).append(tbody);
+        // todo adjust scroll offset appropriately!
+
+        scrollbarManager.redraw(newDataset, this.activeScheme);
+
+    },
+
     buildTable: function(data, rowsPerPage) {
         var schemes = newDataset.schemes;
         var eventCount = newDataset.eventCount;
@@ -141,6 +156,7 @@ var messageViewerManager = {
         Object.keys(schemes).forEach(function(schemeKey, i) {
             messageViewerManager.codeSchemeOrder.push(schemeKey);
 
+            //let triangleIcon = "<a href='#' class='sort-button'><small><span class='glyphicon glyphicon-sort-by-order'></span></small></a>";
             let triangleIcon = "<a href='#' class='sort-button'><small><span class='glyphicon glyphicon-sort-by-attributes'></span></small></a>";
             let editButton = "<button type='button' class='btn btn-default btn-xs edit-scheme-button'><i class='glyphicon glyphicon-edit'></i></button>";
             let columnDiv = "<div class='col-md-" + decoColumnWidth + "' scheme='" + schemeKey + "'>" + triangleIcon + "<i>" + schemes[schemeKey]["name"] + "</i>" + editButton + "</div>";
