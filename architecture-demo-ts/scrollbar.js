@@ -37,94 +37,24 @@ var scrollbarManager = {
         this.subsamplingNum = Math.floor(newDataset.eventCount/(scrollbarEl.height-4));
 
 
-        /*
-        scrollContext.strokeStyle = "#ddd"; // light grey as in the table header
-        scrollContext.lineWidth = 2;
-        scrollContext.globalCompositeOperation = "source-over"; // default, draws over existing canvas
-        scrollContext.strokeRect(0,0, scrollbarEl.width, scrollbarEl.height);
-        scrollContext.globalCompositeOperation = "destination-over"; // draws behind existing canvas
-        scrollContext.fillStyle = "white";
-        scrollContext.fillRect(0,0, scrollbarEl.width, scrollbarEl.height);
-        */
-
-
-        /*
-         .drawRect({
-         fillStyle: 'white',
-         x: 0, y: 0,
-         width: scrollbarEl.width, height: scrollbarEl.height,
-         layer: true,
-         fromCenter: false,
-         groups: ['scrollbar']
-         })
-         */
-
         $("#scrollbar").drawRect({
-            fillStyle: 'white',
-            x: 9 , y: 0,
-            width: scrollbarEl.width-19.5, height: scrollbarEl.height,
-            layer: true,
-            fromCenter: false,
-            groups: ['scrollbar']
-        }).drawRect({
-            strokeStyle: '#ddd',
-            strokeWidth: 2,
-            x: 9, y: 0,
-            width: scrollContext.canvas.width-19.5, height: scrollContext.canvas.height,
-            cornerRadius: 5,
+            //strokeStyle: '#ddd',
+            strokeStyle: 'black',
+            strokeWidth: 1, // same as panel border width
+            x: 9.5, y: 0.5,
+            width: scrollContext.canvas.width-20, height: scrollContext.canvas.height-1,
+            cornerRadius: 2,
             layer: true,
             groups: ['scrollbar'],
             fromCenter: false
         });
 
+
         // todo make schemes an array not object so there is a concept of order
         // todo keep scrollthumb in place when reloading the table from editscheme dialog
 
         this.redraw(newDataset, Object.keys(newDataset.schemes)[0]);
-/*
-        $("#scrollbar").drawRect({
-            strokeStyle: '#black',
-            strokeWidth: 4,
-            x: 2, y: 2,
-            width: scrollContext.canvas.width-4, height: 20, // set height according to dataset size vs elems on screen
-            cornerRadius: 0,
-            layer: true,
-            name: 'scrollthumb',
-            groups: ['scrollbar'],
-            draggableGroups: ['scrollthumb'],
-            fromCenter: false,
-            draggable: true,
-            restrictDragToAxis: 'y',
-            dragcancel: function(layer) {
-                console.log("DRAGCANCEL");
-                // want to prevent dragging layer out of canvas element
-                // check if layer coordinates are out of bounds
 
-                if (layer.dy + layer.y < 0) {
-                    event.stopPropagation();
-                    event.cancelBubble = true;
-
-                    layer.y = 0;
-
-                }
-
-                else if (layer.dy + layer.y + layer.height + layer.strokeWidth > scrollContext.canvas.height) {
-                    event.stopPropagation();
-                    event.cancelBubble = true;
-
-                    layer.y = scrollContext.canvas.height - layer.height - layer.strokeWidth;
-
-                }
-
-            },
-            cursors: {
-                // show move cursor when dragging
-                mouseover: 'pointer',
-                mousedown: 'move',
-                mouseup: 'pointer'
-            }
-        });
-*/
         // todo check if no schemes are loaded in - if not, then dont draw the lines!
         console.timeEnd("scrollbar init");
 
@@ -164,26 +94,38 @@ var scrollbarManager = {
 
         }
 
-        this.scale = (this.scrollbarEl.height-4)/colors.length;
-
-
         $(this.scrollbarEl).removeLayerGroup('scrollbarlines');
+        //this.scale = (this.scrollbarEl.height-4)/colors.length;
 
-        for (let c = 0; c < this.scrollbarEl.height-2; c++) { // todo: fix this
-            var strokeWidth = Math.floor((this.scrollbarEl.height-4)/colors.length);
+
+        var strokeWidth = Math.floor((this.scrollbarEl.height-4)/colors.length);
+
+
+        $(this.scrollbarEl).scaleCanvas({
+            x: 10, y: 1.5,
+            scaleX: 1, scaleY: (this.scrollbarEl.height-4)/colors.length
+        });
+
+
+        //for (let c = 0; c < this.scrollbarEl.height-4; c++) { // todo: fix this
+        for (let c = 0; c < colors.length; c++) { // todo: fix this
 
             $(this.scrollbarEl).drawLine({
                 strokeStyle: colors[c] != undefined ? colors[c] : "#ffffff",
-                strokeWidth: strokeWidth,
-                x1: 10, y1: c * strokeWidth,
-                x2: this.scrollbarEl.width - 10, y2: c * strokeWidth,
+                strokeWidth: strokeWidth + 0.5,
+                x1: 10, y1: c * strokeWidth + 1.5,
+                x2: this.scrollbarEl.width - 11.5, y2: c * strokeWidth + 1.5,
                 layer: true,
-                groups: ['scrollbar', 'scrollbarlines'],
-                fromCenter: false,
-                scaleY : this.scale
+                groups: ['scrollbarlines'],
+                fromCenter: false
+                //scaleY : this.scale
             });
 
         }
+
+        $(this.scrollbarEl).restoreCanvas();
+
+
 
         var context = this.scrollbarEl.getContext('2d');
         $(this.scrollbarEl).removeLayer('scrollthumb');
@@ -231,7 +173,9 @@ var scrollbarManager = {
                     layer.y = 2; // todo connect to stroke width of the grey border
                 }
 
-                else if (layer.dy + layer.y + layer.height + layer.strokeWidth > context.canvas.height) {
+                //else if (layer.dy + layer.y + layer.height + layer.strokeWidth > context.canvas.height) {
+                else if (layer.dy + layer.y + layer.height + layer.strokeWidth > $("#scrollbar").getLayerGroup('scrollbar')[0].height) {
+
                     event.stopPropagation();
                     event.cancelBubble = true;
                     layer.y = context.canvas.height - layer.height - 2; // todo connect to stroke width of the grey border
@@ -250,7 +194,7 @@ var scrollbarManager = {
             }
         });
 
-        $("#scrollbar").drawLayers();
+        //$("#scrollbar").drawLayers(); // todo do i need to do this?
 
     },
 
@@ -383,7 +327,7 @@ var scrollbarManager = {
         console.time("thumbredraw");
         let scrollthumbLayer = this.scrollThumb.getLayer(0);
         if (ycoord < 2) ycoord = 2;
-        if (ycoord > scrollbarManager.scrollbarEl - scrollbarManager.thumbHeight -2 ) ycoord = scrollbarManager.scrollbarEl - scrollbarManager.thumbHeight -2;
+        if (ycoord > scrollbarManager.scrollbarEl - scrollbarManager.thumbHeight -2) ycoord = scrollbarManager.scrollbarEl - scrollbarManager.thumbHeight -2;
 
 
         scrollthumbLayer.y = ycoord;
