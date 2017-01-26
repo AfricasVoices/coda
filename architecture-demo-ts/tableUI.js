@@ -92,6 +92,15 @@ var messageViewerManager = {
 
         $("a").on("click", function(event) {
             console.time("sort");
+
+            var iconClassesNext = {
+                "glyphicon-sort": "glyphicon-sort-by-attributes", // default on-load order
+                "glyphicon-sort-by-attributes" : "glyphicon-sort-by-order", // sort by code + conf
+                "glyphicon-sort-by-order" : "glyphicon-sort" // sort by confidence - when we want global minimum confidence
+            };
+            // todo: do we keep state to know where we are or know from the icon?
+
+
             var targetElement = event.originalEvent.target;
             if (targetElement.className === "sort-button" || targetElement.className.split(" ")[0] === "glyphicon") {
                 // find which icon was clicked... and use the appropriate sort
@@ -99,10 +108,21 @@ var messageViewerManager = {
                 let schemeId = $(targetElement).closest("div").attr("scheme");
                 if (iconClassName === "glyphicon-sort-by-attributes") {
                     // sort as todolist
+                    newDataset.sortEventsByConfidenceOnly(schemeId);
+
+                } else if (iconClassName === "glyphicon-sort") {
                     newDataset.sortEventsByScheme(schemeId, true);
 
-                } else if (iconClassName === "glyphicon-sort-by-attributes-alt"){
-                    newDataset.sortEventsByScheme(schemeId, false);
+                } else if (iconClassName === "glyphicon-sort-by-order") {
+                    newDataset.restoreDefaultSort();
+
+                }
+
+                if (targetElement.className == "sort-button") {
+                    let glyphicon = $(targetElement).children(".glyphicon")[0];
+                    glyphicon.className = glyphicon.className.replace(iconClassName, iconClassesNext[iconClassName]);
+                } else {
+                    targetElement.className = targetElement.className.replace(iconClassName, iconClassesNext[iconClassName]);
                 }
 
                 let tbody = "";
@@ -157,7 +177,7 @@ var messageViewerManager = {
             messageViewerManager.codeSchemeOrder.push(schemeKey);
 
             //let triangleIcon = "<a href='#' class='sort-button'><small><span class='glyphicon glyphicon-sort-by-order'></span></small></a>";
-            let triangleIcon = "<a href='#' class='sort-button'><small><span class='glyphicon glyphicon-sort-by-attributes'></span></small></a>";
+            let triangleIcon = "<a href='#' class='sort-button'><small><span class='glyphicon glyphicon-sort'></span></small></a>";
             let editButton = "<button type='button' class='btn btn-default btn-xs edit-scheme-button'><i class='glyphicon glyphicon-edit'></i></button>";
             let columnDiv = "<div class='col-md-" + decoColumnWidth + "' scheme='" + schemeKey + "'>" + triangleIcon + "<i>" + schemes[schemeKey]["name"] + "</i>" + editButton + "</div>";
 
@@ -828,6 +848,7 @@ var messageViewerManager = {
         }
         var activeDecoration = eventObj["decorations"].get(activeSchemeId);
         var rowColor = "#ffffff";
+        var eventText = eventObj["data"];
 
         // need to check if eventObj has a 'stale' decoration
         // need to perform null checks for code! if event isn't coded yet it has a null code.
@@ -840,12 +861,16 @@ var messageViewerManager = {
             } else if (activeDecoration.code.color !== undefined) {
                 rowColor = activeDecoration.code.color;
             }
+
+            eventText = regexMatcher.wrapText(eventObj["data"], regexMatcher.generateOrRegex(activeDecoration.code.words), "highlight", activeDecoration.code.id);
         }
 
-        let eventText = regexMatcher.wrapText(eventObj["data"], regexMatcher.generateOrRegex(activeDecoration.code.words), "highlight", activeDecoration.code.id);
+
 
         sessionRow += "<tr class='message' id=" + eventObj["name"] + " eventId = '" + eventIndex + "' sessionId = '" + sessionIndex + "'>";
-        sessionRow += "<td class='col-md-2' style='background-color: " + rowColor+ "'>" + eventObj["timestamp"] + "</td>";
+        //sessionRow += "<td class='col-md-2' style='background-color: " + rowColor+ "'>" + eventObj["timestamp"] + "</td>";
+        sessionRow += "<td class='col-md-2' style='background-color: " + rowColor+ "'>" + eventObj["name"] + "</td>";
+
         //sessionRow += "<td class='col-md-4 message-text' style='background-color: " + rowColor+ "'><p>" + eventObj["data"] + "</p></td>";
         //sessionRow += "<td class='col-md-4 message-text' style='background-color: " + rowColor+ "'><p>" + eventObj["data"] + "</p></td>";
         sessionRow += "<td class='col-md-4 message-text' style='background-color: " + rowColor+ "'><p>" + eventText + "</p></td>";

@@ -42,8 +42,13 @@ class Dataset {
 
             this.events.sort((e1, e2) => {
 
-                let code1 = e1.decorationForName(schemeId) ? codes.indexOf(e1.decorationForName(schemeId).code.value ) : -1; //todo what if null - doesnt have a code assigned?
-                let code2 = e2.decorationForName(schemeId)? codes.indexOf(e2.decorationForName(schemeId).code.value ) : -1;
+                const deco1 = e1.decorationForName(schemeId);
+                const deco2 = e2.decorationForName(schemeId);
+                const hasCode1 =  deco1 ? e1.decorationForName(schemeId).code != null : false;
+                const hasCode2 = deco2 ? e2.decorationForName(schemeId).code != null : false;
+
+                let code1 = hasCode1 ? codes.indexOf(e1.decorationForName(schemeId).code.value ) : -1;
+                let code2 = hasCode2 ? codes.indexOf(e2.decorationForName(schemeId).code.value ) : -1;
 
                 if (code1 == -1 && code2 != -1) {
                     // one assigned, one unassigned
@@ -59,12 +64,28 @@ class Dataset {
 
                     if (code1 == -1) {
                         // neither event has a code assigned
-                        return 0;
+                        return parseInt(e1.name) - parseInt(e2.name);
                     }
 
-                    // same codes, now sort by confidence
+                    // same codes, now sort by manual/automatic & confidence
                     // todo sort for confidence
-                    return 0;
+                    if (deco1.confidence != null && deco1.confidence != undefined && deco2 != null && deco2.confidence != undefined) {
+
+                        if (deco1.manual != undefined && deco1.manual) {
+                            if (deco2.manual != undefined && deco2.manual) {
+                                return deco1.confidence - deco2.confidence || parseInt(e1.name) - parseInt(e2.name);
+                            } else {
+                                return -1;
+                            }
+                        } else if (deco2.manual != undefined && deco2.manual) {
+                            return 1;
+                        } else {
+                            return deco1.confidence - deco2.confidence || parseInt(e1.name) - parseInt(e2.name);
+                        }
+
+                    }
+                    // something went wrong and one item doesn't have a confidence!
+                    else return 0;
                 }
 
                 // both have assigned codes that are different
@@ -93,7 +114,7 @@ class Dataset {
                 if (deco1.manual) {
 
                     if (deco2.manual) {
-                        return 0;
+                        return parseInt(e1.name) - parseInt(e2.name);
                     }
 
                     // deco2 is before deco1
@@ -107,7 +128,7 @@ class Dataset {
                     }
 
                     //both are automatic in which case compare confidence!
-                    return deco1.confidence - deco2.confidence;
+                    return deco1.confidence - deco2.confidence || parseInt(e1.name, 10) - parseInt(e2.name, 10);
                 }
             });
         }
