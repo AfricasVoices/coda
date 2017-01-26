@@ -3,6 +3,18 @@ var UIUtils = (
 
         return {
 
+            concatArraysUniqueWithSort : function (thisArray, otherArray) {
+                let newArray = thisArray.concat(otherArray);
+                newArray.sort(function(a, b){
+                    // DESC -> b.length - a.length
+                    return b.length - a.length || b.localeCompare(a);
+                });
+
+                return newArray.filter(function(word, index) {
+                    return newArray.indexOf(word) === index;
+                });
+            },
+
             randomId : function(array) {
                 var newId = Math.floor(Math.random()*100); // todo : better way of generating random
 

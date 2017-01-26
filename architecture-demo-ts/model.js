@@ -280,7 +280,10 @@ class Code {
     set words(words) {
         // todo Do we need to count occurrences of these words too or not?
         let newWords = this._words.concat(words);
-        newWords.sort();
+        newWords.sort(function (a, b) {
+            // DESC -> b.length - a.length
+            return b.length - a.length || b.localeCompare(a);
+        });
         this._words = newWords.filter(function (word, index) {
             return newWords.indexOf(word) === index;
         });

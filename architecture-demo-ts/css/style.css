@@ -130,6 +130,7 @@ tr.active.code-row > td {
 
 .highlight {
   background-color: rgba(157, 157, 157, 1);
+  border: 1px solid black;
 }
 
 .highlight:hover {

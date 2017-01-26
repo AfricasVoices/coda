@@ -3,7 +3,15 @@
 
 var regexMatcher = {
 
-    findMatches : function(keywords, texts, callback) {
+
+    generateOrRegex: function(wordArray) {
+
+        if (wordArray.length == 0) return null;
+
+        return new RegExp('\\b('+wordArray.join('|')+')\\b', 'ig');
+    },
+
+    findMatches : function(keywords, texts, visibleRange, callback) {
 
         // todo what kind of stats are we interested in here?
         /*
@@ -15,16 +23,37 @@ var regexMatcher = {
 
          */
 
-        let codeId = "bruh";
         console.log("find regex matches");
         //let keywords = code.words;
         let regex = new RegExp('\\b('+keywords.join('|')+')\\b', 'ig');
-        for (let i = 0; i < texts.length; i++) {
-            let matchCount = this.matchAndHighlight(newDataset.events[i], regex, true, codeId);
+        for (let i = 0; i < newDataset.events.length; i++) {
+            for (let entry of schemes[activeSchemeId].codes.entries()) {
+                let matchCount;
+                if (i >= visibleRange[0] && i < visibleRange[1]) {
+                    matchCount = this.wrapElement(newDataset.events[i], regex, true, entry[0]);
+                } else {
+                    matchCount = this.wrapElement(newDataset.events[i], regex, false, entry[0]);
+                }
+                this.codeEvent(newDataset.events[i],entry[1], matchCount);
+            }
+
             //callback(i,matchCount);
             regexMatcher.codeEvent(newDataset.events[i], schemes["1"].getCodeByValue("Incoming"), matchCount);
         }
         console.timeEnd("find regex matches");
+
+    },
+
+    wrapText: function(text, regex, wrapClass, codeId) {
+
+        // returns the text to be wrapped with a <p> element and with the appropriate substrings wrapped in <span>
+        if (regex == null) return text;
+
+        return text.replace(regex, function wrapper(match) {
+
+            let codeIdString = (codeId == 'undefined') ? "" : " codeid='" + codeId + "'";
+            return "<span class='" + wrapClass + "'" + codeIdString + ">" + match + "</span>";
+        });
 
     },
 
@@ -40,6 +69,9 @@ var regexMatcher = {
             if (!eventDeco.manual) {
                 // handle conflicting automatic codes
                 // option - remove code! keep highlights + colors of the codes!
+
+                eventObj.uglify(activeSchemeId);
+
             }
         }
         else {
@@ -72,7 +104,7 @@ var regexMatcher = {
 
 
 
-    matchAndHighlight : function(eventObj, regex, highlight, codeId) {
+    wrapElement : function(eventObj, regex, codeId) {
 
         let matches;
         let matchCount = new Map();
@@ -88,19 +120,18 @@ var regexMatcher = {
                 matchCount.set(matches[0], [matches.index]);
             }
 
-            if (highlight) {
-                var prevMatchOffset = prevMatchOffset || 0;
-                var textNode = textNode ? textNode.splitText(matches.index - prevMatchOffset) : eventEl.find("p").contents()[0].splitText(matches.index);
-                let newNode = textNode.splitText(matches[0].length);
-                let newSpan = document.createElement("span");
-                newSpan.setAttribute("class", "highlight");
-                if (codeId != undefined) newSpan.setAttribute("codeid", codeId);
-                newSpan.textContent = textNode.textContent;
-                textNode.parentNode.replaceChild(newSpan, textNode);
+            var prevMatchOffset = prevMatchOffset || 0;
+            var textNode = textNode ? textNode.splitText(matches.index - prevMatchOffset) : eventEl.find("p").contents()[0].splitText(matches.index);
+            let newNode = textNode.splitText(matches[0].length);
+            let newSpan = document.createElement("span");
+            newSpan.setAttribute("class", "highlight");
+            if (codeId != undefined) newSpan.setAttribute("codeid", codeId);
+            newSpan.textContent = textNode.textContent;
+            textNode.parentNode.replaceChild(newSpan, textNode);
 
-                textNode = newNode;
-                prevMatchOffset = matches.index + matches[0].length;
-            }
+            textNode = newNode;
+            prevMatchOffset = matches.index + matches[0].length;
+
 
         }
 

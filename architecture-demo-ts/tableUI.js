@@ -834,16 +834,21 @@ var messageViewerManager = {
         if ( activeDecoration != undefined && activeDecoration.code !== null) {
             var parentSchemeCodes = activeDecoration.code.owner.codes;
             if (!parentSchemeCodes.has(activeDecoration.code.id)) {
+                // in case the event object is still coded with a code that doesn't exist in the scheme anymore
                 eventObj.uglify(activeDecoration.name);
+
             } else if (activeDecoration.code.color !== undefined) {
                 rowColor = activeDecoration.code.color;
             }
         }
 
+        let eventText = regexMatcher.wrapText(eventObj["data"], regexMatcher.generateOrRegex(activeDecoration.code.words), "highlight", activeDecoration.code.id);
+
         sessionRow += "<tr class='message' id=" + eventObj["name"] + " eventId = '" + eventIndex + "' sessionId = '" + sessionIndex + "'>";
         sessionRow += "<td class='col-md-2' style='background-color: " + rowColor+ "'>" + eventObj["timestamp"] + "</td>";
         //sessionRow += "<td class='col-md-4 message-text' style='background-color: " + rowColor+ "'><p>" + eventObj["data"] + "</p></td>";
-        sessionRow += "<td class='col-md-4 message-text' style='background-color: " + rowColor+ "'><p>" + eventObj["data"] + "</p></td>";
+        //sessionRow += "<td class='col-md-4 message-text' style='background-color: " + rowColor+ "'><p>" + eventObj["data"] + "</p></td>";
+        sessionRow += "<td class='col-md-4 message-text' style='background-color: " + rowColor+ "'><p>" + eventText + "</p></td>";
         sessionRow += "<td class='col-md-4 decorations' style='background-color: " + rowColor+ "'>";
         sessionRow += "<div class='row decorator-column'>";
 
@@ -903,11 +908,6 @@ var messageViewerManager = {
             var eventId = $(element).closest('tr').attr("eventid");
 
             if (window.getSelection && window.getSelection() && window.getSelection().toString().length > 0) {
-                /*
-                let highlightResult = highlightContext.mark(window.getSelection().toString(),  {"element": "span",
-                    "className": "highlight", "diacritics": false, "accuracy": "exactly"});
-                words = highlightResult["words"];
-                */
 
                 var selection = window.getSelection().toString(); // todo do we preprocess this in any way?
                 console.log(selection);
@@ -915,27 +915,26 @@ var messageViewerManager = {
                 // check if current row has an assigned code and if yes, add the words to the data structure
                 // todo FIX THIS - check in data structure
 
-                /*
-                 let activeDeco = $(element).nextAll("td.decorations").first().find(".deco-container[scheme='"+ messageViewerManager.activeScheme +"']");
-                 let selectElement = activeDeco.find("select.coded");
-                 let isCoded = selectElement.length > 0;
-                 */
-
                 const code = newDataset.events[eventId].codeForScheme(messageViewerManager.activeScheme);
                 const isCoded = code!=undefined;
 
                 if (isCoded) {
 
-                    if (selection.length > 0) regexMatcher.matchAndHighlight(newDataset.events[eventId], new RegExp(selection, "ig"), true, code.id);
-                    //schemes[messageViewerManager.activeScheme].getCodeByValue(selectElement.val()).words = words;
+                    let regex = regexMatcher.generateOrRegex(UIUtils.concatArraysUniqueWithSort(code.words, [selection]));
                     code.words = [selection];
+                    $(".message[eventid='" + eventId + "']").find("p").html(regexMatcher.wrapText(newDataset.events[eventId].data, regex, "highlight", code.id));
+
+                    if (selection.length > 0) regexMatcher.wrapElement(newDataset.events[eventId].data, new RegExp(selection, "ig"), code.id);
+                    //schemes[messageViewerManager.activeScheme].getCodeByValue(selectElement.val()).words = words;
 
                 } else {
-                    //for (let i = 0; i < words.length; i++){
-                    if (messageViewerManager.wordBuffer[sessionId][eventId][selection]!= 1) { // todo what do we do about strings of len = 1
+                    let regex = regexMatcher.generateOrRegex([selection]);
+                    $(".message[eventid='" + eventId + "']").find("p").html(regexMatcher.wrapText(newDataset.events[eventId].data, regex, "highlight"));
+
+
+                    if (messageViewerManager.wordBuffer[sessionId][eventId][selection]!= 1) {
                         messageViewerManager.wordBuffer[sessionId][eventId][selection] = 1;
                     }
-                    //}
                 }
             }
         }
