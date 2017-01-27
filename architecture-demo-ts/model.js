@@ -129,6 +129,7 @@ class RawEvent {
     uglify(schemeId) {
         this.decorations.delete(schemeId);
         this.codes.delete(schemeId);
+        return this;
     }
     decorationForName(schemeId) {
         return this.decorations.get(schemeId);
@@ -317,6 +318,7 @@ class Code {
                 this._words.splice(index, 1);
             }
         }
+        return this;
     }
     static clone(original) {
         let newCode = new Code(original["_owner"], original["_id"], original["_value"], original["_color"], original["_shortcut"], false);

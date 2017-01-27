@@ -304,7 +304,6 @@ var scrollbarManager = {
     },
 
     redrawThumb : function(ycoord) {
-        console.time("thumbredraw");
         let scrollthumbLayer = this.scrollThumb.getLayer(0);
         if (ycoord < 2) ycoord = 2;
         if (ycoord > scrollbarManager.scrollbarEl - scrollbarManager.thumbHeight -2) ycoord = scrollbarManager.scrollbarEl - scrollbarManager.thumbHeight -2;
@@ -312,7 +311,6 @@ var scrollbarManager = {
 
         scrollthumbLayer.y = ycoord;
         this.scrollThumb.drawLayers();
-        console.timeEnd("thumbredraw");
     },
 
     getThumbPosition: function() {

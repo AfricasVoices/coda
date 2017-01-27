@@ -146,8 +146,8 @@ var codeEditorManager =  {
 
                 if (row.length > 0) {
                     //todo codeobject should just have all this saved already
-                    var value = row.find(".code-input").val();
-                    var shortcut = row.find(".shortcut-input").val();
+                    let value = row.find(".code-input").val();
+                    let shortcut = row.find(".shortcut-input").val();
 
                     if (value.length > 0) {
                         codeObj.value = value;
@@ -166,73 +166,6 @@ var codeEditorManager =  {
             header.children("i").text(tempScheme["name"]);
 
 
-
-            /*
-            $(".message").each(function (i, row) {
-                var dropdown = $(row).find("." + tempScheme["id"]);
-                var options = dropdown.children().not(".unassign");
-
-                var shorterLength = options.length > tempScheme.codes.size ? tempScheme.codes.size : options.length;
-                var j = 0;
-                var codes = Array.from(tempScheme.codes.values());
-                while (j < shorterLength) {
-                    var optionId = $(options[j]).attr("id");
-                    var text = $(options[j]).text();
-                    var selected = dropdown.val();
-
-
-                    if (codes[j]["id"] === optionId) { // todo fix
-                        if (selected === text) {
-                            $(row).children("td").each(function(i, td) {
-                                $(td).css("background-color", codes[j]["color"]); //todo fix
-                            });
-                        }
-                        $(options[j]).text(codes[j]["value"]); //todo fix
-
-                    } else {
-                        if (selected === text) {
-                            dropdown.val("");
-                            dropdown.removeClass("coded");
-                            dropdown.addClass("uncoded");
-                            $(row).children("td").each(function(i, td) {
-                                $(td).css("background-color", "#ffffff");
-                            });
-                        }
-                        $(options[j]).attr("id", codes[j]["id"]); //todo fix
-                        $(options[j]).text(codes[j]["value"]); //Todo fix
-                    }
-
-                    j++;
-                }
-
-                if (options.length < tempScheme.codes.size) {
-
-                    var newCodes = codes.slice(options.length-1, tempScheme.codes.size);
-                    newCodes.forEach(function(codeObj) {
-                        $("<option id='" + codeObj["id"] + "'>" + codeObj["value"] + "</option>").insertBefore(dropdown.children(".unassign"));
-                    });
-
-                }
-
-                if (options.length > tempScheme.codes.size) {
-
-                    options = options.slice(tempScheme.codes.size, options.length);
-                    options.each(function(i, option) {
-                        if ($(option).text() === selected) {
-                            dropdown.val("");
-                            dropdown.removeClass("coded");
-                            dropdown.addClass("uncoded");
-                            $(row).children("td").each(function(i, td) {
-                                $(td).css("background-color", "#ffffff");
-                            });
-                        }
-                        $(option).remove();
-                    });
-                }
-            });
-            */
-            //tempScheme.codes = tempScheme.codes.filter(function(code) { return code !== ""; });
-            //schemes[tempScheme["id"]] = tempScheme; // TODO NOOOOOOO MUST NOT DO THIS PLS
             schemes[tempScheme["id"]].copyCodesFrom(tempScheme);
             const thumbPosition = scrollbarManager.getThumbPosition();
             scrollbarManager.redraw(newDataset, tempScheme["id"]);
@@ -241,25 +174,12 @@ var codeEditorManager =  {
             // redraw rows
             var tbody = "";
             var sessions = newDataset.sessions;
-            //var startOfPage = messageViewerManager.tablePages[messageViewerManager.lastLoadedPageIndex[0]].start;
-            //var endOfPage = messageViewerManager.tablePages[messageViewerManager.lastLoadedPageIndex[1]].end;
 
-            /*
-            for (var i = startOfPage[0]; i <= endOfPage[0]; i++) {
-                var events = sessions[i]["events"];
-                var eventsToPrint = (i == endOfPage[0]) ? endOfPage[1] : events.length-1;
-                for (var j = 0; j <= eventsToPrint; j++) {
-                    if (i === startOfPage[0] && j < startOfPage[1]) continue;
-                    else tbody += messageViewerManager.buildRow(sessions[i]["events"][j], j, i);
-                }
-            }
-            */
-
+            regexMatcher.codeDataset(tempScheme["id"]);
             let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
             for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex * halfPage + halfPage; i++) {
                 tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
             }
-
 
             var messagesTbody = messageViewerManager.messageContainer.find("tbody");
             var previousScrollTop = messageViewerManager.messageContainer.scrollTop();
@@ -412,6 +332,7 @@ var codeEditorManager =  {
         selectObj.tagsinput('removeAll');
 
         $(selectObj).off('itemAdded');
+        $(selectObj).off('itemRemoved');
 
         for (let word of words) {
             selectObj.tagsinput('add', word);
@@ -426,61 +347,10 @@ var codeEditorManager =  {
             wordTextarea.find(".tag").css({'background-color': color});
             codeObj.words = [event.item];
         });
-
-        /*
-        wordTextarea.tags({
-            tagData: words,
-            caseInsensitive: true,
-            tagSize: "sm",
-            promptText: "Type here to add new words",
-            afterAddingTag: function(tag) {
-                // can't add to the same array used for "tag data"!!!!!
-                codeObj["words"] = [tag];
-                wordTextarea.find(".tag").css({"background-color": color, "color": "black"});
-
-            },
-            afterDeletingTag: function(tag) {
-                codeObj.deleteWords([tag]);
-            }
+        $(selectObj).on('itemRemoved', function(event) {
+            // event.item: contains the item
+            codeObj.deleteWords([event.item]);
         });
-        */
-
-        /*
-        let tag = wordTextarea.find(".tag");
-        tag.css({"background-color": color, "color": "black"});
-        tag.find(".remove").css({"color": "#e5e0e0"});
-*/
-/*
-        wordTextarea.tags({
-            caseInsensitive: true,
-            tagSize: "sm",
-            promptText: "Type here to add new words",
-        });
-
-        for (let word of wordTextarea.tags().getTags()) {
-            wordTextarea.tags().removeTag(word);
-        }
-
-        wordTextarea.tags().afterAddingTag = function(tag) {
-            // can't add to the same array used for "tag data"!!!!!
-            codeObj["words"] = [tag];
-        };
-
-        wordTextarea.tags().afterDeletingTag = function(tag) {
-            codeObj.deleteWords([tag]);
-        };
-
-        for (let word of words) {
-            wordTextarea.tags().addTag(word);
-        }
-
-        let tagsInput = wordTextarea.find(".tags-input");
-        if (parseInt(tagsInput.css("width"),10) <= 0) {
-
-            tagsInput.css("width", wordTextarea.css("width"));
-
-        }
-        */
     },
 
 

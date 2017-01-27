@@ -33,7 +33,7 @@ var messageViewerManager = {
             if (event.originalEvent == undefined) return;
 
                 if (event.originalEvent.target.nodeName === "SELECT") {
-               messageViewerManager.dropdownChange(event.originalEvent);
+               messageViewerManager.dropdownChange(event.originalEvent, true);
            }
         });
         /*
@@ -66,7 +66,6 @@ var messageViewerManager = {
         $("#message-panel").on("scroll", (throttle(function(event) {
             //console.log("scroll height: " + $("#message-table")[0].scrollHeight + ", scroll top: " + $("#message-panel").scrollTop() +  ", outer height: " + $("#message-panel").outerHeight(false));
             // todo need to know if scroll is from shortcut or manual
-            console.log("scrollEvent");
             messageViewerManager.infiniteScroll(event);
 
         }, 1)));
@@ -83,77 +82,81 @@ var messageViewerManager = {
            if (event.originalEvent.target.className === "highlight") {
                // open editor
                $(".edit-scheme-button").trigger("click");
-
-
-               //$(event.originalEvent.target).replaceWith($(event.originalEvent.target).text());
            }
 
         });
 
-        $("a").on("click", function(event) {
-            // todo: decide if on click the active scheme is changed as well
-
-            console.time("sort");
-
-            var iconClassesNext = {
-                "glyphicon-sort": "glyphicon-sort-by-attributes", // default on-load order
-                "glyphicon-sort-by-attributes" : "glyphicon-sort-by-order", // sort by code + conf
-                "glyphicon-sort-by-order" : "glyphicon-sort" // sort by confidence - when we want global minimum confidence
-            };
-            // todo: do we keep state to know where we are or know from the icon?
-
-
-            var targetElement = event.originalEvent.target;
-            if (targetElement.className === "sort-button" || targetElement.className.split(" ")[0] === "glyphicon") {
-                // find which icon was clicked... and use the appropriate sort
-                let iconClassName = targetElement.className === "sort-button" ? $(targetElement).children(".glyphicon")[0].className.split(" ")[1] : $(targetElement).attr("class").split(" ")[1];
-                let schemeId = $(targetElement).closest("div").attr("scheme");
-                if (iconClassName === "glyphicon-sort-by-attributes") {
-                    // sort as todolist
-                    newDataset.sortEventsByConfidenceOnly(schemeId);
-
-                } else if (iconClassName === "glyphicon-sort") {
-                    newDataset.sortEventsByScheme(schemeId, true);
-
-                } else if (iconClassName === "glyphicon-sort-by-order") {
-                    newDataset.restoreDefaultSort();
-
-                }
-
-                if (targetElement.className == "sort-button") {
-                    let glyphicon = $(targetElement).children(".glyphicon")[0];
-                    glyphicon.className = glyphicon.className.replace(iconClassName, iconClassesNext[iconClassName]);
-                } else {
-                    targetElement.className = targetElement.className.replace(iconClassName, iconClassesNext[iconClassName]);
-                }
-
-                let tbody = "";
-                let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-                for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex + halfPage; i++) {
-                    tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
-                }
-
-                $(messageViewerManager.table.find("tbody").empty()).append(tbody);
-                // todo adjust scroll offset appropriately!
-
-                scrollbarManager.redraw(newDataset, schemeId);
-            }
-            console.timeEnd("sort");
-        });
+        $("a").on("click", messageViewerManager.sortHandler);
 
         console.timeEnd("dropdown init");
-
         console.time("shortcuts init");
         $(window).on("keypress", this.manageShortcuts);
         console.timeEnd("shortcuts init");
 
     },
 
+    sortHandler : function(event) {
+
+        // todo: decide if on click the active scheme is changed as well
+
+        console.time("sort");
+
+        var iconClassesNext = {
+            "glyphicon-sort": "glyphicon-sort-by-attributes", // default on-load order
+            "glyphicon-sort-by-attributes" : "glyphicon-sort-by-order", // sort by code + conf
+            "glyphicon-sort-by-order" : "glyphicon-sort" // sort by confidence - when we want global minimum confidence
+        };
+        // todo: do we keep state to know where we are or know from the icon?
+
+
+        var targetElement = event.originalEvent.target;
+        if (targetElement.className === "sort-button" || targetElement.className.split(" ")[0] === "glyphicon") {
+            // find which icon was clicked... and use the appropriate sort
+            let iconClassName = targetElement.className === "sort-button" ? $(targetElement).children(".glyphicon")[0].className.split(" ")[1] : $(targetElement).attr("class").split(" ")[1];
+            let schemeId = $(targetElement).closest("div").attr("scheme");
+            if (iconClassName === "glyphicon-sort-by-attributes") {
+                // sort as todolist
+                newDataset.sortEventsByConfidenceOnly(schemeId);
+
+            } else if (iconClassName === "glyphicon-sort") {
+                newDataset.sortEventsByScheme(schemeId, true);
+
+            } else if (iconClassName === "glyphicon-sort-by-order") {
+                newDataset.restoreDefaultSort();
+
+            }
+
+            if (targetElement.className == "sort-button") {
+                let glyphicon = $(targetElement).children(".glyphicon")[0];
+                glyphicon.className = glyphicon.className.replace(iconClassName, iconClassesNext[iconClassName]);
+            } else {
+                targetElement.className = targetElement.className.replace(iconClassName, iconClassesNext[iconClassName]);
+            }
+
+            let tbody = "";
+            let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
+            for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex * halfPage + halfPage; i++) {
+                tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
+            }
+
+            $(messageViewerManager.table.find("tbody").empty()).append(tbody);
+            // todo adjust scroll offset appropriately!
+
+            var thumbPos = scrollbarManager.getThumbPosition();
+
+            if (schemeId == activeSchemeId) {
+                scrollbarManager.redraw(newDataset, schemeId);
+            }
+            scrollbarManager.redrawThumb(thumbPos);
+        }
+        console.timeEnd("sort");
+    },
+
     restorePreviousPosition: function() {
 
         let tbody = "";
         let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-        for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex + halfPage; i++) {
+        for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex * halfPage + halfPage; i++) {
             tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
         }
 
@@ -338,6 +341,29 @@ var messageViewerManager = {
 
     },
 
+    recodeEvents : function() {
+        regexMatcher.codeDataset(activeSchemeId);
+        let halfPage = Math.floor(messageViewerManager.rowsInTable/2);
+        let visibleRange = [(messageViewerManager.lastLoadedPageIndex-1) * halfPage, messageViewerManager.lastLoadedPageIndex * halfPage + halfPage];
+
+        for (let i = visibleRange[0]; i < visibleRange[1]; i++) {
+            let eventObj = newDataset.events[i];
+            let code = eventObj.codeForScheme(activeSchemeId);
+            if (code != null) {
+                console.log("code");
+                $(".message[eventid='" + i + "']").find("p").html(regexMatcher.wrapText(newDataset.events[i].data, regexMatcher.generateOrRegex(code.words), "highlight", code.id));
+                let selectObj = $(".message[eventid='" + eventObj.name + "']").find("select."+ activeSchemeId).val(code["value"]).removeClass("uncoded").addClass("coded");
+
+                this.dropdownChangeHandler(selectObj, false);
+            }
+
+
+        }
+
+
+
+    },
+
     changeActiveScheme : function() {
 
         $("#header-decoration-column").find("i").not(".glyphicon").css("text-decoration", "");
@@ -346,22 +372,13 @@ var messageViewerManager = {
         messageViewerManager.activeScheme = activeSchemeId;
 
         var schemeObj = schemes[activeSchemeId];
-        /*
-        $(".message").has("select.coded." + activeScheme).each(function(i, tr) {
-            // find code object via selected option
-            var color = schemeObj.codes.get($(this).find("option:selected"))["color"];
-
-            $(tr).children("td").each(function(i, td) {
-                $(td).css("background-color", color);
-            });
-        });
-        */
 
         let thumbPos = scrollbarManager.getThumbPosition();
         scrollbarManager.redraw(newDataset, activeSchemeId);
         scrollbarManager.redrawThumb(thumbPos);
 
         // todo think about whether inactive select should be disabled or just greyed out!
+        // TODO: INDICATE WHICH SORTING IS ACTIVE.... !!!!
 
 
         $(".message").each(function(i, tr) {
@@ -390,26 +407,17 @@ var messageViewerManager = {
                } else {
                    $(el).attr("disabled", "");
                }
-
             });
-
-            /*
-            if (selectedOption.length !== 0) {
-                var color = schemeObj.codes.get(selectedOption.attr("id"))["color"];
-                $(tr).children("td").each(function(i, td) {
-                    $(td).css("background-color", color);
-                });
-            } else {
-                $(tr).children("td").each(function(i, td) {
-                    $(td).css("background-color", "#ffffff");
-                });
-            }
-            */
         });
 
     },
 
-    dropdownChangeHandler: function(selectElement) {
+    dropdownChangeHandler: function(selectElement, manual) {
+
+        if (manual == undefined) manual = true;
+        if (/form-control (.*) (uncoded|coded)/.exec(selectElement.attr("class")) == null) {
+            console.log("was ist das");
+        }
 
         var schemeId = /form-control (.*) (uncoded|coded)/.exec(selectElement.attr("class"))[1];
         let value = selectElement.val();
@@ -426,9 +434,10 @@ var messageViewerManager = {
             // add decoration
             let decoration = eventObj.decorationForName(schemeId);
             if (decoration === undefined) {
-                eventObj.decorate(schemeId, schemes[schemeId].getCodeByValue(value));
+                eventObj.decorate(schemeId, manual, schemes[schemeId].getCodeByValue(value));
             } else {
                 decoration.code = schemes[schemeId].getCodeByValue(value);
+                decoration.manual = manual;
             }
 
             selectElement.removeClass("uncoded");
@@ -451,6 +460,8 @@ var messageViewerManager = {
                 codeObj.words = Object.keys(messageViewerManager.wordBuffer[sessionId][eventId]);
                 messageViewerManager.wordBuffer[sessionId][eventId] = {}
             }
+
+            regexMatcher.wrapElement(eventObj.data, regexMatcher.generateOrRegex(codeObj.words), codeObj.id);
 
 
         } else {
@@ -477,10 +488,10 @@ var messageViewerManager = {
 
     },
 
-    dropdownChange : function(event) {
+    dropdownChange : function(event, manual) {
 
         let selectElement = $(event.target);
-        messageViewerManager.dropdownChangeHandler(selectElement);
+        messageViewerManager.dropdownChangeHandler(selectElement, manual);
 
         /*
         var schemeId = /form-control (.*) (uncoded|coded)/.exec(selectElement.attr("class"))[1];
@@ -553,9 +564,14 @@ var messageViewerManager = {
         // TODO: warning message in case of empty codes
         if (scheme["codes"].size === 0) return;
 
+
+        // TODO: sort the data to default order first??? or keep it?
+
+        regexMatcher.codeDataset(tempScheme["id"]);
+
         let tbody = "";
         let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-        for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex + halfPage; i++) {
+        for (let i = 0; i < messageViewerManager.rowsInTable; i++) {
             tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
         }
 
@@ -576,12 +592,13 @@ var messageViewerManager = {
         Add decorations to datastructure
          */
         // TODO: happens already, move here
+        /*
         newDataset.sessions.forEach(function(session) {
             session.events.forEach(function(eventObj) {
                eventObj.decorate(scheme["id"]);
             });
         });
-
+*/
 
         var decorationCell = $("#header-decoration-column").find(".row");
         var numberOfDecorations = decorationCell.find("div[class*=col-]").length + 1;
@@ -591,7 +608,7 @@ var messageViewerManager = {
         Restructure the header
          */
 
-        var div = ($("<div class='col-md-" + newDecoColumnWidth + "' scheme='" + scheme["id"] + "'><i>" + scheme["name"] + "</i></div>")).appendTo(decorationCell);
+        var div = ($("<div class='col-md-" + newDecoColumnWidth + "' scheme='" + scheme["id"] + "'><a href='#' class='sort-button'><small><span class='glyphicon glyphicon-sort'></span></small></a><i>" + scheme["name"] + "</i></div>")).appendTo(decorationCell);
         var button = $("<button type='button' class='btn btn-default btn-xs edit-scheme-button'>" +
         "<i class='glyphicon glyphicon-edit'>" +
         "</i>" +
@@ -603,31 +620,8 @@ var messageViewerManager = {
 
         decorationCell.find("div[class*=col-]").attr("class", "col-md-" + newDecoColumnWidth);
 
-        /*
-        Restructure the body
-         */
-/*
-        this.table.find("tbody > tr").each(function(index, row) {
-            var decoCell = $(row).children("td:last").find(".row"); // todo rewrite queries
-
-            // keep it a div instead of td so styles dont conflict
-            var div = $("<div class='col-md-" + newDecoColumnWidth + "'></div>").appendTo(decoCell);
-            var dropdown = $("<select class='form-control " + scheme["id"] + " uncoded'></select>").appendTo(div);
-
-            Array.from(scheme.codes.values()).forEach(function(codeObj) {
-                dropdown.append("<option id='" + codeObj["id"] + "'>" + codeObj["value"] + "</option>");
-            });
-
-            dropdown.append("<option class='unassign'></option>");
-            dropdown.val("");
-            dropdown.on("change", messageViewerManager.dropdownChange);
-        });
-
-        this.table.find("tbody > tr").each(function(index, row) {
-            var decoCell = $(row).children("td:last");
-            decoCell.find("div[class*=col-]").attr("class", "col-md-" + newDecoColumnWidth);
-        });
-*/
+        $("a").off("click");
+        $("a").on("click", messageViewerManager.sortHandler);
     },
 
     bindEditSchemeButtonListener: function(editButton, scheme) {
@@ -752,7 +746,7 @@ var messageViewerManager = {
 
     infiniteScroll : function(event) {
 
-        // todo on every infinite scroll refresh the scrollthumb position!!!!
+        // todo: prevent events from happening when sort happens!
 
         let currentY = messageViewerManager.messageContainer.scrollTop();
         if (currentY === messageViewerManager.lastTableY || messageViewerManager.isProgramaticallyScrolling) {
@@ -791,7 +785,6 @@ var messageViewerManager = {
                 //scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);
 
                 let thumbPos = scrollbarManager.getThumbPosition();
-                scrollbarManager.redraw(newDataset, activeSchemeId, messageViewerManager.lastLoadedPageIndex);
                 scrollbarManager.redrawThumb(thumbPos);
 
                 console.timeEnd("infinite scroll DOWN");
@@ -828,7 +821,6 @@ var messageViewerManager = {
 
 
                 let thumbPos = scrollbarManager.getThumbPosition();
-                scrollbarManager.redraw(newDataset, activeSchemeId, messageViewerManager.lastLoadedPageIndex);
                 scrollbarManager.redrawThumb(thumbPos);
                 console.timeEnd("infinite scroll UP");
 

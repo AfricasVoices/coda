@@ -1,17 +1,44 @@
-// get an array of words, make a pass through the dataset and find matches in each data line
-// if one or more matches, assign the right code to it and highlight the words!
-
 var regexMatcher = {
 
+    codeDataset: function (schemeId) {
 
-    generateOrRegex: function(wordArray) {
+        let events = newDataset.events;
+        let codes = schemes[schemeId].codes;
+        for (let i = 0; i < events.length; i++) {
+            for (let code of codes.entries()) {
 
-        if (wordArray.length == 0) return null;
+                let regex = this.generateOrRegex(code[1].words);
+                let matchCount = new Map();
+                let matches;
 
-        return new RegExp('\\b('+wordArray.join('|')+')\\b', 'ig');
+                if (regex == null) continue;
+
+                while (matches = regex.exec(events[i].data)) {
+
+                    if (matchCount.has(matches[0])) {
+                        let matchPosArr = matchCount.get(matches[0]);
+                        matchPosArr.push(matches.index);
+                    } else {
+                        matchCount.set(matches[0], [matches.index]);
+                    }
+                }
+
+                this.codeEvent(newDataset.events[i], code[1], matchCount);
+
+            }
+        }
+
     },
 
-    findMatches : function(keywords, texts, visibleRange, callback) {
+
+    generateOrRegex: function (wordArray) {
+
+        if (wordArray.length == 0 || wordArray == null) return null;
+
+        return new RegExp('\\b(' + wordArray.join('|') + ')\\b', 'ig');
+    },
+
+    findMatches: function (keywords, text, visibleRange, eventIndex) {
 
         // todo what kind of stats are we interested in here?
         /*
@@ -25,29 +52,35 @@ var regexMatcher = {
 
         console.log("find regex matches");
         //let keywords = code.words;
-        let regex = new RegExp('\\b('+keywords.join('|')+')\\b', 'ig');
-        for (let i = 0; i < newDataset.events.length; i++) {
-            for (let entry of schemes[activeSchemeId].codes.entries()) {
-                let matchCount;
-                if (i >= visibleRange[0] && i < visibleRange[1]) {
-                    matchCount = this.wrapElement(newDataset.events[i], regex, true, entry[0]);
-                } else {
-                    matchCount = this.wrapElement(newDataset.events[i], regex, false, entry[0]);
-                }
-                this.codeEvent(newDataset.events[i],entry[1], matchCount);
-            }
+        let regex = this.generateOrRegex(keywords);
+        let matchCount = new Map();
+        let matches;
 
-            //callback(i,matchCount);
-            regexMatcher.codeEvent(newDataset.events[i], schemes["1"].getCodeByValue("Incoming"), matchCount);
+        while (matches = regex.exec(text)) {
+
+            if (matchCount.has(matches[0])) {
+                let matchPosArr = matchCount.get(matches[0]);
+                matchPosArr.push(matches.index);
+            } else {
+                matchCount.set(matches[0], [matches.index]);
+            }
         }
+
+        this.codeEvent(newDataset.events[i], entry[1], matchCount);
+
+
+        //callback(i,matchCount);
+        regexMatcher.codeEvent(newDataset.events[i], schemes["1"].getCodeByValue("Incoming"), matchCount);
+
         console.timeEnd("find regex matches");
 
     },
 
-    wrapText: function(text, regex, wrapClass, codeId) {
+    wrapText: function (text, regex, wrapClass, codeId) {
 
         // returns the text to be wrapped with a <p> element and with the appropriate substrings wrapped in <span>
         if (regex == null) return text;
+        text = text + "";
 
         return text.replace(regex, function wrapper(match) {
 
@@ -57,41 +90,50 @@ var regexMatcher = {
 
     },
 
-    codeEvent : function(eventObj, code, matchCount) {
+    codeEvent: function (eventObj, code, matchCount) {
         // support for a customised way of calculating confidence and assigning codes...
         if (matchCount.size == 0) return eventObj;
 
         var eventDeco = eventObj.decorationForName(code.owner.id) == undefined ? null : eventObj.decorationForName(code.owner.id);
 
-        if (eventDeco && (eventDeco["code"] == code)) { // todo do we want more thorough checking???
-            // conflict of coding
+        if (eventDeco) {
+            if (eventDeco["code"] != code) { // todo do we want more thorough checking???
+                // conflict of coding
 
-            if (!eventDeco.manual) {
-                // handle conflicting automatic codes
-                // option - remove code! keep highlights + colors of the codes!
+                if (!eventDeco.manual) {
+                    // handle conflicting automatic codes
+                    // option - remove code! keep highlights + colors of the codes!
 
-                eventObj.uglify(activeSchemeId);
-
+                    eventObj.uglify(activeSchemeId);
+                    // todo keep word buffers! per event!
+                }
+            } else {
+                if (eventDeco.manual == undefined || !eventDeco.manual) {
+                    eventDeco.code = code;
+                    eventDeco.manual = false;
+                }
             }
         }
         else {
 
             // todo is there a threshold for assigning a code?
+            // todo calculate the confidence better
 
-            // trigger dropdown change handler
+            eventObj.decorate(code.owner.id, false, code, 0.6);
 
-            let selectObj = $(".message[eventid='" + eventObj.name + "']").find("select");
+            /*
+            let selectObj = $(".message[eventid='" + eventObj.name + "']").find("select." + code.owner.id);
             selectObj.val(code.value);
-            messageViewerManager.dropdownChangeHandler(selectObj);
-
+            messageViewerManager.dropdownChangeHandler(selectObj, false);
+            */
         }
 
     },
 
-    unwrapHighlights : function(eventRowParagraph) {
+    unwrapHighlights: function (eventRowParagraph) {
 
         let highlights = $(eventRowParagraph).find(".highlight");
-        highlights.each(function(index, highlight) {
+        highlights.each(function (index, highlight) {
             let text = $(highlight).text();
             $(highlight).replaceWith(text);
         });
@@ -103,8 +145,7 @@ var regexMatcher = {
     },
 
 
-
-    wrapElement : function(eventObj, regex, codeId) {
+    wrapElement: function (eventObj, regex, codeId) {
 
         let matches;
         let matchCount = new Map();
@@ -139,9 +180,9 @@ var regexMatcher = {
     },
 
 
-    highlightKeywords : function(range, surroundingEl, surroundingClass) {
+    highlightKeywords: function (range, surroundingEl, surroundingClass) {
 
-        return function(i, matches) {
+        return function (i, matches) {
             if (i >= range[0] && i < range[1]) {
 
                 let eventObj = newDataset.events[i];
@@ -170,13 +211,13 @@ var regexMatcher = {
 
                         textNode = newNode;
 
-                        newText += eventElTxt.substring(prev,index);
+                        newText += eventElTxt.substring(prev, index);
                         newText += wrapperL + match[0] + wrapperR;
-                        prev = index +  match[0].length;
+                        prev = index + match[0].length;
                         matchLen += match[0].length;
                     }
 
-                    if (prev < eventElTxt.length-1) {
+                    if (prev < eventElTxt.length - 1) {
                         newText += eventElTxt.substring(prev);
                     }
                 }
@@ -199,5 +240,4 @@ var regexMatcher = {
         }
 
     }
-
 }

@@ -180,6 +180,7 @@ class RawEvent {
     uglify(schemeId: string) {
         this.decorations.delete(schemeId);
         this.codes.delete(schemeId);
+        return this;
     }
 
     decorationForName(schemeId : string) : EventDecoration {
@@ -431,13 +432,14 @@ class Code {
         this._isEdited = true;
     }
 
-    deleteWords(words: Array<string>) : void {
+    deleteWords(words: Array<string>) : Code {
         for (let word of words) {
             let index = this._words.indexOf(word);
             if (index != -1) {
                 this._words.splice(index,1);
             }
         }
+        return this;
     }
 
     static clone(original : Code) : Code {
