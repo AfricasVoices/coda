@@ -117,6 +117,8 @@ var codeEditorManager =  {
                 codeEditorManager.bindAddCodeButtonListener();
                 editorContainer.find("#scheme-name-input").val("");
                 scrollbarManager.redraw(newDataset, newId);
+                scrollbarManager.redrawThumb(0);
+                //$(scrollbarManager.scrollbarEl).drawLayers();
                 editorOpen = false;
                 tempScheme = {};
             });

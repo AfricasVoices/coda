@@ -51,7 +51,6 @@ var scrollbarManager = {
 
 
         // todo make schemes an array not object so there is a concept of order
-        // todo keep scrollthumb in place when reloading the table from editscheme dialog
 
         this.redraw(newDataset, Object.keys(newDataset.schemes)[0]);
 
@@ -68,46 +67,25 @@ var scrollbarManager = {
             colors = this.subsample(dataset, activeSchemeId);
         } else {
 
-            /*
-            for (var i = 0; i < sessionData.length; i++) {
-                var numEvents = sessionData[i].events.length;
-                for (var j = 0; j < numEvents; j++) {
-                    if (sessionData[i]["events"][j]["decorations"].has(activeSchemeId) && sessionData[i]["events"][j]["decorations"].get(activeSchemeId)["code"] != null) {
-                        var color = sessionData[i]["events"][j]["decorations"].get(activeSchemeId)["code"]["color"];
-                        colors.push(color);
-                    } else {
-                        colors.push("#ffffff"); // todo: or some other default color
-                    }
-                }
-            }
-            */
-
             for (event of newDataset.events) {
                 if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code != null) {
                     colors.push(event.decorations.get(activeSchemeId).code.color);
                 } else {
                     colors.push("#ffffff");
                 }
-
             }
-
-
         }
 
         $(this.scrollbarEl).removeLayerGroup('scrollbarlines');
-        //this.scale = (this.scrollbarEl.height-4)/colors.length;
-
 
         var strokeWidth = Math.floor((this.scrollbarEl.height-4)/colors.length);
 
-
-        $(this.scrollbarEl).scaleCanvas({
+        $(this.scrollbarEl).scaleCanvas({ // scale it in case the stroke width doesn't fill the full element
             x: 10, y: 1.5,
-            scaleX: 1, scaleY: (this.scrollbarEl.height-4)/colors.length
+            scaleX: 1, scaleY: (this.scrollbarEl.height-4)/colors.length,
+            layer: true
         });
 
-
-        //for (let c = 0; c < this.scrollbarEl.height-4; c++) { // todo: fix this
         for (let c = 0; c < colors.length; c++) { // todo: fix this
 
             $(this.scrollbarEl).drawLine({
@@ -123,13 +101,15 @@ var scrollbarManager = {
 
         }
 
-        $(this.scrollbarEl).restoreCanvas();
-
+        $(this.scrollbarEl).restoreCanvas({
+            layer: true
+        });
 
 
         var context = this.scrollbarEl.getContext('2d');
-        $(this.scrollbarEl).removeLayer('scrollthumb');
-        $("#scrollthumb").drawRect({
+        var scrollThumb = $("#scrollthumb");
+        scrollThumb.removeLayer('scrollthumb');
+        scrollThumb.drawRect({
             strokeStyle: '#black',
             strokeWidth: 1.5,
             x: 2, y: loadedPages ? loadedPages[0] == 0 ? 2 : this.height * (loadedPages[0]/messageViewerManager.tablePages.length) : 2,
@@ -194,8 +174,8 @@ var scrollbarManager = {
             }
         });
 
-        //$("#scrollbar").drawLayers(); // todo do i need to do this?
-
+        $(this.scrollbarEl).drawLayers(); // todo do i need to do this? - yes you do, e.g. when changing active scheme
+        scrollThumb.drawLayers();
     },
 
     subsample : function(dataset, activeSchemeId) {

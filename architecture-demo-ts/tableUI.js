@@ -91,6 +91,8 @@ var messageViewerManager = {
         });
 
         $("a").on("click", function(event) {
+            // todo: decide if on click the active scheme is changed as well
+
             console.time("sort");
 
             var iconClassesNext = {
@@ -355,9 +357,9 @@ var messageViewerManager = {
         });
         */
 
-        // todo redraw the scrollbar!
+        let thumbPos = scrollbarManager.getThumbPosition();
         scrollbarManager.redraw(newDataset, activeSchemeId);
-
+        scrollbarManager.redrawThumb(thumbPos);
 
         // todo think about whether inactive select should be disabled or just greyed out!
 
@@ -552,16 +554,9 @@ var messageViewerManager = {
         if (scheme["codes"].size === 0) return;
 
         let tbody = "";
-        let sessions = newDataset.sessions;
-        let startOfPage = messageViewerManager.tablePages[0].start;
-        let endOfPage = messageViewerManager.tablePages[1].end;
-
-        for (let i = startOfPage[0]; i <= endOfPage[0]; i++) {
-            let events = sessions[i];
-            for (var j = 0; j <= endOfPage[1]; j++) {
-                if (i === startOfPage[0] && j < startOfPage[1]) continue;
-                else tbody += messageViewerManager.buildRow(sessions[i]["events"][j], j, i);
-            }
+        let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
+        for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex + halfPage; i++) {
+            tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
         }
 
         this.lastLoadedPageIndex = 1; // todo store which page was loaded
@@ -694,7 +689,7 @@ var messageViewerManager = {
                     var sessionId = $(td).parent(".message").attr("sessionid");
                     var eventId = $(td).parent(".message").attr("eventid");
 
-                    newDataset.sessions[sessionId]["events"][eventId].decorate(codeObj.owner["id"], codeObj);
+                    newDataset.events[eventId].decorate(codeObj.owner["id"], true, codeObj);
 
                     var color = codeObj["color"];
                     if (color) {
@@ -794,6 +789,11 @@ var messageViewerManager = {
                 messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
                 messageViewerManager.isProgramaticallyScrolling = false;
                 //scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);
+
+                let thumbPos = scrollbarManager.getThumbPosition();
+                scrollbarManager.redraw(newDataset, activeSchemeId, messageViewerManager.lastLoadedPageIndex);
+                scrollbarManager.redrawThumb(thumbPos);
+
                 console.timeEnd("infinite scroll DOWN");
             }
 
@@ -826,11 +826,16 @@ var messageViewerManager = {
                 messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
                 messageViewerManager.isProgramaticallyScrolling = false;
 
+
+                let thumbPos = scrollbarManager.getThumbPosition();
+                scrollbarManager.redraw(newDataset, activeSchemeId, messageViewerManager.lastLoadedPageIndex);
+                scrollbarManager.redrawThumb(thumbPos);
                 console.timeEnd("infinite scroll UP");
 
-
-
             }
+
+
+
         }
     },
 
