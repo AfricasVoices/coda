@@ -166,6 +166,10 @@ tr.active.code-row > td {
   margin-bottom: 0;
 }
 
+#regex-edit {
+  margin-bottom: 5px;
+}
+
 #word-textarea {
   padding-bottom: 0 !important;
 }

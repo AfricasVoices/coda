@@ -4,7 +4,7 @@
 
 var dataset;
 
-$.getJSON("../sessions.json", function(data) {
+$.getJSON("../sessions-test.json", function(data) {
     dataset = data;
     buildTable();
     $('#message-table').stickyTableHeaders({scrollableArea: $("#message-panel")});
@@ -38,38 +38,98 @@ var buildTable = function() {
     });
 };
 
+var messageViewerManager = {
+    messageContainer: {},
+    table: {},
+
+    init: function() {
+
+    },
+
+    buildTable: function(data) {
+        Object.keys(data).forEach(function(sessionKey) {
+            var events = dataset[sessionKey]["events"];
+            events.forEach(function(event) {
+                var eventRow = $("<tr></tr>").appendTo("#message-table > tbody");
+                eventRow.append("<td class='col-md-2'>" + event["timestamp"] + "</td>")
+                eventRow.append("<td class='col-md-6'>" + event["data"] + "</td>");
+
+                var decoColumn = $("<td class=col-md-4><div class='row'></div></td>").appendTo(eventRow);
+                var decoNumber = Object.keys(event["decorations"]).length;
+                var decoColumnWidth = (12/decoNumber>>0);
+                var availableLabels = [];
+
+                Object.keys(event["decorations"]).forEach(function(decoKey) {
+                    var td = $("<td class='col-md-" + decoColumnWidth + "'>" + event["decorations"][decoKey] + "</td>").appendTo(decoColumn);
+                    var input = $("<select class='form-control'></select>").appendTo(td);
+                    availableLabels.forEach(function(label) {
+
+                    });
+                });
+            });
+        });
+    },
+
+    addNewScheme: function(scheme) {
+
+    }
+
+};
+
 var codeEditorManager =  {
 
     editorContainer: {},
     editorPanel: {},
     codeTable: {},
-    addButton: {},
-    closeButton: {},
-    cancelButton: {},
+    addCodeButton: {},
+    closeEditorButton: {},
+    cancelEditorButton: {},
+    addSchemeButton: {},
+    saveSchemeButton: {},
 
     init: function(editorContainer) {
         this.editorContainer = editorContainer;
         this.editorPanel = this.editorContainer.find(".panel");
         this.codeTable = this.editorPanel.find("tbody");
-        this.addButton = this.editorPanel.find("#add-code");
-        this.closeButton = this.editorPanel.find("#close-editor");
-        this.cancelButton = this.editorPanel.find("#cancel-button");
+        this.addCodeButton = this.editorPanel.find("#add-code");
+        this.closeEditorButton = this.editorPanel.find("#close-editor");
+        this.cancelEditorButton = this.editorPanel.find("#cancel-button");
+        this.addSchemeButton = $("#add-scheme");
+        this.saveSchemeButton = this.editorPanel.find("#scheme-save-button")
         this.bindAddButtonListener();
         this.bindCloseDialogListeners();
 
         $(editorContainer).hide();
     },
 
+    bindAddSchemeListeners: function() {
+        var editorContainer = this.editorContainer;
+        var addSchemeButton = this.addSchemeButton;
+        var saveSchemeButton = this.saveSchemeButton;
+
+        addSchemeButton.on("click", function() {
+            $(editorContainer).show();
+        });
+
+        saveSchemeButton.on("click", function() {
+
+        });
+
+    },
+
     bindCloseDialogListeners: function() {
         var editorContainer = this.editorContainer;
-        var closeButton = this.closeButton;
-        var cancelButton = this.cancelButton;
+        var closeButton = this.closeEditorButton;
+        var cancelButton = this.cancelEditorButton;
 
 
         closeButton.on("click", function() {
             editorContainer.hide();
         });
 
+        cancelButton.on("click", function() {
+           editorContainer.hide();
+        });
 
 
     },
@@ -79,7 +139,7 @@ var codeEditorManager =  {
         var bindInputListeners = this.bindInputListeners;
         var codeTable = this.codeTable;
 
-        this.addButton.on("click", function(event) {
+        this.addCodeButton.on("click", function(event) {
             var row = $("<tr class='row'></tr>").appendTo(codeTable);
             var codeCell = $("<td class='col-md-6'></td>").appendTo(row);
             var shortcutCell = $("<td class='col-md-6'></td>").appendTo(row);

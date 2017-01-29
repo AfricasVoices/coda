@@ -6,8 +6,11 @@ $(".icon.button").has(".edit").hide();
 
 function addCode(inputField) {
     if (event.keyCode == 13) {
-        $(inputField).hide();
+        $(inputField).closest("div").siblings(".button").hide();
+        $(inputField).closest("div").toggleClass("focus").toggleClass("disabled");
 
+        var newValue =  $(inputField).val();
+        $(inputField).attr("value", newValue);
     }
 }
 

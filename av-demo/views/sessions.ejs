@@ -4,113 +4,127 @@
       <title><%= title %></title>
       <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
       <!-- Latest compiled and minified CSS -->
-      <!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">-->
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 
       <!-- Optional theme -->
-      <!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">-->
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
 
       <!-- Latest compiled and minified JavaScript -->
-      <!--<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>-->
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.2.4/semantic.min.css"/>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.2.4/semantic.min.js"></script>
+      <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+      <!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.2.4/semantic.min.css"/>-->
+      <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.2.4/semantic.min.js"></script>-->
       <link rel='stylesheet' href='/stylesheets/style.css' />
       <script src="/scripts/d3.js"></script>
   </head>
   <body>
-      <div id="table-container"></div>
 
-
-      <div class="ui modal" id>
-          <i class="close icon"></i>
-          <div class="header">
-              Code Scheme Editor
-          </div>
-          <div class="content">
-              <div class="ui grid">
-                  <div class="ten wide column">
-                      <table class="ui selectable celled table" id="editor">
-                          <thead>
-                              <tr>
-                                  <th class="nine wide">Code <button class="ui icon button" id="add-code">
-                                          <i class="plus icon"></i>
-                                      </button>
-                                  </th>
-                                  <th class="seven wide">Shortcut</th>
-                              </tr>
-                          </thead>
-                          <tbody>
-                          <!-- <tr>
-                               <td class="code">
-                                   <div class="ui disabled input">
-                                       <input class="shortcut-input" type="text" name="label" placeholder="enter code name..."
-                                              onkeydown="addCode(this)" value="Female">
-                                   </div>
-                                   <button class="ui icon button">
-                                       <i class="edit icon"></i>
-                                   </button>
-                                   <button class="ui positive icon button">
-                                       <i class="checkmark icon"></i>
-                                   </button>
-                                   <button class="ui negative icon button">
-                                       <i class="remove icon"></i>
-                                   </button>
-                               </td>
-                               <td class="shortcut">
-                                   <div class="ui disabled input">
-                                       <input class="shortcut-input" type="text" name="label" placeholder="press key..."
-                                       onkeydown="addCode(this)">
-                                   </div>
-                                   <button class="ui icon button">
-                                       <i class="edit icon"></i>
-                                   </button>
-                               </td>
-                           </tr>
-                           <tr>
-                               <td class="code">
-                                   <div class="ui disabled input">
-                                       <input class="shortcut-input" type="text" name="label" placeholder="enter code name..."
-                                              onkeydown="addCode(this)" value="Male">
-                                   </div>
-                                   <button class="ui icon button">
-                                       <i class="edit icon"></i>
-                                   </button>
-                                   <button class="ui positive icon button">
-                                       <i class="checkmark icon"></i>
-                                   </button>
-                                   <button class="ui negative icon button">
-                                       <i class="remove icon"></i>
-                                   </button>
-                               </td>
-                               <td class="shortcut">
-                                   <div class="ui disabled input">
-                                       <input class="shortcut-input" type="text" name="label" placeholder="press key..."
-                                       onkeydown="addCode(this)">
-                                   </div>
-                                   <button class="ui icon button">
-                                       <i class="edit icon"></i>
-                                   </button>
-                               </td>
-                          </tr>-->
-                          </tbody>
-                      </table>
-                  </div>
-                  <div class="six wide column">
-                      <div class="ui container">
-
-                      </div>
-                  </div>
+    <div class="container">
+      <div class="row">
+          <div class="panel panel-default" id="table-container">
+              <div class="panel-heading">
+                  <h4>
+                      Fixed Header Scrolling Table
+                  </h4>
               </div>
+
           </div>
-          <div class="actions">
-              <div class="ui black deny button">
-                  Cancel
+
+           <!-- <div id="table-container"></div> -->
+      </div>
+    </div>
+
+
+    <div class="ui modal" id>
+      <i class="close icon"></i>
+      <div class="header">
+          Code Scheme Editor
+      </div>
+      <div class="content">
+          <div class="ui grid">
+              <div class="ten wide column">
+                  <table class="ui selectable celled table" id="editor">
+                      <thead>
+                          <tr>
+                              <th class="nine wide">Code <button class="ui icon button" id="add-code">
+                                      <i class="plus icon"></i>
+                                  </button>
+                              </th>
+                              <th class="seven wide">Shortcut</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                      <!-- <tr>
+                           <td class="code">
+                               <div class="ui disabled input">
+                                   <input class="shortcut-input" type="text" name="label" placeholder="enter code name..."
+                                          onkeydown="addCode(this)" value="Female">
+                               </div>
+                               <button class="ui icon button">
+                                   <i class="edit icon"></i>
+                               </button>
+                               <button class="ui positive icon button">
+                                   <i class="checkmark icon"></i>
+                               </button>
+                               <button class="ui negative icon button">
+                                   <i class="remove icon"></i>
+                               </button>
+                           </td>
+                           <td class="shortcut">
+                               <div class="ui disabled input">
+                                   <input class="shortcut-input" type="text" name="label" placeholder="press key..."
+                                   onkeydown="addCode(this)">
+                               </div>
+                               <button class="ui icon button">
+                                   <i class="edit icon"></i>
+                               </button>
+                           </td>
+                       </tr>
+                       <tr>
+                           <td class="code">
+                               <div class="ui disabled input">
+                                   <input class="shortcut-input" type="text" name="label" placeholder="enter code name..."
+                                          onkeydown="addCode(this)" value="Male">
+                               </div>
+                               <button class="ui icon button">
+                                   <i class="edit icon"></i>
+                               </button>
+                               <button class="ui positive icon button">
+                                   <i class="checkmark icon"></i>
+                               </button>
+                               <button class="ui negative icon button">
+                                   <i class="remove icon"></i>
+                               </button>
+                           </td>
+                           <td class="shortcut">
+                               <div class="ui disabled input">
+                                   <input class="shortcut-input" type="text" name="label" placeholder="press key..."
+                                   onkeydown="addCode(this)">
+                               </div>
+                               <button class="ui icon button">
+                                   <i class="edit icon"></i>
+                               </button>
+                           </td>
+                      </tr>-->
+                      </tbody>
+                  </table>
               </div>
-              <div class="ui positive right labeled icon button" id="save">
-                  Save
-                  <i class="checkmark icon"></i>
+              <div class="six wide column">
+                  <div class="ui container">
+
+                  </div>
               </div>
           </div>
       </div>
+      <div class="actions">
+          <div class="ui black deny button">
+              Cancel
+          </div>
+          <div class="ui positive right labeled icon button" id="save">
+              Save
+              <i class="checkmark icon"></i>
+          </div>
+      </div>
+    </div>
   </body>
 
   <script src="../javascripts/sessionsUI.js"></script>

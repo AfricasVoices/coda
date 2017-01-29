@@ -36,7 +36,7 @@ d3.json("../models/sessions.json", function(data) {
         eventDecoLabels[decoKey] = [];//if (!eventDecoLabels.hasOwnProperty(decoKey)) eventDecoLabels[decoKey] = [];
     });
 
-    codeHeaderLabels.push("");
+    //codeHeaderLabels.push("");
 
     Object.keys(data).forEach(function(key) { extractLabels(data[key]);});
 
@@ -95,13 +95,39 @@ d3.json("../models/sessions.json", function(data) {
      */
 
     var table = d3.select("#table-container").append("table")
-        .attr("class", "ui selectable celled table")
-        .append("thead").append("tr");
+        //.attr("class", "ui selectable celled table")
+            .attr("class", "table table-fixed")
+        .append("thead")
+            //.attr("class", "ui fixed top sticky")
+        .append("tr");
+
+    /*
+    $('.ui.sticky')
+        .sticky()
+    ;
+    */
 
     var header = table.selectAll("th").data(dataHeaderLabels).enter()
         .append("th")
         .text(function (d) {return d})
-        .attr("class", "data header");
+        //.attr("class", "data header");
+        .attr("class", function(el, i) {
+            if (i == 0) {
+                return "col-md-2";
+            }
+
+            if (i == 1) {
+                return "col-md-2";
+            }
+
+            if (i == 2) {
+                return "col-md-5";
+            }
+
+            if (i == 3) {
+                return "col-md-3";
+            }
+        });
 
     var allHeaders = dataHeaderLabels.concat(codeHeaderLabels);
     table.selectAll("th").data(allHeaders).enter()
@@ -109,11 +135,23 @@ d3.json("../models/sessions.json", function(data) {
         .text(function (d) {return d})
         .attr("class", function(el, i) {
             var className;
-            i == allHeaders.length-1 ? className = "extra header": className = "code header";
+            i == allHeaders.length-1 ? className = "col-md-1": className = "col-md-3";
             return className;
         });
+        /*.attr("id", function(el, i) {
+            var className;
+            i == allHeaders.length-1 ? className = "extra header": className = "code header " + i;
+            return className;
+        });*/
 
-    d3.select(".extra.header").append("button").attr("class", "ui icon button").append("i").attr("class", "plus icon");
+    //d3.select(".extra.header").append("button").attr("class", "ui icon button").append("i").attr("class", "plus icon");
+    /*d3.select("#extra.header").append("button")
+            .attr("class", "btn btn-default")
+            .attr("type", "button")
+        .append("span")
+            .attr("class", "glyphicon glyphicon-plus")
+            .attr("aria-hidden","true");
+            */
 
     var body = d3.select("table").append("tbody")
         .selectAll("tr").data(createEventRows(Object.keys(data))).enter()
@@ -127,13 +165,33 @@ d3.json("../models/sessions.json", function(data) {
         }).enter()
         .append("td")
             .attr("id", function(cell,i) {return cell[1] + "-" + allHeaders[i] + "-" + i;})
-            .attr("class", function(cell,i) {return "data cell " + allHeaders[i];})
+            //.attr("class", function(cell,i) {return "data cell " + allHeaders[i];})
+            .attr("class", function(cell,i) {
+                if (i == 0) {
+                    return "col-md-2";
+                }
+
+                if (i == 1) {
+                    return "col-md-2";
+                }
+
+                if (i == 2) {
+                    return "col-md-5";
+                }
+
+                if (i == 3) {
+                    return "col-md-3";
+                }
+            })
+
+               // return "data cell " + allHeaders[i];})
             .each(function (cell, i) {
                 if (eventDecoOrder.indexOf(allHeaders[i]) ===-1) {
                     d3.select(this).text(cell[0])
                         .attr("empty", cell[0] === "" ? "" : null)
                         .attr("full", cell[0] !== "" ? "" : null);
                 } else {
+                    /*
                     d3.select(this).append("select")
                         .attr("class", "ui search dropdown")
                         .selectAll("option").data(eventDecoLabels[allHeaders[i]]).enter()
@@ -142,19 +200,34 @@ d3.json("../models/sessions.json", function(data) {
                         .text(function (d) { return d; })
                         .attr("picked", function(d) {
                             return cell[0] === d ? "" : null;});
+                      */
+
+                    d3.select(this).append("select")
+                        .attr("class", "form-control")
+                        .selectAll("option").data(eventDecoLabels[allHeaders[i]]).enter()
+                        .append("option")
+                        .attr("value", function (d) { return d; })
+                        .text(function (d) { return d; })
+                        .attr("picked", function(d) {
+                            return cell[0] === d ? "" : null;});
+
+
+
                 }
         });
 
-    d3.select("tbody").selectAll("tr").append("td").attr("class","extra cell");
+    //d3.select("tbody").selectAll("tr").append("td").attr("class","extra cell col-md-1");
 
     d3.selectAll("option[picked]").each(function() {
         var currentPicked = this;
-        $(this).parents("select").dropdown("set selected", $(this).attr("value"));
+        // $(this).parents("select").dropdown("set selected", $(this).attr("value")); // semantic ui
+        $(this).prop("selected",true); // bootstrap
+
     });
     //d3.selectAll("td[empty]").each(function() {d3.select(this).attr("class","warning");})
-    d3.selectAll("td[full]").each(function(empty,i) {
+   /* d3.selectAll("td[full]").each(function(empty,i) {
         (+$(this).parents("tr").attr("session-id") % 2) == 0 ? d3.select(this).attr("class","negative") : d3.select(this).attr("class","positive");
-    });
+    });*/
 
     /*
         Interaction

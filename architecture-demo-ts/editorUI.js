@@ -281,6 +281,9 @@ var codeEditorManager =  {
             "<i class='glyphicon glyphicon-remove'></i>" +
             "</button>").appendTo(buttonCell);
 
+        [codeCell, shortcutCell, buttonCell].forEach(function(td) {
+           $(td).css({"background-color": color});
+        });
 
         /*
         if (code.length != 0 && color.length != 0) {
@@ -324,6 +327,7 @@ var codeEditorManager =  {
         let words = codeObj["words"].length > 0 ? codeObj["words"].slice(0) : [];
         let colorPicker = $("#color-pick");
         var wordTextarea = $("#word-textarea");
+        var regexField = $("#regex-edit").find("input");
         colorPicker.find("input").attr("value", color);
         colorPicker.colorpicker('setValue', color);
 
@@ -346,11 +350,18 @@ var codeEditorManager =  {
             let color = (codeObj["color"] == "#ffffff" ? "#9e9e9e" : codeObj["color"]);
             wordTextarea.find(".tag").css({'background-color': color});
             codeObj.words = [event.item];
+            regexField.val(regexMatcher.generateOrRegex(codeObj["words"]));
+
         });
         $(selectObj).on('itemRemoved', function(event) {
             // event.item: contains the item
             codeObj.deleteWords([event.item]);
+            regexField.val(regexMatcher.generateOrRegex(codeObj["words"]));
+
         });
+
+        regexField.val(regexMatcher.generateOrRegex(codeObj["words"]));
+
     },
 
 

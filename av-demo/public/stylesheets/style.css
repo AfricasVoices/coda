@@ -1,41 +1,15 @@
-body {
-  padding: 50px;
-  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+.table-fixed thead {
+  width: 97%;
 }
-
-<!--#table-container {
-  <!--width: 70%;
+.table-fixed tbody {
+  height: 500px;
   overflow-y: auto;
-  height: 100vh -->
-}-->
-
-#editor {
-  /*table-layout: fixed*/
+  width: 100%;
 }
-
-.ui.icon.button {
-  margin-left: 3px;
+.table-fixed thead, .table-fixed tbody, .table-fixed tr, .table-fixed td, .table-fixed th {
+  display: block;
 }
-
-.ui.disabled.input {
-  opacity: 1;
-  /*width: 70%;*/
-}
-
-.shortcut > .input {
-  width: 60%;
-}
-
-td > button {
-  width: 90%;
-  height: 90%;
-}
-
-.container {
-  border-style: solid;
-  border-width: 2px 2px 2px 2px;
-}
-
-a {
-  color: #00B7FF;
+.table-fixed tbody td, .table-fixed thead > tr> th {
+  float: left;
+  border-bottom-width: 0;
 }
