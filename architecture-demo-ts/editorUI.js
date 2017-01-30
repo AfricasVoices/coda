@@ -349,7 +349,7 @@ var codeEditorManager =  {
             // event.cancel: set to true to prevent the item getting added
             let color = (codeObj["color"] == "#ffffff" ? "#9e9e9e" : codeObj["color"]);
             wordTextarea.find(".tag").css({'background-color': color});
-            codeObj.words = [event.item];
+            codeObj.addWords(event.item);
             regexField.val(regexMatcher.generateOrRegex(codeObj["words"]));
 
         });

@@ -457,7 +457,7 @@ var messageViewerManager = {
                 && messageViewerManager.wordBuffer.hasOwnProperty(eventId)
                 && messageViewerManager.wordBuffer[sessionId][eventId].length > 0) {
 
-                codeObj.words = Object.keys(messageViewerManager.wordBuffer[sessionId][eventId]);
+                codeObj.addWords(Object.keys(messageViewerManager.wordBuffer[sessionId][eventId]));
                 messageViewerManager.wordBuffer[sessionId][eventId] = {}
             }
 
@@ -943,7 +943,7 @@ var messageViewerManager = {
                 if (isCoded) {
 
                     let regex = regexMatcher.generateOrRegex(UIUtils.concatArraysUniqueWithSort(code.words, [selection]));
-                    code.words = [selection];
+                    code.addWords([selection]);
                     $(".message[eventid='" + eventId + "']").find("p").html(regexMatcher.wrapText(newDataset.events[eventId].data, regex, "highlight", code.id));
 
                     if (selection.length > 0) regexMatcher.wrapElement(newDataset.events[eventId].data, new RegExp(selection, "ig"), code.id);

@@ -420,6 +420,20 @@ class Code {
     set words(words: Array<string>) {
         // todo Do we need to count occurrences of these words too or not?
 
+       words.sort(function(a, b){
+            // DESC -> b.length - a.length
+            return b.length - a.length || b.localeCompare(a);
+        });
+
+        this._words = words.filter(function(word, index) {
+            return words.indexOf(word) === index;
+        });
+
+        this._isEdited = true;
+    }
+
+    addWords(words: Array<string>): Code {
+
         let newWords = this._words.concat(words);
         newWords.sort(function(a, b){
             // DESC -> b.length - a.length
@@ -430,6 +444,9 @@ class Code {
             return newWords.indexOf(word) === index;
         });
         this._isEdited = true;
+
+        return this;
+
     }
 
     deleteWords(words: Array<string>) : Code {
