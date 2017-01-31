@@ -21,13 +21,6 @@ var messageViewerManager = {
         this.lastLoadedPageIndex = 1;
 
         console.time("dropdown init");
-        //var dropdowns = $(".decorator-column").find("select"); // MAJOR BOTTLENECK!!!!!
-
-        /*
-        dropdowns.each(function(i, dropdown) {
-            $(dropdown).on("change", messageViewerManager.dropdownChange);
-        });
-        */
 
         $(document).on("change", function(event) {
             if (event.originalEvent == undefined) return;
@@ -36,17 +29,7 @@ var messageViewerManager = {
                messageViewerManager.dropdownChange(event.originalEvent, true);
            }
         });
-        /*
-        $("body").on("mousewheel", function(event){
-            console.log("mousewheel");
-            if(event.originalEvent.wheelDelta > 0) {
-                console.log('up 3');
-            }
-            else {
-                console.log('down 3');
-            }
-        });
-*/
+
         $("#message-table").on("mouseup", function(event) {
             console.log("burek");
             let targetElement = event.originalEvent.target;
@@ -135,7 +118,10 @@ var messageViewerManager = {
 
             let tbody = "";
             let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-            for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex * halfPage + halfPage; i++) {
+
+            let iterationStop = messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.events.length ? newDataset.events.length : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
+
+            for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < iterationStop; i++) {
                 tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
             }
 
@@ -223,42 +209,6 @@ var messageViewerManager = {
         }
 
         messageViewerManager.table.find("tbody").append(tbody);
-
-        /*
-        newDataset.sessions.forEach(function(session, sessionIndex) {
-            session.events.forEach(function(event, eventIndex) {
-
-                if (subsamplingEventCount == 500) {
-                    subsamplingIndices.push([sessionIndex, eventIndex]);
-                }
-
-                if (currentEventCount > rowsPerEachPage) {
-                    // build new page
-                    messageViewerManager.tablePages.push(pageStartEnd);
-                    currentEventCount = 1;
-                    pageStartEnd = {start: [sessionIndex, eventIndex], end: []};
-
-                    if (initialPages < 2) {
-                        initialPages += 1
-                        tbody += messageViewerManager.buildRow(event, eventIndex, sessionIndex);
-
-                    } else if (initialPages == 2) {
-                        initialPages += 1
-                        messageViewerManager.table.find("tbody").append(tbody);
-                    }
-
-                } else {
-                    // append to old page
-                    currentEventCount += 1;
-                    pageStartEnd.end = [sessionIndex, eventIndex];
-                    if (initialPages < 2) tbody += messageViewerManager.buildRow(event, eventIndex, sessionIndex);
-
-                }
-
-            });
-
-        });
-        */
 
         console.timeEnd("table building");
         scrollbarManager.init(newDataset.sessions, document.getElementById("scrollbar"), 100);
@@ -383,7 +333,7 @@ var messageViewerManager = {
 
         $(".message").each(function(i, tr) {
             // find code object via selected option
-            let selectFields = $(tr).find("select");
+            let selectFields = $(tr).find("select." + activeSchemeId);
             selectFields.each(function(i, field) {
 
             });
@@ -758,7 +708,7 @@ var messageViewerManager = {
 
             let nextPage = messageViewerManager.lastLoadedPageIndex + 1;
 
-            if (nextPage < Math.floor(newDataset.events.length / Math.floor(messageViewerManager.rowsInTable/2)) - 1) {
+            if (nextPage <= Math.floor(newDataset.events.length / Math.floor(messageViewerManager.rowsInTable/2)) - 1) {
 
                 messageViewerManager.lastLoadedPageIndex = nextPage;
 
