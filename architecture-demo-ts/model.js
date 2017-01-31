@@ -47,7 +47,6 @@ class Dataset {
                         return parseInt(e1.name) - parseInt(e2.name);
                     }
                     // same codes, now sort by manual/automatic & confidence
-                    // todo sort for confidence
                     if (deco1.confidence != null && deco1.confidence != undefined && deco2 != null && deco2.confidence != undefined) {
                         if (deco1.manual != undefined && deco1.manual) {
                             if (deco2.manual != undefined && deco2.manual) {
@@ -80,6 +79,15 @@ class Dataset {
             this.events.sort((e1, e2) => {
                 let deco1 = e1.decorationForName(schemeId);
                 let deco2 = e2.decorationForName(schemeId);
+                if (deco1 == deco2 == undefined) {
+                    return parseInt(e1.name) - parseInt(e2.name);
+                }
+                if (deco1 == undefined) {
+                    return -1;
+                }
+                if (deco2 == undefined) {
+                    return 1;
+                }
                 // always manual coding behind automatic!
                 if (deco1.manual) {
                     if (deco2.manual) {
@@ -90,7 +98,7 @@ class Dataset {
                 }
                 else {
                     if (deco2.manual) {
-                        // deco1 is behind deco2
+                        // deco1 is before deco2
                         return -1;
                     }
                     //both are automatic in which case compare confidence!
