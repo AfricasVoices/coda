@@ -16,7 +16,7 @@ body {
   padding-top: 65px;
 }
 
-.container>.row {
+.container>.row, .container-fluid>.row {
   height: 80vh; /* TODO: will be calculated */
 }
 
@@ -143,6 +143,10 @@ tr.active.code-row > td {
 
 .sort-button {
   margin-right: 5px;
+}
+
+.sort-button > small > span.active {
+  border: 1px solid;
 }
 
 #scrollthumb {

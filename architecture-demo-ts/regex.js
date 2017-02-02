@@ -1,11 +1,28 @@
+RegExp.escape = function(text) {
+    return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+};
+
 var regexMatcher = {
+
+    generateFullTextRegex: function(events) {
+
+        if (events == undefined || !events || events.length == 0) return null;
+
+        let eventText = events.map((event => { return event["data"]}));
+
+        return new RegExp(RegExp.escape(eventText.join("|")), 'i');
+
+    },
 
     codeDataset: function (schemeId) {
 
         let events = newDataset.events;
         let codes = schemes[schemeId].codes;
+        var sortUtils = new SortUtils();
         for (let i = 0; i < events.length; i++) {
             for (let code of codes.entries()) {
+
+               // let textRegex = this.generateFullTextRegex(sortUtils.getEventsWithCode(events, schemes[schemeId], code[0]));
 
                 let regex = this.generateOrRegex(code[1].words);
                 let matchCount = new Map();
@@ -29,6 +46,7 @@ var regexMatcher = {
         }
 
     },
+
 
 
     generateOrRegex: function (wordArray) {
@@ -116,18 +134,23 @@ var regexMatcher = {
         }
         else {
 
-            // todo is there a threshold for assigning a code?
             // todo calculate the confidence better
+            eventObj.decorate(code.owner.id, false, code, regexMatcher.confidenceMatchLen(eventObj.data, matchCount));
 
-            eventObj.decorate(code.owner.id, false, code, 0.6);
-
-            /*
-            let selectObj = $(".message[eventid='" + eventObj.name + "']").find("select." + code.owner.id);
-            selectObj.val(code.value);
-            messageViewerManager.dropdownChangeHandler(selectObj, false);
-            */
         }
 
+    },
+
+    confidenceMatchLen(text, matchCount) {
+
+        var matchLength = 0;
+        for (let entry of matchCount.entries()) {
+            matchLength += entry[0].length * entry[1].length;
+        }
+
+        let textLenNoSpaces = text.replace(/ /g, "").length;
+
+        return matchLength/textLenNoSpaces;
     },
 
     unwrapHighlights: function (eventRowParagraph) {
@@ -147,6 +170,7 @@ var regexMatcher = {
 
     wrapElement: function (eventObj, regex, codeId) {
 
+        if (regex == null || regex == undefined) return;
         let matches;
         let matchCount = new Map();
 

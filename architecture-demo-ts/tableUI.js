@@ -9,6 +9,8 @@ var messageViewerManager = {
     wordBuffer: {}, // format {sessionId :{ eventId: {}} ... }
     lastTableY: 0,
     isProgramaticallyScrolling: false,
+    sortUtils: new SortUtils(),
+    currentSort: null,
 
     init: function(messageContainer, data, rowsInTable) {
 
@@ -19,6 +21,7 @@ var messageViewerManager = {
         this.table = messageContainer.find("table");
         this.buildTable(data, rowsInTable);
         this.lastLoadedPageIndex = 1;
+        this.currentSort = this.sortUtils.restoreDefaultSort;
 
         console.time("dropdown init");
 
@@ -91,7 +94,7 @@ var messageViewerManager = {
         };
         // todo: do we keep state to know where we are or know from the icon?
 
-
+        $(".sort-button").find("span.active").toggleClass("active");
         var targetElement = event.originalEvent.target;
         if (targetElement.className === "sort-button" || targetElement.className.split(" ")[0] === "glyphicon") {
             // find which icon was clicked... and use the appropriate sort
@@ -100,20 +103,24 @@ var messageViewerManager = {
             if (iconClassName === "glyphicon-sort-by-attributes") {
                 // sort as todolist
                 newDataset.sortEventsByConfidenceOnly(schemeId);
+                messageViewerManager.currentSort = messageViewerManager.sortUtils.sortEventsByConfidenceOnly;
 
             } else if (iconClassName === "glyphicon-sort") {
                 newDataset.sortEventsByScheme(schemeId, true);
+                messageViewerManager.currentSort = messageViewerManager.sortUtils.sortEventsByScheme;
+
 
             } else if (iconClassName === "glyphicon-sort-by-order") {
                 newDataset.restoreDefaultSort();
+                messageViewerManager.currentSort = messageViewerManager.sortUtils.restoreDefaultSort;
 
             }
 
             if (targetElement.className == "sort-button") {
                 let glyphicon = $(targetElement).children(".glyphicon")[0];
-                glyphicon.className = glyphicon.className.replace(iconClassName, iconClassesNext[iconClassName]);
+                glyphicon.className = glyphicon.className.replace(iconClassName, iconClassesNext[iconClassName] + " active");
             } else {
-                targetElement.className = targetElement.className.replace(iconClassName, iconClassesNext[iconClassName]);
+                targetElement.className = targetElement.className.replace(iconClassName, iconClassesNext[iconClassName] + " active");
             }
 
             let tbody = "";
@@ -411,7 +418,7 @@ var messageViewerManager = {
                 messageViewerManager.wordBuffer[sessionId][eventId] = {}
             }
 
-            regexMatcher.wrapElement(eventObj.data, regexMatcher.generateOrRegex(codeObj.words), codeObj.id);
+            regexMatcher.wrapElement(eventObj, regexMatcher.generateOrRegex(codeObj.words), codeObj.id);
 
 
         } else {
@@ -696,7 +703,7 @@ var messageViewerManager = {
 
     infiniteScroll : function(event) {
 
-        // todo: prevent events from happening when sort happens!
+        // todo: fix bug with scrolling to the bottom!!!!!!!! :o :o :o :o :o :o
 
         let currentY = messageViewerManager.messageContainer.scrollTop();
         if (currentY === messageViewerManager.lastTableY || messageViewerManager.isProgramaticallyScrolling) {
@@ -824,7 +831,7 @@ var messageViewerManager = {
         sessionRow += "<td class='col-md-4 decorations' style='background-color: " + rowColor+ "'>";
         sessionRow += "<div class='row decorator-column'>";
 
-        Object.keys(newDataset.schemes).forEach(function(schemeKey) {
+        messageViewerManager.codeSchemeOrder.forEach(function(schemeKey) {
 
             var codes = Array.from(newDataset.schemes[schemeKey].codes.values());
             sessionRow += "<div class='col-md-" + decoColumnWidth + " deco-container' scheme='" + activeSchemeId + "'>";
@@ -832,6 +839,7 @@ var messageViewerManager = {
             var optionsString = "";
             var selectClass = "uncoded";
             var somethingSelected = false;
+            var schemeKey = schemeKey + "";
 
             codes.forEach(function(codeObj) {
 

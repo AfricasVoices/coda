@@ -106,6 +106,7 @@ var codeEditorManager =  {
                 // todo prevent saving when there is an empty code
 
                 schemes[newId] = tempScheme;
+                messageViewerManager.codeSchemeOrder.push(newId);
 
                 messageViewerManager.addNewSchemeColumn(tempScheme, name);
 
@@ -165,17 +166,21 @@ var codeEditorManager =  {
             var header = headerDecoColumn.find("[scheme='" + tempScheme["id"] + "']");
             header.children("i").text(tempScheme["name"]);
 
+            // code and re-sort dataset
+            regexMatcher.codeDataset(tempScheme["id"]);
+            newDataset.events = messageViewerManager.currentSort(newDataset.events, tempScheme, true);
 
+            // update the original scheme
             schemes[tempScheme["id"]].copyCodesFrom(tempScheme);
+
+            // redraw scrollbar
             const thumbPosition = scrollbarManager.getThumbPosition();
             scrollbarManager.redraw(newDataset, tempScheme["id"]);
             scrollbarManager.redrawThumb(thumbPosition);
 
             // redraw rows
             var tbody = "";
-            var sessions = newDataset.sessions;
 
-            regexMatcher.codeDataset(tempScheme["id"]);
             let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
             for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex * halfPage + halfPage; i++) {
                 tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);

@@ -10,6 +10,7 @@
         "ui.ts",
         "popup.ts",
         "typings/chrome/chrome.d.ts",
-        "model.ts"
+        "model.ts",
+        "sortUtils.ts"
     ]
 }

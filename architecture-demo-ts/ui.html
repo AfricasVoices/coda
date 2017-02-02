@@ -85,7 +85,7 @@
       </nav>
 
       <!-- Main container -->
-      <div class="container" id="message-viewer">
+      <div class="container-fluid" id="message-viewer">
         <div class="row">
           <div class="col-md-1 col-xs-1" id="scrollbar-col">
             <canvas id="scrollbar"></canvas>
@@ -96,9 +96,9 @@
               <table class="table table-fixed table-hover" id="message-table">
                 <thead>
                 <tr>
-                  <th class="col-md-2 col-xs-2">Timestamp</th>
-                  <th class="col-md-6 col-xs-6">Data</th>
-                  <th class="col-md-4 col-xs-4" id="header-decoration-column">
+                  <th class="col-md-1 col-xs-1">Timestamp</th>
+                  <th class="col-md-5 col-xs-5">Data</th>
+                  <th class="col-md-6 col-xs-6" id="header-decoration-column">
                     <div class="row">
                     </div>
                   </th>
@@ -211,6 +211,7 @@
   </body>
 
   <!-- MAIN UI JS -->
+  <script src="sortUtils.js"></script>
   <script src="model.js"></script>
   <script src="UIUtils.js"></script>
   <script src="tableUI.js"></script>

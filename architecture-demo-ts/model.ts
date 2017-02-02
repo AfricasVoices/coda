@@ -11,10 +11,9 @@ class Dataset {
         });
     }
 
-    // todo WHAT IS THE DEFAULT SORTING, remember it? :)
     /*
     NB: event names/ids are the initial indices when read from file for the first time!
-    Once initialized, they aren't changed regardles of sorting and can be used to restore the default on-load ordering.
+    Once initialized, they aren't changed regardless of sorting and can be used to restore the default on-load ordering.
     */
 
     restoreDefaultSort() : Array<RawEvent> {
@@ -31,7 +30,6 @@ class Dataset {
         return this.events;
 
     }
-
 
     sortEventsByScheme(schemeId: string, isToDoList: boolean): Array<RawEvent> {
 
@@ -68,7 +66,6 @@ class Dataset {
                     }
 
                     // same codes, now sort by manual/automatic & confidence
-                    // todo sort for confidence
                     if (deco1.confidence != null && deco1.confidence != undefined && deco2 != null && deco2.confidence != undefined) {
 
                         if (deco1.manual != undefined && deco1.manual) {
@@ -109,8 +106,20 @@ class Dataset {
                 let deco1 = e1.decorationForName(schemeId);
                 let deco2 = e2.decorationForName(schemeId);
 
-                // always manual coding behind automatic!
+                if (deco1 == deco2 == undefined) {
+                    return parseInt(e1.name) - parseInt(e2.name);
+                }
 
+                if (deco1 == undefined) {
+                    return -1;
+                }
+
+                if (deco2 == undefined) {
+                    return 1;
+                }
+
+
+                // always manual coding behind automatic!
                 if (deco1.manual) {
 
                     if (deco2.manual) {
@@ -123,7 +132,7 @@ class Dataset {
                 } else {
                     if (deco2.manual) {
 
-                        // deco1 is behind deco2
+                        // deco1 is before deco2
                         return -1;
                     }
 
@@ -173,13 +182,17 @@ class RawEvent {
     }
 
     decorate(schemeId : string, manual: boolean, code? : Code, confidence?: number) {
+       // if (this.decorations.has(schemeId)) this.uglify(schemeId);
         let stringSchemeId = "" + schemeId;
         this.decorations.set(stringSchemeId, new EventDecoration(this, stringSchemeId, manual, code, confidence));
     }
 
     uglify(schemeId: string) {
+        let deco = this.decorations.get(schemeId);
+        deco.code.removeEvent(this);
         this.decorations.delete(schemeId);
         this.codes.delete(schemeId);
+
         return this;
     }
 
@@ -207,6 +220,7 @@ class EventDecoration {
       (confidence == undefined) ? this.confidence = 0.98 : this.confidence = confidence;
 
       if (code) {
+          code.addEvent(owner);
           this.code = code;
       } else {
           this.code = null; // TODO: this will require null pointer checks
@@ -338,7 +352,6 @@ class CodeScheme {
     getCodeByValue(value: string) : Code {
 
         let match;
-        // TS doesn't support iterating IterableIterator with ES5 target
         for (let code of Array.from(this.codes.values())) {
             if (code.value === value) {
                 match = code;
@@ -358,6 +371,7 @@ class Code {
     private _shortcut : string;
     private _words : Array<string>;
     private _isEdited : boolean;
+    private _eventsWithCode: Array<RawEvent>;
 
     get owner(): CodeScheme {
         return this._owner;
@@ -387,6 +401,10 @@ class Code {
         return this._isEdited;
     }
 
+    get eventsWithCode(): Array<RawEvent> {
+        return this._eventsWithCode;
+    }
+
     constructor(owner: CodeScheme, id: string, value: string, color: string, shortcut: string, isEdited: boolean) {
         this._owner = owner;
         this._id = id;
@@ -395,6 +413,7 @@ class Code {
         this._shortcut = shortcut;
         this._words = [];
         this._isEdited = isEdited;
+        this._eventsWithCode = [];
     }
 
     set owner(value: CodeScheme) {
@@ -465,4 +484,14 @@ class Code {
         return newCode;
     }
 
+    addEvent(event: RawEvent): void {
+        // compare reference to event
+        if (this._eventsWithCode.indexOf(event) == -1) this._eventsWithCode.push(event);
+    }
+
+    removeEvent(event: RawEvent): void {
+        let index = this._eventsWithCode.indexOf(event);
+        if (index == -1) return;
+        this._eventsWithCode.splice(index,1);
+    }
 }
