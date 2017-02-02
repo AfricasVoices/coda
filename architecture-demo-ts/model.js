@@ -9,10 +9,9 @@ class Dataset {
             return session.id;
         });
     }
-    // todo WHAT IS THE DEFAULT SORTING, remember it? :)
     /*
     NB: event names/ids are the initial indices when read from file for the first time!
-    Once initialized, they aren't changed regardles of sorting and can be used to restore the default on-load ordering.
+    Once initialized, they aren't changed regardless of sorting and can be used to restore the default on-load ordering.
     */
     restoreDefaultSort() {
         this.events.sort((e1, e2) => {
@@ -131,10 +130,13 @@ class RawEvent {
         return Array.from(this.codes.values());
     }
     decorate(schemeId, manual, code, confidence) {
+        // if (this.decorations.has(schemeId)) this.uglify(schemeId);
         let stringSchemeId = "" + schemeId;
         this.decorations.set(stringSchemeId, new EventDecoration(this, stringSchemeId, manual, code, confidence));
     }
     uglify(schemeId) {
+        let deco = this.decorations.get(schemeId);
+        deco.code.removeEvent(this);
         this.decorations.delete(schemeId);
         this.codes.delete(schemeId);
         return this;
@@ -153,6 +155,7 @@ class EventDecoration {
         this.manual = manual;
         (confidence == undefined) ? this.confidence = 0.98 : this.confidence = confidence;
         if (code) {
+            code.addEvent(owner);
             this.code = code;
         }
         else {
@@ -251,7 +254,6 @@ class CodeScheme {
     }
     getCodeByValue(value) {
         let match;
-        // TS doesn't support iterating IterableIterator with ES5 target
         for (let code of Array.from(this.codes.values())) {
             if (code.value === value) {
                 match = code;
@@ -270,6 +272,7 @@ class Code {
         this._shortcut = shortcut;
         this._words = [];
         this._isEdited = isEdited;
+        this._eventsWithCode = [];
     }
     get owner() {
         return this._owner;
@@ -291,6 +294,9 @@ class Code {
     }
     get isEdited() {
         return this._isEdited;
+    }
+    get eventsWithCode() {
+        return this._eventsWithCode;
     }
     set owner(value) {
         this._owner = value;
@@ -343,5 +349,16 @@ class Code {
         let newCode = new Code(original["_owner"], original["_id"], original["_value"], original["_color"], original["_shortcut"], false);
         newCode._words = original["_words"].slice(0);
         return newCode;
+    }
+    addEvent(event) {
+        // compare reference to event
+        if (this._eventsWithCode.indexOf(event) == -1)
+            this._eventsWithCode.push(event);
+    }
+    removeEvent(event) {
+        let index = this._eventsWithCode.indexOf(event);
+        if (index == -1)
+            return;
+        this._eventsWithCode.splice(index, 1);
     }
 }
