@@ -89,21 +89,4 @@ class SortUtils {
         });
         return events;
     }
-    getEventsWithCode(events, scheme, codeId) {
-        if (!scheme || codeId == "" || scheme == undefined || codeId == undefined)
-            return;
-        function hasSameCode(event) {
-            let decoration = event.decorationForName(scheme.id + "");
-            if (decoration != undefined) {
-                let eventCodeId = decoration.code != null ? decoration.code.id : "";
-                if (decoration.code != null && decoration.code.value == "Racism (judicial system)") {
-                    console.log("burek");
-                }
-                return eventCodeId == codeId;
-            }
-        }
-        let filtered = new SortUtils().sortEventsByScheme(events.slice(), scheme, false);
-        filtered = filtered.filter(hasSameCode);
-        return filtered;
-    }
 }

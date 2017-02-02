@@ -382,7 +382,6 @@ var messageViewerManager = {
         let sessionId = $(row).attr("sessionid");
         let eventId = $(row).attr("eventid");
 
-        //var eventObj = newDataset.sessions[sessionId]["events"][eventId];
         var eventObj = newDataset.events[eventId];
         var codeObj = schemes[schemeId].getCodeByValue(value);
 
@@ -395,6 +394,8 @@ var messageViewerManager = {
             } else {
                 decoration.code = schemes[schemeId].getCodeByValue(value);
                 decoration.manual = manual;
+                decoration.confidence = 0.98;
+                decoration.code.addEvent(eventObj);
             }
 
             selectElement.removeClass("uncoded");

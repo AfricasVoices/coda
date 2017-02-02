@@ -123,27 +123,4 @@ class SortUtils {
 
         return events;
     }
-
-    getEventsWithCode(events: Array<RawEvent>, scheme: CodeScheme, codeId: string): Array<RawEvent> {
-
-        if (!scheme || codeId == "" || scheme == undefined || codeId == undefined) return;
-
-        function hasSameCode(event: RawEvent): boolean {
-            let decoration = event.decorationForName(scheme.id + "");
-            if (decoration != undefined) {
-
-                let eventCodeId = decoration.code != null ? decoration.code.id : "";
-                if (decoration.code != null && decoration.code.value == "Racism (judicial system)") {
-                    console.log("burek");
-                }
-                return eventCodeId == codeId;
-            }
-        }
-
-        let filtered = new SortUtils().sortEventsByScheme(events.slice(), scheme, false);
-        filtered = filtered.filter(hasSameCode);
-
-        return filtered;
-    }
-
 }

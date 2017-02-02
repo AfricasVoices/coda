@@ -1,4 +1,5 @@
 RegExp.escape = function(text) {
+    text = text + "";
     return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 };
 
@@ -8,27 +9,46 @@ var regexMatcher = {
 
         if (events == undefined || !events || events.length == 0) return null;
 
-        let eventText = events.map((event => { return event["data"]}));
+        let eventTexts = events.map((event => { return event["data"]}));
+        eventTexts.sort();
+        eventTexts = eventTexts.filter((eventText, index) => {
+            return eventTexts.indexOf(eventText) === index;
+        });
 
-        return new RegExp(RegExp.escape(eventText.join("|")), 'i');
+        let uniqueEventTexts = eventTexts.map(eventText => { return RegExp.escape(eventText);});
+
+        return new RegExp(uniqueEventTexts.join("|"), 'i');
 
     },
 
     codeDataset: function (schemeId) {
 
+        schemeId = schemeId + "";
         let events = newDataset.events;
         let codes = schemes[schemeId].codes;
         var sortUtils = new SortUtils();
+        var eventWithCodeRegexes = {};
+        for (let code of codes.entries()) {
+            eventWithCodeRegexes[code[0]] = regexMatcher.generateFullTextRegex(code[1].eventsWithCode);
+        }
+
         for (let i = 0; i < events.length; i++) {
             for (let code of codes.entries()) {
 
-               // let textRegex = this.generateFullTextRegex(sortUtils.getEventsWithCode(events, schemes[schemeId], code[0]));
+                let fullTextRegex = eventWithCodeRegexes[code[0]];
+                if (fullTextRegex) {
+                    let fullTextMatch = fullTextRegex.exec(events[i].data);
+                    if (fullTextMatch) {
+                        this.codeEvent(events[i], code[1]);
+                        continue;
+                    }
+                }
 
                 let regex = this.generateOrRegex(code[1].words);
+                if (regex == null) continue;
+
                 let matchCount = new Map();
                 let matches;
-
-                if (regex == null) continue;
 
                 while (matches = regex.exec(events[i].data)) {
 
@@ -110,9 +130,11 @@ var regexMatcher = {
 
     codeEvent: function (eventObj, code, matchCount) {
         // support for a customised way of calculating confidence and assigning codes...
-        if (matchCount.size == 0) return eventObj;
 
         var eventDeco = eventObj.decorationForName(code.owner.id) == undefined ? null : eventObj.decorationForName(code.owner.id);
+
+        if (matchCount != undefined && matchCount.size == 0) return eventObj;
+
 
         if (eventDeco) {
             if (eventDeco["code"] != code) { // todo do we want more thorough checking???
@@ -120,22 +142,39 @@ var regexMatcher = {
 
                 if (!eventDeco.manual) {
                     // handle conflicting automatic codes
-                    // option - remove code! keep highlights + colors of the codes!
 
                     eventObj.uglify(activeSchemeId);
-                    // todo keep word buffers! per event!
+                    if (matchCount == undefined) {
+                        // override automatic coding because this is a duplicate of an already coded text
+                        eventObj.decorate(code.owner.id, false, code, 0.98);
+                    } else {
+                        // option - remove code! keep highlights + colors of the codes!
+                        // todo keep word buffers! per event!
+                    }
                 }
+
             } else {
+                //todo when does this ever happen?
                 if (eventDeco.manual == undefined || !eventDeco.manual) {
                     eventDeco.code = code;
                     eventDeco.manual = false;
+                    if (matchCount == undefined) {
+                        eventDeco.confidence = 0.98;
+                    } else {
+                        eventDeco.confidence = regexMatcher.confidenceMatchLen(eventObj.data, matchCount);
+                    }
                 }
             }
         }
         else {
 
-            // todo calculate the confidence better
-            eventObj.decorate(code.owner.id, false, code, regexMatcher.confidenceMatchLen(eventObj.data, matchCount));
+            if (matchCount == undefined) {
+                // was called because the text is a duplicate of some other already coded text
+                eventObj.decorate(code.owner.id, false, code, 0.98);
+            }
+            else {
+                eventObj.decorate(code.owner.id, false, code, regexMatcher.confidenceMatchLen(eventObj.data, matchCount));
+            }
 
         }
 
@@ -143,6 +182,7 @@ var regexMatcher = {
 
     confidenceMatchLen(text, matchCount) {
 
+        text = text + "";
         var matchLength = 0;
         for (let entry of matchCount.entries()) {
             matchLength += entry[0].length * entry[1].length;

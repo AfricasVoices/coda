@@ -28,7 +28,7 @@ $("body").hide();
 
 
 // USE EITHER sessions--.json or sessions-numbered-10000.json for just numbers
-$.getJSON("data/sessions--.json", function(data) {
+$.getJSON("data/sessions-numbered-10000.json", function(data) {
 
     // todo ensure ALL IDs are unique
     var buildDataset = function(data) {
@@ -41,7 +41,7 @@ $.getJSON("data/sessions--.json", function(data) {
             var events = [];
             Object.keys(data[sessionKey]["events"]).forEach(function(eventKey, index) {
                 //var event = new RawEvent(data[sessionKey]["events"][eventKey]["name"], sessionKey, data[sessionKey]["events"][eventKey]["timestamp"], "", data[sessionKey]["events"][eventKey]["data"]);
-                var event = new RawEvent(eventCount, sessionKey, data[sessionKey]["events"][eventKey]["timestamp"], "", data[sessionKey]["events"][eventKey]["data"]);
+                var event = new RawEvent(eventCount + "", sessionKey, data[sessionKey]["events"][eventKey]["timestamp"], "", data[sessionKey]["events"][eventKey]["data"]);
                 properDataset.events.push(event);
                 eventCount += 1;
 
@@ -51,14 +51,15 @@ $.getJSON("data/sessions--.json", function(data) {
 
                     if (!decorations.hasOwnProperty(d)) {
                         // TODO: how to do scheme ids
-                        schemes[sessionKey] = new CodeScheme(sessionKey, d, true);
-                        decorations[d] = sessionKey;
+                        let newSchemeId = UIUtils.randomId(Object.keys(schemes));
+                        schemes[newSchemeId] = new CodeScheme(newSchemeId, d, true);
+                        decorations[d] = newSchemeId;
                     }
 
                     if (decorationValue.length > 0) {
                         var scheme = schemes[decorations[d]];
                         if (!schemes[decorations[d]].getCodeValues().has(decorationValue)) {
-                            var newCodeId = sessionKey + "-" + UIUtils.randomId(Array.from(scheme.codes.keys()));
+                            var newCodeId = decorations[d] + "-" + UIUtils.randomId(Array.from(scheme.codes.keys()));
                             scheme.codes.set(newCodeId, new Code(scheme, newCodeId, decorationValue, "#ffffff", "", false));
                         }
 
