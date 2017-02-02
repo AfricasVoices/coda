@@ -137,9 +137,7 @@ var messageViewerManager = {
 
             var thumbPos = scrollbarManager.getThumbPosition();
 
-            if (schemeId == activeSchemeId) {
-                scrollbarManager.redraw(newDataset, schemeId);
-            }
+            scrollbarManager.redraw(newDataset, activeSchemeId);
             scrollbarManager.redrawThumb(thumbPos);
         }
         console.timeEnd("sort");
@@ -177,8 +175,7 @@ var messageViewerManager = {
             //let triangleIcon = "<a href='#' class='sort-button'><small><span class='glyphicon glyphicon-sort-by-order'></span></small></a>";
             let triangleIcon = "<a href='#' class='sort-button'><small><span class='glyphicon glyphicon-sort'></span></small></a>";
             let editButton = "<button type='button' class='btn btn-default btn-xs edit-scheme-button'><i class='glyphicon glyphicon-edit'></i></button>";
-            let columnDiv = "<div class='col-md-" + decoColumnWidth + "' scheme='" + schemeKey + "'>" + triangleIcon + "<i>" + schemes[schemeKey]["name"] + "</i>" + editButton + "</div>";
-
+            let columnDiv = "<div class='col-md-" + decoColumnWidth + "' scheme='" + schemeKey + "'>" + triangleIcon + "<i class='scheme-name'>" + schemes[schemeKey]["name"] + "</i>" + editButton + "</div>";
 
 
             var decoColumn = $("#header-decoration-column");
@@ -325,7 +322,7 @@ var messageViewerManager = {
 
         $("#header-decoration-column").find("i").not(".glyphicon").css("text-decoration", "");
         $(this).css("text-decoration", "underline");
-        activeSchemeId = $(this).parents("div").attr("scheme");
+        activeSchemeId = $(this).parents("div.scheme-col").attr("scheme");
         messageViewerManager.activeScheme = activeSchemeId;
 
         var schemeObj = schemes[activeSchemeId];
@@ -522,6 +519,28 @@ var messageViewerManager = {
         // TODO: warning message in case of empty codes
         if (scheme["codes"].size === 0) return;
 
+        var decorationCell = $("#header-decoration-column").find(".row");
+        var decoNumber = Object.keys(schemes).length;
+        var newDecoColumnWidth = (12/decoNumber>>0);
+        /*
+         Restructure the header
+         */
+
+        var div = ($("<div class='col-md-" + newDecoColumnWidth + " scheme-col' scheme='" + scheme["id"] + "'>" +
+            "<a href='#' class='sort-button'><small><span class='glyphicon glyphicon-sort'></span></small></a>" +
+            "<i class='scheme-name'>" + scheme["name"] + "</i>" +
+            "<button type='button' class='btn btn-default btn-xs edit-scheme-button'><i class='glyphicon glyphicon-edit'></i></button>" +
+            "</div>")).appendTo(decorationCell);
+
+        div.find("i.scheme-name").on("click", this.changeActiveScheme);
+        div.find("i.scheme-name").trigger("click");
+        this.bindEditSchemeButtonListener(div.find("button"), scheme);
+
+        decorationCell.children("div[class*=col-]").attr("class", "col-md-" + newDecoColumnWidth + ' scheme-col');
+
+        let sortButton = $("a");
+        sortButton.off("click");
+        sortButton.on("click", messageViewerManager.sortHandler);
 
         // TODO: sort the data to default order first??? or keep it?
 
@@ -544,50 +563,15 @@ var messageViewerManager = {
         activeRow.removeClass("active");
         activeRow = $(".message").first().addClass("active");
 
-
-
-        /*
-        Add decorations to datastructure
-         */
-        // TODO: happens already, move here
-        /*
-        newDataset.sessions.forEach(function(session) {
-            session.events.forEach(function(eventObj) {
-               eventObj.decorate(scheme["id"]);
-            });
-        });
-*/
-
-        var decorationCell = $("#header-decoration-column").find(".row");
-        var numberOfDecorations = decorationCell.find("div[class*=col-]").length + 1;
-        var newDecoColumnWidth = (12/numberOfDecorations>>0);
-
-        /*
-        Restructure the header
-         */
-
-        var div = ($("<div class='col-md-" + newDecoColumnWidth + "' scheme='" + scheme["id"] + "'><a href='#' class='sort-button'><small><span class='glyphicon glyphicon-sort'></span></small></a><i>" + scheme["name"] + "</i></div>")).appendTo(decorationCell);
-        var button = $("<button type='button' class='btn btn-default btn-xs edit-scheme-button'>" +
-        "<i class='glyphicon glyphicon-edit'>" +
-        "</i>" +
-        "</button>").appendTo(div);
-
-        div.children("i").on("click", this.changeActiveScheme);
-        div.children("i").trigger("click");
-        this.bindEditSchemeButtonListener(button, scheme);
-
-        decorationCell.find("div[class*=col-]").attr("class", "col-md-" + newDecoColumnWidth);
-
-        $("a").off("click");
-        $("a").on("click", messageViewerManager.sortHandler);
     },
 
     bindEditSchemeButtonListener: function(editButton, scheme) {
 
         var codeEditor = $("#code-editor");
+        var schemeId = scheme.id;
         $(editButton).on("click", function() {
 
-            let schemeId = $(this).parent().attr("scheme");
+            //let schemeId = $(this).parent().attr("scheme");
             scheme = schemes[schemeId];
             tempScheme = CodeScheme.clone(scheme);
 
@@ -835,8 +819,7 @@ var messageViewerManager = {
         messageViewerManager.codeSchemeOrder.forEach(function(schemeKey) {
 
             var codes = Array.from(newDataset.schemes[schemeKey].codes.values());
-            sessionRow += "<div class='col-md-" + decoColumnWidth + " deco-container' scheme='" + activeSchemeId + "'>";
-
+            sessionRow += "<div class='col-md-" + decoColumnWidth + " deco-container' scheme='" + schemeKey + "'>";
             var optionsString = "";
             var selectClass = "uncoded";
             var somethingSelected = false;

@@ -164,7 +164,7 @@ var codeEditorManager =  {
 
             // update header in message view
             var header = headerDecoColumn.find("[scheme='" + tempScheme["id"] + "']");
-            header.children("i").text(tempScheme["name"]);
+            header.find("i.scheme-name").text(tempScheme["name"]);
 
             // code and re-sort dataset
             regexMatcher.codeDataset(tempScheme["id"]);
