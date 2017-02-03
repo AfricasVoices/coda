@@ -27,8 +27,7 @@ $("#editor-row").css("height", codeEditorPanel.outerHeight(true) - codeEditorPan
 $("body").hide();
 
 
-// USE EITHER sessions--.json or sessions-numbered-10000.json for just numbers
-$.getJSON("data/sessions-numbered-10000.json", function(data) {
+$.getJSON("./data/sessions-numbered-10000.json", function(data) {
 
     // todo ensure ALL IDs are unique
     var buildDataset = function(data) {
@@ -64,7 +63,7 @@ $.getJSON("data/sessions-numbered-10000.json", function(data) {
                         }
 
                         var code = scheme.getCodeByValue(decorationValue);
-                        event.decorate(decorations[d], true, code); // has to use decorations[d] as scheme key
+                        event.decorate(decorations[d], true, code, 0.95); // has to use decorations[d] as scheme key
                     }
 
                     /* TODO  write tests for this */

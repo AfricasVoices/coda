@@ -175,7 +175,7 @@ var messageViewerManager = {
             //let triangleIcon = "<a href='#' class='sort-button'><small><span class='glyphicon glyphicon-sort-by-order'></span></small></a>";
             let triangleIcon = "<a href='#' class='sort-button'><small><span class='glyphicon glyphicon-sort'></span></small></a>";
             let editButton = "<button type='button' class='btn btn-default btn-xs edit-scheme-button'><i class='glyphicon glyphicon-edit'></i></button>";
-            let columnDiv = "<div class='col-md-" + decoColumnWidth + "' scheme='" + schemeKey + "'>" + triangleIcon + "<i class='scheme-name'>" + schemes[schemeKey]["name"] + "</i>" + editButton + "</div>";
+            let columnDiv = "<div class='col-md-" + decoColumnWidth + " scheme-col' scheme='" + schemeKey + "'>" + triangleIcon + "<i class='scheme-name'>" + schemes[schemeKey]["name"] + "</i>" + editButton + "</div>";
 
 
             var decoColumn = $("#header-decoration-column");
@@ -391,7 +391,7 @@ var messageViewerManager = {
             } else {
                 decoration.code = schemes[schemeId].getCodeByValue(value);
                 decoration.manual = manual;
-                decoration.confidence = 0.98;
+                decoration.confidence = 0.95;
                 decoration.code.addEvent(eventObj);
             }
 
@@ -447,71 +447,6 @@ var messageViewerManager = {
 
         let selectElement = $(event.target);
         messageViewerManager.dropdownChangeHandler(selectElement, manual);
-
-        /*
-        var schemeId = /form-control (.*) (uncoded|coded)/.exec(selectElement.attr("class"))[1];
-        let value = selectElement.val();
-        let row = selectElement.parents(".message");
-        let sessionId = $(row).attr("sessionid");
-        let eventId = $(row).attr("eventid");
-
-        var eventObj = newDataset.sessions[sessionId]["events"][eventId];
-        var codeObj = schemes[schemeId].getCodeByValue(value);
-
-        if (value.length > 0) {
-
-            // add decoration
-            let decoration = eventObj.decorationForName(schemeId);
-            if (decoration === undefined) {
-                eventObj.decorate(schemeId, schemes[schemeId].getCodeByValue(value));
-            } else {
-                decoration.code = schemes[schemeId].getCodeByValue(value);
-            }
-
-            selectElement.removeClass("uncoded");
-            selectElement.addClass("coded");
-
-            // set color
-            if (activeSchemeId === schemeId) {
-                let color = schemes[schemeId].getCodeByValue(value)["color"];
-                row.children("td").each(function(i, td) {
-                    $(td).css("background-color", color);
-                });
-            }
-
-
-            // if words in buffer, add to scheme dataset
-            if (messageViewerManager.wordBuffer.hasOwnProperty(sessionId)
-                && messageViewerManager.wordBuffer.hasOwnProperty(eventId)
-                && messageViewerManager.wordBuffer[sessionId][eventId].length > 0) {
-
-                codeObj.words = Object.keys(messageViewerManager.wordBuffer[sessionId][eventId]);
-                messageViewerManager.wordBuffer[sessionId][eventId] = {}
-            }
-
-
-        } else {
-
-            // remove code from event in data structure
-            eventObj.uglify(schemeId);
-
-            selectElement.removeClass("coded");
-            selectElement.addClass("uncoded");
-
-            if (activeSchemeId === schemeId) {
-                row.children("td").each(function (i, td) {
-                    $(td).css("background-color", "#ffffff");
-                });
-            }
-
-            // remove words from dataset, get words from message text
-            let words = $(row).find("td.message-text span.highlight").map(function(index, element) {
-                console.log($(element).text());
-                return $(element).text()});
-            //schemes[schemeId].deleteWords(words); // todo keep track which message is the origin of the added words... ?
-
-        }
-        */
     },
 
     addNewSchemeColumn: function(scheme) {
@@ -585,22 +520,10 @@ var messageViewerManager = {
                     codeEditorManager.addCodeInputRow(codeObj["value"], codeObj["shortcut"], codeObj["color"], codeObj["id"], codeObj["words"]);
                 });
 
-                /*
-                var index;
-                $(this).closest(".row").find("div").each(function(i, columnDiv) {
-                    if ($(columnDiv).text() === scheme["name"])
-                        index = i;
-                });
-                */
-
                 codeEditorManager.bindSaveEditListener();
 
                 $("#scheme-name-input").val(scheme["name"]);
 
-                /*
-                let textAreaParent = $("#word-textarea").parent();
-                textAreaParent.empty().append("<div id='word-textarea'></div>"); // in order to reinitialize tags interface
-                */
                 codeEditor.show();
 
 
@@ -625,7 +548,7 @@ var messageViewerManager = {
                     var sessionId = $(td).parent(".message").attr("sessionid");
                     var eventId = $(td).parent(".message").attr("eventid");
 
-                    newDataset.events[eventId].decorate(codeObj.owner["id"], true, codeObj);
+                    newDataset.events[eventId].decorate(codeObj.owner["id"], true, codeObj, 0.95);
 
                     var color = codeObj["color"];
                     if (color) {
@@ -795,7 +718,7 @@ var messageViewerManager = {
             var parentSchemeCodes = activeDecoration.code.owner.codes;
             if (!parentSchemeCodes.has(activeDecoration.code.id)) {
                 // in case the event object is still coded with a code that doesn't exist in the scheme anymore
-                eventObj.uglify(activeDecoration.name);
+                eventObj.uglify(activeDecoration.scheme_id);
 
             } else if (activeDecoration.code.color !== undefined) {
                 rowColor = activeDecoration.code.color;

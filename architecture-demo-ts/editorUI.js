@@ -166,12 +166,12 @@ var codeEditorManager =  {
             var header = headerDecoColumn.find("[scheme='" + tempScheme["id"] + "']");
             header.find("i.scheme-name").text(tempScheme["name"]);
 
+            // update the original scheme
+            schemes[tempScheme["id"]].copyCodesFrom(tempScheme);
+
             // code and re-sort dataset
             regexMatcher.codeDataset(tempScheme["id"]);
             newDataset.events = messageViewerManager.currentSort(newDataset.events, tempScheme, true);
-
-            // update the original scheme
-            schemes[tempScheme["id"]].copyCodesFrom(tempScheme);
 
             // redraw scrollbar
             const thumbPosition = scrollbarManager.getThumbPosition();

@@ -195,28 +195,6 @@ var scrollbarManager = {
 
         var colors = [];
 
-        /*
-        for (var i = 0; i < sessionData.length; i++) {
-            var numEvents = sessionData[i].events.length;
-            for (var j = 0; j < numEvents; j++) {
-
-                if (colors.length == this.subsamplingNum) {
-                    sampleColours.push(colors[UIUtils.randomInteger(0, colors.length-1)]);
-                    colors = [];
-                } else {
-                    if (sessionData[i]["events"][j]["decorations"].has(activeSchemeId) && sessionData[i]["events"][j]["decorations"].get(activeSchemeId)["code"] != null) {
-                        var color = sessionData[i]["events"][j]["decorations"].get(activeSchemeId)["code"]["color"];
-                        colors.push(color);
-                    } else {
-                        colors.push("#ffffff"); // todo: or some other default color
-                    }
-
-                }
-
-            }
-        }
-        */
-
         for (event of newDataset.events) {
             if (colors.length == this.subsamplingNum) {
                 sampleColours.push(colors[UIUtils.randomInteger(0, colors.length-1)]);
@@ -236,43 +214,11 @@ var scrollbarManager = {
 
     scrolling : function(scrollthumbLayer) {
 
-        /*
-         IDEA:
-         In the scrollbar each 1px line represents n data entries. If mapping is 1-1 then 1 line - 1 data entry, otherwise
-         subsampling was used so n > 1. The navigation rectangle is set to be 20px high, so it includes approx 20 x n data entries.
-
-         Additionally, for the purposes of lazy loading the table, the data is split into k-sized "pages". Only 2 * k data items
-         are ever present at the same time in the table. The number of data items present in the table at the same time and the
-         number of data items included in the scrollthumb are considerably different.
-
-         Consequently,
-         1) scrolling the table won't necessarily scroll the table
-         2) scrolling the scrollbar will have to jump multiple data pages
-         3) scrolling the scrollbar will have to load new pages in! The jumps are likely to be considerably big.
-
-
-         As a result, on each scroll of the scrollbar
-         1) determine at which pixel the scrollthumb is
-         2) figure out the sample of what data entries is that pixel
-         3) load in the pages that include the first 2 * k entries of that pixel. Alternatively, can pick and load from the middle
-         of the scrollthumb
-
-         */
-
-        // need to take into account the border of the scrollthumb! e.g. the only lines visible in the scrollthumb...
-
-        //var thumbTop = scrollthumbLayer.y + scrollbarManager.thumbWidth + Math.floor(scrollbarManager.thumbHeight/2); // for stroke width of the scrollthumb
         var thumbMid = scrollthumbLayer.y + scrollbarManager.thumbWidth + Math.floor(scrollbarManager.thumbHeight/2); // for stroke width of the scrollthumb
         var pageSize = messageViewerManager.rowsInTable;
         var rowsPerPixel = scrollbarManager.subsamplingNum;
 
-       // var firstItemInPixel = (thumbTop - 1) * rowsPerPixel;
-
         // todo need to take scaling into account
-        //var percentage = thumbTop == 6 ? 0 : Math.round((thumbTop / scrollbarManager.scrollbarEl.height) * 100 ) / 100; // force it to 0 if top is 6px displaced, 2px for border, 4px for scrollthumb
-        //var percentagePageToLoad = Math.floor((Math.floor(newDataset.events.length / messageViewerManager.rowsInTable) - 1) * percentage);
-        //var pageToLoadIndex = thumbTop <= 0 ? 0 : Math.floor(firstItemInPixel / pageSize);
-
         let percentage = scrollthumbLayer.y + scrollbarManager.thumbWidth == 6 ? 0 : Math.round(((thumbMid - 10) / (scrollbarManager.scrollbarEl.height-20) * 100 )) / 100; // force it to 0 if top is 6px displaced, 2px for border, 4px for scrollthumb
         let eventIndexToLoad = scrollthumbLayer.y > 2 ? Math.floor(newDataset.events.length * percentage) : 0;
         const halfPage = Math.floor(messageViewerManager.rowsInTable/2);
@@ -287,12 +233,6 @@ var scrollbarManager = {
         var page1 = messageViewerManager.createPageHTML(pagesToLoad);
         var page2 = messageViewerManager.createPageHTML(pagesToLoad+1);
         messageViewerManager.lastLoadedPageIndex = pagesToLoad + 1;
-
-        /*
-        var page1 = messageViewerManager.createPageHTML(percentagePageToLoad);
-        var page2 = messageViewerManager.createPageHTML(percentagePageToLoad+1);
-        messageViewerManager.lastLoadedPageIndex = percentagePageToLoad + 1;
-        */
 
         var tbodyElement = messageViewerManager.table.find("tbody");
         tbodyElement.empty();

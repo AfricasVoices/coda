@@ -16,8 +16,9 @@ var regexMatcher = {
         });
 
         let uniqueEventTexts = eventTexts.map(eventText => { return RegExp.escape(eventText);});
+        //return new RegExp('[\s]*(' + uniqueEventTexts.join('|') + ')[\s]*', 'ig');
 
-        return new RegExp(uniqueEventTexts.join("|"), 'i');
+        return new RegExp('^\s*(' + uniqueEventTexts.join('|') + ')[\s]*$', 'ig');
 
     },
 
@@ -33,13 +34,36 @@ var regexMatcher = {
         }
 
         for (let i = 0; i < events.length; i++) {
+
+            var event = events[i];
+            var confidences = new Map();
+            var decoration = event.decorationForName(schemeId);
+
             for (let code of codes.entries()) {
 
-                let fullTextRegex = eventWithCodeRegexes[code[0]];
+                var fullTextRegex = eventWithCodeRegexes[code[0]];
+
+
+                /*
+                if (decoration) {
+
+                    let manual = (decoration.manual && decoration.manual != undefined) ? decoration.manual : false;
+                    if (!manual) {
+                        if (fullTextRegex !== null && decoration.code !== null) {
+                            event.uglify(code[1].owner.id +"");
+                        }
+                    }
+                }
+                */
+
                 if (fullTextRegex) {
-                    let fullTextMatch = fullTextRegex.exec(events[i].data);
+                    let fullTextMatch = fullTextRegex.exec(event.data + "");
                     if (fullTextMatch) {
-                        this.codeEvent(events[i], code[1]);
+
+                        confidences.set(code[0], {"conf":0.95});
+                        confidences.get(code[0]).isKeywordMatch = false;
+                        confidences.get(code[0]).isFullTextMatch = true;
+                        //this.codeEvent(events[i], code[1]);
                         continue;
                     }
                 }
@@ -50,7 +74,7 @@ var regexMatcher = {
                 let matchCount = new Map();
                 let matches;
 
-                while (matches = regex.exec(events[i].data)) {
+                while (matches = regex.exec(event.data + "")) {
 
                     if (matchCount.has(matches[0])) {
                         let matchPosArr = matchCount.get(matches[0]);
@@ -60,57 +84,70 @@ var regexMatcher = {
                     }
                 }
 
-                this.codeEvent(newDataset.events[i], code[1], matchCount);
+                confidences.set(code[0], {"conf":regexMatcher.confidenceMatchLen(event.data, matchCount)});
+                confidences.get(code[0]).isKeywordMatch = matchCount.size !== 0;
+                confidences.get(code[0]).isFullTextMatch = false;
+
+
+                //this.codeEvent(newDataset.events[i], code[1], matchCount);
+            }
+
+            var maxConfEntry = null;
+            for (let entry of confidences.entries()) {
+                if (!maxConfEntry) maxConfEntry = entry;
+                if (entry[1].conf > maxConfEntry[1].conf) maxConfEntry = entry;
+            }
+
+
+            if (decoration) {
+                let manual = (decoration.manual && decoration.manual != undefined) ? decoration.manual : false;
+
+                if (!maxConfEntry) {
+                    if (decoration.code) {
+                        event.uglify(schemeId);
+                    }
+
+                    continue;
+                }
+
+
+                if (maxConfEntry[1].conf == 0 && !manual && decoration.code) {
+                    // no coding matches anymore
+                    event.uglify(schemeId);
+                    continue;
+                }
+
+                if (!manual && maxConfEntry[1].conf != decoration.confidence) {
+                    if (decoration.code) {
+                        event.uglify(schemeId);
+                        event.decorate(schemeId, false, codes.get(maxConfEntry[0]), maxConfEntry[1].conf);
+                    } else {
+                        decoration.confidence = maxConfEntry[1].conf;
+                        decoration.code = codes.get(maxConfEntry[0]);
+                        decoration.manual = false;
+                    }
+                }
+            } else {
+                if (!maxConfEntry) continue;
+
+                if (maxConfEntry[1].conf > 0) {
+                    event.decorate(schemeId, false, codes.get(maxConfEntry[0]), maxConfEntry[1].conf);
+                }
 
             }
+
+
+
         }
-
     },
-
-
 
     generateOrRegex: function (wordArray) {
 
         if (wordArray.length == 0 || wordArray == null) return null;
 
-        return new RegExp('\\b(' + wordArray.join('|') + ')\\b', 'ig');
-    },
-
-    findMatches: function (keywords, text, visibleRange, eventIndex) {
-
-        // todo what kind of stats are we interested in here?
-        /*
-         Options:
-         a) match  vs no match
-         b) total number of matches - regardless of keyword
-         c) number of keywords matched
-         d) what keyword was matched how many times
-
-         */
-
-        console.log("find regex matches");
-        //let keywords = code.words;
-        let regex = this.generateOrRegex(keywords);
-        let matchCount = new Map();
-        let matches;
-
-        while (matches = regex.exec(text)) {
-
-            if (matchCount.has(matches[0])) {
-                let matchPosArr = matchCount.get(matches[0]);
-                matchPosArr.push(matches.index);
-            } else {
-                matchCount.set(matches[0], [matches.index]);
-            }
-        }
-
-        this.codeEvent(newDataset.events[i], entry[1], matchCount);
-
-
-        //callback(i,matchCount);
-        regexMatcher.codeEvent(newDataset.events[i], schemes["1"].getCodeByValue("Incoming"), matchCount);
-
-        console.timeEnd("find regex matches");
+        //return new RegExp('\\b(' + wordArray.join('|') + ')\\b', 'ig');
+        //return new RegExp('[\s]*(' + wordArray.join('|') + ')[\s]*', 'ig');
+        return new RegExp('[\s]*[\#]?(' + wordArray.join('|') + ')[\.\,\-\?\)\]*[\s]*', 'ig');
 
     },
 
@@ -131,13 +168,11 @@ var regexMatcher = {
     codeEvent: function (eventObj, code, matchCount) {
         // support for a customised way of calculating confidence and assigning codes...
 
-        var eventDeco = eventObj.decorationForName(code.owner.id) == undefined ? null : eventObj.decorationForName(code.owner.id);
-
+        var eventDeco = eventObj.decorationForName(code.owner.id + "") == undefined ? null : eventObj.decorationForName(code.owner.id + "");
         if (matchCount != undefined && matchCount.size == 0) return eventObj;
 
-
         if (eventDeco) {
-            if (eventDeco["code"] != code) { // todo do we want more thorough checking???
+            if (eventDeco["code"] && eventDeco["code"] != code) { // todo do we want more thorough checking???
                 // conflict of coding
 
                 if (!eventDeco.manual) {
@@ -146,7 +181,7 @@ var regexMatcher = {
                     eventObj.uglify(activeSchemeId);
                     if (matchCount == undefined) {
                         // override automatic coding because this is a duplicate of an already coded text
-                        eventObj.decorate(code.owner.id, false, code, 0.98);
+                        eventObj.decorate(code.owner.id + "", false, code, 0.95);
                     } else {
                         // option - remove code! keep highlights + colors of the codes!
                         // todo keep word buffers! per event!
@@ -159,7 +194,7 @@ var regexMatcher = {
                     eventDeco.code = code;
                     eventDeco.manual = false;
                     if (matchCount == undefined) {
-                        eventDeco.confidence = 0.98;
+                        eventDeco.confidence = 0.95; // todo not sure if this is necessary
                     } else {
                         eventDeco.confidence = regexMatcher.confidenceMatchLen(eventObj.data, matchCount);
                     }
@@ -170,10 +205,10 @@ var regexMatcher = {
 
             if (matchCount == undefined) {
                 // was called because the text is a duplicate of some other already coded text
-                eventObj.decorate(code.owner.id, false, code, 0.98);
+                eventObj.decorate(code.owner.id +"", false, code, 0.95);
             }
             else {
-                eventObj.decorate(code.owner.id, false, code, regexMatcher.confidenceMatchLen(eventObj.data, matchCount));
+                eventObj.decorate(code.owner.id + "", false, code, regexMatcher.confidenceMatchLen(eventObj.data, matchCount));
             }
 
         }
@@ -190,7 +225,7 @@ var regexMatcher = {
 
         let textLenNoSpaces = text.replace(/ /g, "").length;
 
-        return matchLength/textLenNoSpaces;
+        return (matchLength/textLenNoSpaces > 0.95) ? 0.95 : matchLength/textLenNoSpaces;
     },
 
     unwrapHighlights: function (eventRowParagraph) {
@@ -216,7 +251,7 @@ var regexMatcher = {
 
         // event object matching this text
         var eventEl = $("#" + eventObj.name).find(".message-text");
-        while (matches = regex.exec(eventObj.data)) {
+        while (matches = regex.exec(eventObj.data + "")) {
 
             if (matchCount.has(matches[0])) {
                 let matchPosArr = matchCount.get(matches[0]);
@@ -237,71 +272,8 @@ var regexMatcher = {
             textNode = newNode;
             prevMatchOffset = matches.index + matches[0].length;
 
-
         }
 
         return matchCount;
-    },
-
-
-    highlightKeywords: function (range, surroundingEl, surroundingClass) {
-
-        return function (i, matches) {
-            if (i >= range[0] && i < range[1]) {
-
-                let eventObj = newDataset.events[i];
-                let eventId = eventObj.id;
-                let sessionId = eventObj.owner;
-
-                var eventEl = $("#" + eventObj.name).find(".message-text");
-                var eventElTxt = eventEl.find("p").text();
-                var newText = "";
-                var prev = 0;
-                var matchLen = 0;
-
-                for (let match of matches.entries()) {
-                    var textNode = textNode || eventEl.find("p").contents()[0].splitText(match[1][0]);
-
-
-                    let wrapperL = (surroundingClass != undefined) ? ("<" + surroundingEl + " class='" + surroundingClass + ">") : "<span>";
-                    let wrapperR = "</" + surroundingEl + ">";
-
-                    for (let index of match[1]) {
-                        let newNode = textNode.splitText(matchLen + match[0].length);
-                        let newSpan = document.createElement(surroundingEl);
-                        newSpan.setAttribute("class", surroundingClass);
-                        newSpan.textContent = textNode.textContent;
-                        textNode.parentNode.replaceChild(newSpan, textNode);
-
-                        textNode = newNode;
-
-                        newText += eventElTxt.substring(prev, index);
-                        newText += wrapperL + match[0] + wrapperR;
-                        prev = index + match[0].length;
-                        matchLen += match[0].length;
-                    }
-
-                    if (prev < eventElTxt.length - 1) {
-                        newText += eventElTxt.substring(prev);
-                    }
-                }
-
-
-                let repl = document.createElement(hEl);
-                repl.setAttribute("data-markjs", "true");
-                if (surroundingClass) {
-                    repl.setAttribute("class", surroundingClass);
-                }
-                repl.textContent = startNode.textContent;
-                startNode.parentNode.replaceChild(repl, startNode);
-
-                eventEl.empty();
-                eventEl.append($.parseHTML("<p>" + newText + "</p>"));
-
-            }
-
-
-        }
-
     }
 }

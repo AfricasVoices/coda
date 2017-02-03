@@ -217,7 +217,8 @@ class EventDecoration {
       this.owner = owner;
       this.scheme_id = id;
       this.manual = manual;
-      (confidence == undefined) ? this.confidence = 0.98 : this.confidence = confidence;
+
+      (confidence == undefined) ? this.confidence = 0 : this.confidence = confidence; // not sure this is a good idea
 
       if (code) {
           code.addEvent(owner);
@@ -493,5 +494,12 @@ class Code {
         let index = this._eventsWithCode.indexOf(event);
         if (index == -1) return;
         this._eventsWithCode.splice(index,1);
+    }
+
+    getEventsWithText(text: string) {
+        return this._eventsWithCode.filter(event => {
+            let decoration = event.decorationForName(this._owner.id);
+            if (decoration == undefined) return false;
+            return !decoration.manual && (event.data + "") === text});
     }
 }
