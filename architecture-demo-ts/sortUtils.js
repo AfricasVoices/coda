@@ -37,13 +37,14 @@ class SortUtils {
                             return deco1.confidence - deco2.confidence || parseInt(e1.name) - parseInt(e2.name);
                         }
                         else {
-                            return -1;
+                            return 1;
                         }
                     }
                     else if (deco2.manual != undefined && deco2.manual) {
-                        return 1;
+                        return -1;
                     }
                     else {
+                        // both automatic
                         return deco1.confidence - deco2.confidence || parseInt(e1.name) - parseInt(e2.name);
                     }
                 }
@@ -51,7 +52,8 @@ class SortUtils {
                     return 0;
             }
             // both have assigned codes that are different
-            return code1 - code2; // todo sort ascending by index of code, which is arbitrary - do we enforce an order?
+            //return code1 - code2; // todo sort ascending by index of code, which is arbitrary - do we enforce an order?
+            return parseInt(e1.name) - parseInt(e2.name);
         });
         return events;
     }

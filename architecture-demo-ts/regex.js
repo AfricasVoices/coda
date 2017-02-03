@@ -76,11 +76,11 @@ var regexMatcher = {
 
                 while (matches = regex.exec(event.data + "")) {
 
-                    if (matchCount.has(matches[0])) {
-                        let matchPosArr = matchCount.get(matches[0]);
+                    if (matchCount.has(matches[1])) {
+                        let matchPosArr = matchCount.get(matches[1]);
                         matchPosArr.push(matches.index);
                     } else {
-                        matchCount.set(matches[0], [matches.index]);
+                        matchCount.set(matches[1], [matches.index]);
                     }
                 }
 
@@ -145,7 +145,7 @@ var regexMatcher = {
 
         if (wordArray.length == 0 || wordArray == null) return null;
 
-        return new RegExp('[\s]*[\#]?\b(' + wordArray.join('|') + ')[\.\,\-\?\)\]*[\s]*', 'ig');
+        return new RegExp('[\\s]*[\#]?\\b(' + wordArray.join('|') + ')[\.\,\-\?\)\]*[\\s]*', 'ig');
 
     },
 

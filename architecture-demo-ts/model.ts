@@ -72,14 +72,20 @@ class Dataset {
                             if (deco2.manual != undefined && deco2.manual) {
                                 return deco1.confidence - deco2.confidence || parseInt(e1.name) - parseInt(e2.name);
                             } else {
-                                return -1;
+                                return 1;
                             }
                         } else if (deco2.manual != undefined && deco2.manual) {
-                            return 1;
+                            return -1;
                         } else {
                             return deco1.confidence - deco2.confidence || parseInt(e1.name) - parseInt(e2.name);
                         }
 
+                    } else if (deco1.confidence == null && deco2.confidence == null) {
+                        return parseInt(e1.name) - parseInt(e2.name);
+                    } else if (deco1.confidence == null) {
+                        return -1;
+                    } else if (deco2.confidence == null) {
+                        return 1;
                     }
                     // something went wrong and one item doesn't have a confidence!
                     else return 0;

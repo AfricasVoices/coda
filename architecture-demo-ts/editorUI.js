@@ -171,7 +171,16 @@ var codeEditorManager =  {
 
             // code and re-sort dataset
             regexMatcher.codeDataset(tempScheme["id"]);
-            newDataset.events = messageViewerManager.currentSort(newDataset.events, tempScheme, true);
+            //newDataset.events = messageViewerManager.currentSort(newDataset.events, tempScheme, true);
+            if (messageViewerManager.currentSort == messageViewerManager.sortUtils.sortEventsByConfidenceOnly) {
+                newDataset.sortEventsByConfidenceOnly(tempScheme["id"]);
+            }
+            if (messageViewerManager.currentSort == messageViewerManager.sortUtils.sortEventsByScheme) {
+                newDataset.sortEventsByScheme(tempScheme["id"], true);
+            }
+            if (messageViewerManager.currentSort == messageViewerManager.sortUtils.restoreDefaultSort) {
+                newDataset.restoreDefaultSort();
+            }
 
             // redraw scrollbar
             const thumbPosition = scrollbarManager.getThumbPosition();

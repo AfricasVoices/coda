@@ -67,7 +67,8 @@ var messageViewerManager = {
         $("#message-table").dblclick(function(event) {
            if (event.originalEvent.target.className === "highlight") {
                // open editor
-               $(".edit-scheme-button").trigger("click");
+               let scheme = $(event.originalEvent.target).attr("codeid").split("-")[0];
+               $(".scheme-col[scheme='" + scheme + "']").find(".edit-scheme-button").trigger("click");
            }
 
         });
@@ -440,6 +441,33 @@ var messageViewerManager = {
             //schemes[schemeId].deleteWords(words); // todo keep track which message is the origin of the added words... ?
 
         }
+
+        if (messageViewerManager.currentSort == messageViewerManager.sortUtils.sortEventsByConfidenceOnly) {
+            newDataset.sortEventsByConfidenceOnly(schemeId);
+        }
+        if (messageViewerManager.currentSort == messageViewerManager.sortUtils.sortEventsByScheme) {
+            newDataset.sortEventsByScheme(schemeId, true);
+        }
+        if (messageViewerManager.currentSort == messageViewerManager.sortUtils.restoreDefaultSort) {
+            newDataset.restoreDefaultSort();
+        }
+
+        let tbody = "";
+        let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
+
+        let iterationStop = messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.events.length ? newDataset.events.length : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
+
+        for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < iterationStop; i++) {
+            tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
+        }
+
+        $(messageViewerManager.table.find("tbody").empty()).append(tbody);
+        // todo adjust scroll offset appropriately!
+
+        var thumbPos = scrollbarManager.getThumbPosition();
+
+        scrollbarManager.redraw(newDataset, activeSchemeId);
+        scrollbarManager.redrawThumb(thumbPos);
 
     },
 
