@@ -145,9 +145,7 @@ var regexMatcher = {
 
         if (wordArray.length == 0 || wordArray == null) return null;
 
-        //return new RegExp('\\b(' + wordArray.join('|') + ')\\b', 'ig');
-        //return new RegExp('[\s]*(' + wordArray.join('|') + ')[\s]*', 'ig');
-        return new RegExp('[\s]*[\#]?(' + wordArray.join('|') + ')[\.\,\-\?\)\]*[\s]*', 'ig');
+        return new RegExp('[\s]*[\#]?\b(' + wordArray.join('|') + ')[\.\,\-\?\)\]*[\s]*', 'ig');
 
     },
 
