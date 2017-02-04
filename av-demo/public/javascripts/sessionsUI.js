@@ -26,33 +26,19 @@ d3.json("../models/sessions.json", function(data) {
 
     dataset = data;
 
-    var headerLabels = ["session_id", "timestamp", "data"];
+    var dataHeaderLabels = ["session_id", "timestamp", "data"];
+    var codeHeaderLabels = [];
     var event = data[Object.keys(data)[0]]["events"][0];
 
     Object.keys(event["decorations"]).forEach(function(decoKey) {
-        headerLabels.push(decoKey);
+        codeHeaderLabels.push(decoKey);
         eventDecoOrder.push(decoKey);//if (eventDecoOrder.indexOf(decoKey) === -1) eventDecoOrder.push(decoKey);
         eventDecoLabels[decoKey] = [];//if (!eventDecoLabels.hasOwnProperty(decoKey)) eventDecoLabels[decoKey] = [];
     });
 
+    //codeHeaderLabels.push("");
+
     Object.keys(data).forEach(function(key) { extractLabels(data[key]);});
-
-    d3.select("td[id='type-labels']").selectAll("a").data(eventDecoLabels["type"]).enter()
-        .append("a")
-        .attr("class", "ui orange circular label")
-        .text(function(d) {return d;});
-
-    $(".button").on("click", (function(event) {
-        eventDecoLabels["type"].push($("#type-label-input").val());
-        d3.select("td[id='type-labels']").selectAll("a").data(eventDecoLabels["type"]).enter()
-            .append("a")
-            .attr("class", "ui orange circular label")
-            .text(function(d) {return d;})
-            .each(function(a) {
-                $(".selection").children("select").append("<option>" + a +"</option>");
-            });
-    }));
-
 
     var flattenSession = function(session) {
         var flat = [];
@@ -104,56 +90,266 @@ d3.json("../models/sessions.json", function(data) {
     }
 
 
-
+    /*
+        Structure
+     */
 
     var table = d3.select("#table-container").append("table")
-        .attr("class", "ui selectable celled table")
-        .append("thead").append("tr");
+        //.attr("class", "ui selectable celled table")
+            .attr("class", "table table-fixed")
+        .append("thead")
+            //.attr("class", "ui fixed top sticky")
+        .append("tr");
 
-    var header = table.selectAll("th").data(headerLabels).enter()
+    /*
+    $('.ui.sticky')
+        .sticky()
+    ;
+    */
+
+    var header = table.selectAll("th").data(dataHeaderLabels).enter()
         .append("th")
-        .text(function (d) {return d});
+        .text(function (d) {return d})
+        //.attr("class", "data header");
+        .attr("class", function(el, i) {
+            if (i == 0) {
+                return "col-md-2";
+            }
+
+            if (i == 1) {
+                return "col-md-2";
+            }
+
+            if (i == 2) {
+                return "col-md-5";
+            }
+
+            if (i == 3) {
+                return "col-md-3";
+            }
+        });
+
+    var allHeaders = dataHeaderLabels.concat(codeHeaderLabels);
+    table.selectAll("th").data(allHeaders).enter()
+        .append("th")
+        .text(function (d) {return d})
+        .attr("class", function(el, i) {
+            var className;
+            i == allHeaders.length-1 ? className = "col-md-1": className = "col-md-3";
+            return className;
+        });
+        /*.attr("id", function(el, i) {
+            var className;
+            i == allHeaders.length-1 ? className = "extra header": className = "code header " + i;
+            return className;
+        });*/
+
+    //d3.select(".extra.header").append("button").attr("class", "ui icon button").append("i").attr("class", "plus icon");
+    /*d3.select("#extra.header").append("button")
+            .attr("class", "btn btn-default")
+            .attr("type", "button")
+        .append("span")
+            .attr("class", "glyphicon glyphicon-plus")
+            .attr("aria-hidden","true");
+            */
 
     var body = d3.select("table").append("tbody")
         .selectAll("tr").data(createEventRows(Object.keys(data))).enter()
         .append("tr")
-        .attr("session-id", function(row) {return row.__sessionID__;})
-        .attr("event-index", function(row,i) {return row.__eventIndex__;})
-        .attr("row", function(row,i) {return i;})
+            .attr("session-id", function(row) {return row.__sessionID__;})
+            .attr("event-index", function(row,i) {return row.__eventIndex__;})
+            .attr("row", function(row,i) {return i;})
         .selectAll("td").data(function (sessionData) {
             var trueKeys = Object.keys(sessionData).filter(key => !key.endsWith("_"));
             return trueKeys.map(key => [sessionData[key], sessionData.__sessionID__]);
         }).enter()
         .append("td")
-        .attr("id", function(cell,i) {return cell[1] + "-" + headerLabels[i] + "-" + i;})
-        .each(function (cell, i) {
-            if (eventDecoOrder.indexOf(headerLabels[i]) ===-1) {
-                d3.select(this).text(cell[0])
-                    .attr("empty", cell[0] === "" ? "" : null)
-                    .attr("full", cell[0] !== "" ? "" : null);
-            } else {
-                d3.select(this).append("select")
-                    .attr("class", "ui search dropdown")
-                    .selectAll("option").data(eventDecoLabels[headerLabels[i]]).enter()
-                    .append("option")
-                    .attr("value", function (d) { return d; })
-                    .text(function (d) { return d; })
-                    .attr("picked", function(d) {
-                        return cell[0] === d ? "" : null;});
-            }
+            .attr("id", function(cell,i) {return cell[1] + "-" + allHeaders[i] + "-" + i;})
+            //.attr("class", function(cell,i) {return "data cell " + allHeaders[i];})
+            .attr("class", function(cell,i) {
+                if (i == 0) {
+                    return "col-md-2";
+                }
+
+                if (i == 1) {
+                    return "col-md-2";
+                }
+
+                if (i == 2) {
+                    return "col-md-5";
+                }
+
+                if (i == 3) {
+                    return "col-md-3";
+                }
+            })
+
+               // return "data cell " + allHeaders[i];})
+            .each(function (cell, i) {
+                if (eventDecoOrder.indexOf(allHeaders[i]) ===-1) {
+                    d3.select(this).text(cell[0])
+                        .attr("empty", cell[0] === "" ? "" : null)
+                        .attr("full", cell[0] !== "" ? "" : null);
+                } else {
+                    /*
+                    d3.select(this).append("select")
+                        .attr("class", "ui search dropdown")
+                        .selectAll("option").data(eventDecoLabels[allHeaders[i]]).enter()
+                        .append("option")
+                        .attr("value", function (d) { return d; })
+                        .text(function (d) { return d; })
+                        .attr("picked", function(d) {
+                            return cell[0] === d ? "" : null;});
+                      */
+
+                    d3.select(this).append("select")
+                        .attr("class", "form-control")
+                        .selectAll("option").data(eventDecoLabels[allHeaders[i]]).enter()
+                        .append("option")
+                        .attr("value", function (d) { return d; })
+                        .text(function (d) { return d; })
+                        .attr("picked", function(d) {
+                            return cell[0] === d ? "" : null;});
+
+
+
+                }
         });
+
+    //d3.select("tbody").selectAll("tr").append("td").attr("class","extra cell col-md-1");
 
     d3.selectAll("option[picked]").each(function() {
         var currentPicked = this;
-        $(this).parents("select").dropdown("set selected", $(this).attr("value"));
+        // $(this).parents("select").dropdown("set selected", $(this).attr("value")); // semantic ui
+        $(this).prop("selected",true); // bootstrap
+
     });
     //d3.selectAll("td[empty]").each(function() {d3.select(this).attr("class","warning");})
-    d3.selectAll("td[full]").each(function(empty,i) {
+   /* d3.selectAll("td[full]").each(function(empty,i) {
         (+$(this).parents("tr").attr("session-id") % 2) == 0 ? d3.select(this).attr("class","negative") : d3.select(this).attr("class","positive");
+    });*/
+
+    /*
+        Interaction
+     */
+
+    /*
+    $(".extra").on("click", function(cell) {
+       // open editor
+        var popup = window.open("", "", "width=480,height=480,resizeable,scrollbars"),
+            table = document.getElementById("editor"),
+            head = document.getElementsByTagName("head")[0],
+            script = document.createElement("script");
+
+        script.src = "/javascripts/editorUI.js";
+
+        popup.document.write(head.outerHTML);
+       //popup.document.write(table.outerHTML);
+        popup.document.write(script.outerHTML);
+        popup.document.close();
+        if (window.focus)
+            popup.focus();
+    });
+    */
+
+    $("#add-code").on("click", function() {
+        addCodeRow("");
+    });
+
+    $(".extra").on("click", function(cell) {
+        $("#editor").find("tbody").find("tr").remove();
+        $('.modal')
+            .modal('show');
     });
 
     $("#save").on("click", function(event){
-        saveJSON('/sessions/save');
+        var newCodeContainers = $("#editor > tbody").find("tr").find(".code").find("input");
+        var codes = []
+        newCodeContainers.each(function(index,code) {
+            codes.push($(code).attr("value"));
+        });
+
+        eventDecoLabels[$(".modal").attr("id")] = codes;
+
+        var dropdowns = $(".cell." + $(".modal").attr("id")).find("select");
+        dropdowns.each(function(index, dropdown) {
+            $(dropdown).find("option").remove();
+            codes.forEach(function(code) {
+                $(dropdown).append("<option>" + code + "</option>");
+            });
+        });
+    });
+
+    $(".code.header").on("click", function(event) {
+        $("#editor").find("tbody").find("tr").remove();
+        var codeName = $(this).text();
+        $(".modal").attr("id", codeName);
+        var codes = eventDecoLabels[codeName];
+        codes.forEach(function(code) {
+            addCodeRow(code);
+        });
+
+        $(".code").hover(
+            function(event) {
+                if ($(this).has(".disabled").length != 0) {
+                    $(this).children().has(".edit").show();
+                }
+            }, function(event) {
+                $(this).children().has(".edit").hide();
+            });
+
+        $(".shortcut").hover(
+            function(event) {
+                if ($(this).has(".disabled").length != 0) {
+                    $(this).children().has(".edit").show();
+                }
+            }, function(event) {
+                $(this).children().has(".edit").hide();
+            });
+
+/*
+        $(".icon.button").has(".checkmark").on("click", function(event) {
+            $(this).hide();
+            $(this).siblings(".button").hide();
+            $(this).siblings(".input").toggleClass("disabled");
+            $(this).siblings(".input").toggleClass("focus");
+
+            var newValue =  $(this).siblings(".input").find("input").val();
+            $(this).siblings(".input").find("input").attr("value", newValue);
+
+        });
+
+        $(".icon.button").has(".remove").on("click", function(event) {
+            $(this).hide();
+            $(this).siblings(".button").hide();
+            $(this).siblings(".input").toggleClass("disabled");
+            $(this).siblings(".input").toggleClass("focus");
+
+            var oldValue =  $(this).siblings(".input").find("input").attr("value");
+            $(this).siblings(".input").find("input").val(oldValue);
+
+        });
+
+        $(".icon.button").has(".edit").on("click", function(event) {
+            $(this).hide();
+            $(this).siblings(".button").show();
+            $(this).siblings(".input").toggleClass("disabled");
+            $(this).siblings(".input").toggleClass("focus");
+
+            var input = $(this).siblings(".input").find(".code-input");
+
+             if (input.length == 0) {
+                input = $(this).siblings(".input").find(".shortcut-input");
+             }
+
+            input[0].selectionStart = input[0].selectionEnd = input.val().length;
+
+        });
+*/
+        $('.modal')
+            .modal('show')
+        ;
+
     });
 
 

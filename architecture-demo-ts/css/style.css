@@ -1,0 +1,195 @@
+.table-fixed thead {
+  width: 100%;
+}
+.table-fixed tbody { /* TODO Scrollbar actually appears on #message-panel */
+  overflow-y: scroll;
+  width: 100%;
+}
+
+thead {
+  border-top: none;
+  border-bottom: none;
+  background-color: #FFF;
+}
+
+body {
+  padding-top: 65px;
+}
+
+.container>.row, .container-fluid>.row {
+  height: 80vh; /* TODO: will be calculated */
+}
+
+div[class*=col-], #message-panel {
+  height: 100%;
+}
+
+#message-panel {
+  height: 97%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+#message-panel::-webkit-scrollbar {
+  width: 0px;   /* remove scrollbar space */
+  background: transparent;   /* optional: just make scrollbar invisible */
+}
+
+#pagination-nav {
+  text-align: right;
+}
+
+.pagination {
+  margin: 2px 0;
+}
+
+
+#close-editor {
+  float: right;
+}
+
+#code-editor {
+  z-index: 1;
+  position: fixed !important;
+  bottom: 0;
+  right: 0;
+  width: 550px;
+
+  /* position: relative; */
+}
+
+#button-row {
+  position:absolute;
+  bottom: 0px;
+  margin-bottom: 10px;
+}
+
+#code-editor-panel {
+  overflow: hidden;
+  top: auto !important;
+  bottom: 0 !important;
+  position:relative;
+  height: 500px;
+  margin-bottom: 0px;
+}
+
+#scheme-save-button {
+  margin-left: 30px;
+}
+
+.panel-heading > h4, .panel-heading > span {
+  margin-bottom: 10px;
+  margin-top: 10px;
+}
+
+.panel-heading > button {
+  margin-left: 10px;
+}
+
+.edit-scheme-button {
+  margin-left: 5px;
+}
+
+
+
+#editor-row, #panel-row {
+  margin: 0px;
+}
+
+#editor-row {
+  overflow-y: scroll;
+  padding: 0px 10px 10px 10px;
+}
+
+#panel-row > .panel {
+  padding-bottom: 10px;
+  height: 100%;
+}
+
+#panel-row {
+  height: 155px;
+  /* padding-bottom: 44px; */
+  bottom: 50px;
+  position: absolute;
+  width: 100%;
+  padding: 10px 10px 0px 10px;
+}
+
+tr.active.message > td {
+  /* background-color: #b6b5b5 !important; */
+
+}
+
+tr.active {
+  border-left: 30px solid black;
+}
+
+tr.active.code-row > td {
+  background-color: transparent !important;
+}
+
+.highlight {
+  background-color: rgba(157, 157, 157, 1);
+  border: 1px solid black;
+}
+
+.highlight:hover {
+  background-color: rgba(157, 157, 157, 0.5);
+}
+
+#color-pick {
+  margin-bottom: 5px;
+}
+
+.sort-button {
+  margin-right: 5px;
+}
+
+.sort-button > small > span.active {
+  border: 1px solid;
+}
+
+#scrollthumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+#code-details-panel {
+  overflow-y: scroll;
+}
+
+
+
+#word-list > .panel-heading {
+  padding: 5px 15px;
+  background-color: rgb(242,242,242);
+}
+
+#word-list {
+  margin-bottom: 0;
+}
+
+#regex-edit {
+  margin-bottom: 5px;
+}
+
+#word-textarea {
+  padding-bottom: 0 !important;
+}
+
+.bootstrap-tagsinput {
+  width: 100%;
+  padding: 2px 6px 3px;
+}
+
+/*
+
+ */
+select[disabled] {
+  -webkit-appearance:none;
+}
+
+/*
+TODO prevent code header column wrapping to next row - keep button always on top and hide the excess text
+*/

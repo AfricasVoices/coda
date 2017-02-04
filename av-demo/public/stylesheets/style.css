@@ -1,16 +1,15 @@
-body {
-  padding: 50px;
-  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+.table-fixed thead {
+  width: 97%;
 }
-
-<!--#table-container {
-  <!--width: 70%;
+.table-fixed tbody {
+  height: 500px;
   overflow-y: auto;
-  height: 100vh -->
-}-->
-
-
-
-a {
-  color: #00B7FF;
+  width: 100%;
+}
+.table-fixed thead, .table-fixed tbody, .table-fixed tr, .table-fixed td, .table-fixed th {
+  display: block;
+}
+.table-fixed tbody td, .table-fixed thead > tr> th {
+  float: left;
+  border-bottom-width: 0;
 }
