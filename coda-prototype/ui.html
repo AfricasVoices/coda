@@ -41,6 +41,7 @@ SOFTWARE.
     <script src="external/jquery/jquery.stickytableheaders.js"></script>
     <script src="external/bootstrap-tagsinput/bootstrap-tagsinput.js"></script>
     <script src="external/underscore/underscore.js"></script>
+    <script src="external/papaparse/papaparse.js"></script>
 
     <!-- Toolbar UI -->
     <script src="ui.js"></script>
@@ -67,10 +68,11 @@ SOFTWARE.
               <li class="dropdown">
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Dataset<span class="caret"></span></a>
                 <ul class="dropdown-menu">
-                  <li><a href="#">Load new dataset</a></li>
-                  <li><a href="#">Export all files</a></li>
+                  <li><a class="btn-file" href="#">Load new dataset from...<input id="dataset-file" type="file"/></a></li>
+                  <li><a class="btn-file">Load new code scheme from...<input id="scheme-file" type="file"/></a></li>
+                  <li><a id="export-dataset" href="#">Export dataset</a></li>
                   <li role="separator" class="divider"></li>
-                  <li><a href="#">Quit</a></li>
+                  <li><a id="quit" href="#">Quit</a></li>
                 </ul>
               </li>
               <li>
@@ -79,7 +81,7 @@ SOFTWARE.
               <li>
                 <div class="btn-toolbar" role="toolbar">
                   <div class="btn-group" role="group" aria-label="save">
-                    <button type="button" class="navbar-btn btn btn-success">
+                    <button id="save-all-button" type="button" class="navbar-btn btn btn-success">
                       Save
                     </button>
                   </div>

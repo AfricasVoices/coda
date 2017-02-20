@@ -57,7 +57,7 @@ class Dataset {
 
         schemeId = schemeId + ""; // force it to string todo: here or make sure decorationForName processes it ok?
 
-        if (this.schemes.hasOwnProperty(schemeId)) {
+        if ((this.schemes.hasOwnProperty && this.schemes.hasOwnProperty(schemeId)) || this.schemes[schemeId] != undefined) {
             let codes = Array.from(this.schemes[schemeId].codes.values()).map((code:Code) => {return code.value;});
 
             this.events.sort((e1, e2) => {
@@ -126,7 +126,7 @@ class Dataset {
 
         schemeId = schemeId + ""; // force it to string todo: here or make sure decorationForName processes it ok?
 
-        if (this.schemes.hasOwnProperty(schemeId)) {
+        if ((this.schemes.hasOwnProperty && this.schemes.hasOwnProperty(schemeId)) || this.schemes[schemeId] != undefined) {
             let codes = Array.from(this.schemes[schemeId].codes.values()).map((code:Code) => {return code.value;});
 
             this.events.sort((e1, e2) => {
@@ -170,6 +170,14 @@ class Dataset {
             });
         }
         return this.events;
+    }
+
+    stringifyEvents(): string {
+
+
+
+
+        return "";
     }
 
 }
@@ -232,29 +240,55 @@ class RawEvent {
         return Array.from(this.decorations.keys());
     }
 
+    /*
+    toJSON() :{} {
+
+        let obj = Object.create(null);
+        obj.name = this.name;
+        obj.timestamp = this.timestamp;
+        obj.number = this.number;
+        obj.data = this.data;
+        obj.decorations =
+
+    }
+    */
 }
 
 class EventDecoration {
-  owner : RawEvent;
-  scheme_id : String; // will take scheme id
-  code : Code;
-  confidence: number;
-  manual: boolean;
+    owner : RawEvent; // todo: makes it circular, fix to event id
 
-  constructor(owner : RawEvent, id : String, manual: boolean, code?: Code, confidence?: number) {
-      this.owner = owner;
-      this.scheme_id = id;
-      this.manual = manual;
+    scheme_id : String; // will take scheme id
+    code : Code;
+    confidence: number;
+    manual: boolean;
 
-      (confidence == undefined) ? this.confidence = 0 : this.confidence = confidence; // not sure this is a good idea
+    constructor(owner : RawEvent, id : String, manual: boolean, code?: Code, confidence?: number) {
+        this.owner = owner;
+        this.scheme_id = id;
+        this.manual = manual;
 
-      if (code) {
-          code.addEvent(owner);
-          this.code = code;
-      } else {
-          this.code = null; // TODO: this will require null pointer checks
-      }
-  }
+        (confidence == undefined) ? this.confidence = 0 : this.confidence = confidence; // not sure this is a good idea
+
+        if (code) {
+            code.addEvent(owner);
+            this.code = code;
+        } else {
+            this.code = null; // TODO: this will require null pointer checks
+        }
+    }
+
+    toJSON() :  {owner: string; scheme_id: string; code: Code; confidence: number; manual: boolean;} {
+
+        let obj = Object.create(null);
+
+        obj.owner = this.owner.name;
+        obj.scheme_id = this.scheme_id;
+        obj.code = this.code.value;
+        obj.confidence = this.confidence;
+        obj.manual = this.manual;
+
+        return obj;
+    }
 }
 
 class Session {
@@ -389,6 +423,21 @@ class CodeScheme {
         }
         return match;
     }
+
+    jsonForCSV() : {"fields" : Array<string>; "data" : Array<string>;} {
+
+        let obj = Object.create(null);
+        obj["fields"] = ["id","name","code_id","code_value","code_colour","code_shortcut","words"];
+        obj["data"] = [];
+
+        for (let [codeId, code] of this.codes) {
+            let codeArr = [this.id, this.name, codeId, code.value, code.color, code.shortcut, "[" + code.words.toString() + "]"];
+            obj["data"].push(codeArr);
+        }
+
+        return obj;
+    }
+
 }
 
 class Code {
@@ -443,6 +492,20 @@ class Code {
         this._words = [];
         this._isEdited = isEdited;
         this._eventsWithCode = [];
+    }
+
+    toJSON() : {owner: string, id:string, value:string, color:string, shortcut:string, words:Array<String>} {
+
+        let obj = Object.create(null);
+
+        obj.owner = this.owner.id;
+        obj.id = this.id;
+        obj.value = this.value;
+        obj.color = this.color;
+        obj.shortcut = this.shortcut;
+        obj.words = this.words;
+
+        return obj;
     }
 
     set owner(value: CodeScheme) {

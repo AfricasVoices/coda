@@ -10,9 +10,8 @@
    "default_popup": "popup.html"
   },
   "permissions": [
-   "storage",
-   "unlimitedStorage"
-  //  "clipboardRead",
-  //  "clipboardWrite"
+    "storage",
+    "unlimitedStorage",
+    "downloads"
    ]
 }
