@@ -1,3 +1,24 @@
+/*
+Copyright (c) 2017 Coda authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 let ENDING_PATTERN = "_";
 class Dataset {
     constructor() {
@@ -23,7 +44,7 @@ class Dataset {
     }
     sortEventsByScheme(schemeId, isToDoList) {
         schemeId = schemeId + ""; // force it to string todo: here or make sure decorationForName processes it ok?
-        if (this.schemes.hasOwnProperty(schemeId)) {
+        if ((this.schemes.hasOwnProperty && this.schemes.hasOwnProperty(schemeId)) || this.schemes[schemeId] != undefined) {
             let codes = Array.from(this.schemes[schemeId].codes.values()).map((code) => { return code.value; });
             this.events.sort((e1, e2) => {
                 const deco1 = e1.decorationForName(schemeId);
@@ -82,7 +103,7 @@ class Dataset {
     }
     sortEventsByConfidenceOnly(schemeId) {
         schemeId = schemeId + ""; // force it to string todo: here or make sure decorationForName processes it ok?
-        if (this.schemes.hasOwnProperty(schemeId)) {
+        if ((this.schemes.hasOwnProperty && this.schemes.hasOwnProperty(schemeId)) || this.schemes[schemeId] != undefined) {
             let codes = Array.from(this.schemes[schemeId].codes.values()).map((code) => { return code.value; });
             this.events.sort((e1, e2) => {
                 let deco1 = e1.decorationForName(schemeId);
@@ -115,6 +136,9 @@ class Dataset {
             });
         }
         return this.events;
+    }
+    stringifyEvents() {
+        return "";
     }
 }
 class RawEvent {
@@ -170,6 +194,15 @@ class EventDecoration {
         else {
             this.code = null; // TODO: this will require null pointer checks
         }
+    }
+    toJSON() {
+        let obj = Object.create(null);
+        obj.owner = this.owner.name;
+        obj.scheme_id = this.scheme_id;
+        obj.code = this.code.value;
+        obj.confidence = this.confidence;
+        obj.manual = this.manual;
+        return obj;
     }
 }
 class Session {
@@ -271,6 +304,16 @@ class CodeScheme {
         }
         return match;
     }
+    jsonForCSV() {
+        let obj = Object.create(null);
+        obj["fields"] = ["id", "name", "code_id", "code_value", "code_colour", "code_shortcut", "words"];
+        obj["data"] = [];
+        for (let [codeId, code] of this.codes) {
+            let codeArr = [this.id, this.name, codeId, code.value, code.color, code.shortcut, "[" + code.words.toString() + "]"];
+            obj["data"].push(codeArr);
+        }
+        return obj;
+    }
 }
 class Code {
     constructor(owner, id, value, color, shortcut, isEdited) {
@@ -306,6 +349,16 @@ class Code {
     }
     get eventsWithCode() {
         return this._eventsWithCode;
+    }
+    toJSON() {
+        let obj = Object.create(null);
+        obj.owner = this.owner.id;
+        obj.id = this.id;
+        obj.value = this.value;
+        obj.color = this.color;
+        obj.shortcut = this.shortcut;
+        obj.words = this.words;
+        return obj;
     }
     set owner(value) {
         this._owner = value;

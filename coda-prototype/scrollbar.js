@@ -56,7 +56,7 @@ var scrollbarManager = {
 
         $("body").hide();
 
-        this.subsamplingNum = Math.floor(newDataset.eventCount/(scrollbarEl.height-4));
+        this.subsamplingNum = Math.floor(newDataset.events.length/(scrollbarEl.height-4));
 
 
         $("#scrollbar").drawRect({
@@ -223,7 +223,9 @@ var scrollbarManager = {
                 colors = [];
             } else {
                 if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code != null) {
-                    colors.push(event.decorations.get(activeSchemeId).code.color);
+                    let codeHasColor = event.decorations.get(activeSchemeId).code.color != null &&  event.decorations.get(activeSchemeId).code.color.length != 0;
+                    if (codeHasColor) colors.push(event.decorations.get(activeSchemeId).code.color);
+                    else colors.push("#ffffff");
                 } else {
                     colors.push("#ffffff");
                 }
