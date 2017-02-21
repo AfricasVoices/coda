@@ -23,7 +23,7 @@ SOFTWARE.
 <!doctype html>
 <html xmlns="http://www.w3.org/1999/html">
   <head>
-    <title>Coding Assistant</title>
+    <title>Coda</title>
 
     <!-- CSS -->
     <link rel="stylesheet" href="external/bootstrap/css/bootstrap.min.css">
@@ -96,7 +96,6 @@ SOFTWARE.
                   </div>
                 </div>
               </li>
-              </li>
               <li>
 
               </li>
@@ -145,10 +144,16 @@ SOFTWARE.
           <div class="panel-heading clearfix">
             <div class="panel-title">
               <div class="row">
-
                 <div class="col-md-11 col-xs-11">
+
                   <div class="input-group">
-                    <span class="input-group-addon" id="basic-addon1">Code Scheme Name</span>
+                    <label class="input-group-btn">
+                      <span id="scheme-upload" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Upload new scheme version" data-container="body">
+                        <span class="glyphicon glyphicon-upload"></span>
+                        <input id="scheme-upload-file" type="file" style="display:none;"/>
+                      </span>
+                    </label>
+                    <span class="input-group-addon" id="scheme-name-addon">Code Scheme Name</span>
                     <input id="scheme-name-input" type="text" class="form-control" placeholder="code scheme name..." aria-describedby="scheme-name-input">
                   </div>
                 </div>
@@ -194,14 +199,11 @@ SOFTWARE.
                     <input type="text" value="" class="form-control" readonly/>
                   </div>
 
-
                   <div class="panel panel-default" id="word-list">
                     <div class="panel-heading">Words</div>
                     <div class="panel-body">
                       <div id="word-textarea">
-                        <select multiple data-role="tagsinput">
-                        </select>
-                        <!--<input type="text" data-role="tagsinput"/>-->
+                        <select multiple data-role="tagsinput"></select>
                       </div>
                     </div>
                   </div>
@@ -216,11 +218,16 @@ SOFTWARE.
 
           <!-- CODE EDITOR BUTTONS -->
           <div class="row" id="button-row">
-            <div class="btn-group">
-              <button type="button" id="scheme-save-button" class="btn btn-success">Save</button>
-            </div>
-            <div class="btn-group">
-              <button type="button" id="cancel-button" class="btn btn-danger">Cancel</button>
+            <div class="col-md-12 col-xs-12">
+              <div class="btn-group" id="scheme-save-btn-group">
+                <button type="button" id="scheme-download" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Download scheme" data-container="body">
+                  <span class="glyphicon glyphicon-download-alt"></span>
+                </button>
+                <button type="button" id="scheme-save-button" class="btn btn-success">Save</button>
+              </div>
+              <div class="btn-group">
+                <button type="button" id="cancel-button" class="btn btn-danger">Cancel</button>
+              </div>
             </div>
           </div>
         </div>

@@ -82,8 +82,9 @@ div[class*=col-], #message-panel {
 
 #button-row {
   position:absolute;
-  bottom: 0px;
+  bottom: 0;
   margin-bottom: 10px;
+  width: 100%;
 }
 
 #code-editor-panel {
@@ -92,11 +93,11 @@ div[class*=col-], #message-panel {
   bottom: 0 !important;
   position:relative;
   height: 500px;
-  margin-bottom: 0px;
+  margin-bottom: 0;
 }
 
-#scheme-save-button {
-  margin-left: 30px;
+#scheme-save-btn-group {
+  margin-left: 10px;
 }
 
 .panel-heading > h4, .panel-heading > span {

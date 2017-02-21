@@ -270,7 +270,7 @@ class EventDecoration {
         (confidence == undefined) ? this.confidence = 0 : this.confidence = confidence; // not sure this is a good idea
 
         if (code) {
-            code.addEvent(owner);
+            if (manual) code.addEvent(owner);
             this.code = code;
         } else {
             this.code = null; // TODO: this will require null pointer checks

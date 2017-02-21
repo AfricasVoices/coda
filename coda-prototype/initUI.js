@@ -413,4 +413,118 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
     console.timeEnd("TOTAL UI INITIALISATION TIME");
 
 
+    $("#scheme-download").on("click", () => {
+
+        let schemeJSON = {"data": [], "fields":["scheme_id", "scheme_name", "code_id", "code_value", "code_colour", "code_shortcut","code_words"]};
+        for (let [codeId, code] of tempScheme.codes) {
+            let codeArr = [tempScheme.id, tempScheme.name, codeId, code.value, code.color, code.shortcut, code.words.toString()];
+            schemeJSON["data"].push(codeArr);
+        }
+
+        let dataBlob = new Blob([Papa.unparse(schemeJSON, {header:true, delimiter:";"})], {type: 'text/plain'});
+        chrome.downloads.download({url: window.URL.createObjectURL(dataBlob), saveAs: true}, function(dlId) {
+            console.log("Downloaded file with id: " + dlId);
+        });
+
+    });
+
+    $("#scheme-download").tooltip();
+    $("#scheme-upload").tooltip();
+
+
+    $("#scheme-upload-file").on("change", () => {
+
+        let files = $("#scheme-upload-file")[0].files;
+        let len = files.length;
+
+        if (len) {
+            console.log("Filename: " + files[0].name);
+            console.log("Type: " + files[0].type);
+            console.log("Size: " + files[0].size + " bytes");
+
+            let read = new FileReader();
+            read.readAsBinaryString(files[0]);
+            // todo: error handling
+
+            read.onloadend = function() {
+                let csvResult = read.result;
+                let parse = Papa.parse(csvResult, {header: true});
+                if (parse.errors.length > 0) {
+                    return; // todo: alert error
+                }
+
+                let parsedObjs = parse.data;
+                let newScheme = null;
+                for (let codeRow of parsedObjs) {
+
+                    let id = codeRow.hasOwnProperty("scheme_id"),
+                        name = codeRow.hasOwnProperty("scheme_name"),
+                        code_id = codeRow.hasOwnProperty("code_id"),
+                        code_value = codeRow.hasOwnProperty("code_value"),
+                        code_colour = codeRow.hasOwnProperty("code_colour"),
+                        code_shortcut = codeRow.hasOwnProperty("code_shortcut"),
+                        code_words = codeRow.hasOwnProperty("code_words");
+
+                    if (id && name && code_id && code_value) {
+
+                        // todo handle if loading an edit of a scheme that was already loaded in... how to deal if code was deleted?
+
+                        if (!newScheme) {
+                            newScheme = new CodeScheme(codeRow["scheme_id"], codeRow["scheme_name"], false);
+                        }
+
+                        let newShortcut = codeRow["code_shortcut"];
+                        if (codeRow["code_shortcut"].length == 1 && Number.isNaN(parseInt(codeRow["code_shortcut"]))) {
+                            newShortcut = UIUtils.ascii(codeRow["code_shortcut"]);
+                        }
+
+                        let newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"], codeRow["code_colour"], newShortcut, false);
+
+                        if (code_words) {
+
+                            if (codeRow["code_words"].length != 0) {
+                                let words = codeRow["code_words"].split(",");
+                                if (words.length > 0) {
+                                    newCode.addWords(words);
+                                }
+                            }
+                        }
+
+                        newScheme.codes.set(codeRow["code_id"], newCode);
+                    }
+                }
+
+                for (let [codeId, code] of tempScheme.codes.entries()) {
+                    let codeRow = $(".code-row[id='" + codeId + "']");
+                    if (newScheme.codes.has(codeId)) {
+                        let newCode = newScheme.codes.get(codeId);
+                        codeRow.find(".code-input").attr("value", newCode.value);
+                        codeRow.find(".shortcut-input").attr("value", String.fromCharCode(newCode.shortcut));
+                        tempScheme.codes.set(codeId, newCode);
+                        newScheme.codes.delete(codeId);
+                    } else {
+                        let isActive = codeRow.hasClass("active");
+                        codeRow.remove();
+                        if (isActive) {
+                            $(".code-row:first").addClass("active");
+                        }
+                        tempScheme.codes.delete(codeId);
+                    }
+                }
+
+                for (let [codeId, code] of newScheme.codes.entries()) {
+                    codeEditorManager.addCodeInputRow(code.value, code.shortcut, code.color, codeId);
+                    tempScheme.codes.set(codeId, code);
+                }
+
+                $("#scheme-name-input").val(newScheme.name);
+
+                let activeCode = tempScheme.codes.get($(".code-row.active").attr("id"))
+                if (activeCode) codeEditorManager.updateCodePanel(activeCode);
+
+            }
+        }
+
+    });
+
 });
