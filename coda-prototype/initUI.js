@@ -216,7 +216,7 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
        });
     });
 
-    $("#dataset-file").on("change", event => {
+    $("#dataset-file").on("change", () => {
 
         let files = $("#dataset-file")[0].files;
         let len = files.length;
@@ -263,14 +263,16 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                         deco_timestamp = eventRow.hasOwnProperty("deco_timestamp"),
                         deco_author = eventRow.hasOwnProperty("deco_author");
 
-                    if (id && timestamp && owner && data) {
+                    if (id && owner && data) {
 
                         if (!dataset) {
                             dataset = new Dataset();
                         }
 
+                        let timestampData = timestamp ? eventRow["timestamp"] : "";
+
                         if (!events.has(eventRow["id"])){
-                            newEvent = new RawEvent(events.size + "", eventRow["owner"], eventRow["timestamp"], eventRow["id"], eventRow["data"]);
+                            newEvent = new RawEvent(events.size + "", eventRow["owner"], timestampData, eventRow["id"], eventRow["data"]);
                             events.set(eventRow["id"], newEvent);
                         } else {
                             newEvent = events.get(eventRow["id"]);
@@ -306,14 +308,17 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
 
                 }
 
-                if (Object.keys(schemes).length == 0) {
-                    let defaultScheme = new CodeScheme(UIUtils.randomId([]), "default", false);
-                    schemes[defaultScheme["id"]] = defaultScheme;
+                if (dataset && dataset.events.length != 0) {
+                    if (Object.keys(schemes).length == 0) {
+                        let defaultScheme = new CodeScheme("1", "default", false);
+                        defaultScheme.codes.set(defaultScheme.id + "-" + "01", new Code(defaultScheme,defaultScheme.id + "-" + "01","Test", "#ffffff", UIUtils.ascii("t"), false));
+                        schemes[defaultScheme["id"]] = defaultScheme;
+                    }
+                    newDataset = dataset;
+                    newDataset.schemes = schemes;
+                    messageViewerManager.buildTable(newDataset, messageViewerManager.rowsInTable);
+                    $("body").show();
                 }
-                newDataset = dataset;
-                newDataset.schemes = schemes;
-                messageViewerManager.buildTable(newDataset, messageViewerManager.rowsInTable);
-                $("body").show();
             }
         }
 
@@ -467,8 +472,6 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
 
                     if (id && name && code_id && code_value) {
 
-                        // todo handle if loading an edit of a scheme that was already loaded in... how to deal if code was deleted?
-
                         if (!newScheme) {
                             newScheme = new CodeScheme(codeRow["scheme_id"], codeRow["scheme_name"], false);
                         }
@@ -498,6 +501,7 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                     let codeRow = $(".code-row[id='" + codeId + "']");
                     if (newScheme.codes.has(codeId)) {
                         let newCode = newScheme.codes.get(codeId);
+                        newCode.owner = tempScheme;
                         codeRow.find(".code-input").attr("value", newCode.value);
                         codeRow.find(".shortcut-input").attr("value", String.fromCharCode(newCode.shortcut));
                         tempScheme.codes.set(codeId, newCode);
@@ -513,13 +517,14 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                 }
 
                 for (let [codeId, code] of newScheme.codes.entries()) {
+                    code.owner = tempScheme;
                     codeEditorManager.addCodeInputRow(code.value, code.shortcut, code.color, codeId);
                     tempScheme.codes.set(codeId, code);
                 }
 
                 $("#scheme-name-input").val(newScheme.name);
 
-                let activeCode = tempScheme.codes.get($(".code-row.active").attr("id"))
+                let activeCode = tempScheme.codes.get($(".code-row.active").attr("id"));
                 if (activeCode) codeEditorManager.updateCodePanel(activeCode);
 
             }

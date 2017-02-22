@@ -576,6 +576,12 @@ class Code {
         return newCode;
     }
 
+    static cloneWithCustomId(original: Code, newId : string) {
+        let newCode = new Code(original["_owner"], newId, original["_value"], original["_color"], original["_shortcut"], false);
+        newCode._words = original["_words"].slice(0);
+        return newCode;
+    }
+
     addEvent(event: RawEvent): void {
         // compare reference to event
         if (this._eventsWithCode.indexOf(event) == -1) this._eventsWithCode.push(event);

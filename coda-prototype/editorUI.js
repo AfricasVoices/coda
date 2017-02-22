@@ -358,8 +358,8 @@ var codeEditorManager =  {
         // todo problem when new row is added - codeObj doesn't exist yet, so can't bind the event handler for tags
         // assume called with valid codeObject
 
-        var color = codeObj["color"].length > 0 ? codeObj["color"] : "#ffffff";
-        let words = codeObj["words"].length > 0 ? codeObj["words"].slice(0) : [];
+        var color = codeObj ? (codeObj["color"].length > 0 ? codeObj["color"] : "#ffffff") : "#ffffff";
+        let words = codeObj ? (codeObj["words"].length > 0 ? codeObj["words"].slice(0) : []) : [];
         let colorPicker = $("#color-pick");
         var wordTextarea = $("#word-textarea");
         var regexField = $("#regex-edit").find("input");

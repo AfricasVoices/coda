@@ -413,6 +413,11 @@ class Code {
         newCode._words = original["_words"].slice(0);
         return newCode;
     }
+    static cloneWithCustomId(original, newId) {
+        let newCode = new Code(original["_owner"], newId, original["_value"], original["_color"], original["_shortcut"], false);
+        newCode._words = original["_words"].slice(0);
+        return newCode;
+    }
     addEvent(event) {
         // compare reference to event
         if (this._eventsWithCode.indexOf(event) == -1)
