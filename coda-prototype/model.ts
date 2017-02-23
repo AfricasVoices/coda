@@ -23,15 +23,10 @@ SOFTWARE.
 let ENDING_PATTERN : string = "_";
 
 class Dataset {
-    sessions: Array<Session> = [];
+    sessions: Map<string, Session> = new Map();
     schemes: {};
     events: Array<RawEvent> = [];
 
-    getAllSessionIds() {
-        return this.sessions.map(function (session: Session) {
-            return session.id;
-        });
-    }
 
     /*
     NB: event names/ids are the initial indices when read from file for the first time!
@@ -172,12 +167,13 @@ class Dataset {
         return this.events;
     }
 
-    stringifyEvents(): string {
+    deleteScheme(schemeId : string): Array<RawEvent> {
+        for (let event of this.events) {
+            event.uglify(schemeId);
+        }
+        delete this.schemes[schemeId];
 
-
-
-
-        return "";
+        return this.events;
     }
 
 }
@@ -225,7 +221,9 @@ class RawEvent {
 
     uglify(schemeId: string) {
         let deco = this.decorations.get(schemeId);
-        deco.code.removeEvent(this);
+        if (deco.code) {
+            deco.code.removeEvent(this);
+        }
         this.decorations.delete(schemeId);
         this.codes.delete(schemeId);
 

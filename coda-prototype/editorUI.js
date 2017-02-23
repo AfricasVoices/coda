@@ -64,6 +64,18 @@ var codeEditorManager =  {
 
         });
 
+        $("#delete-scheme-button").on("click", () => {
+           let nextActiveSchemeId = codeEditorManager.deleteScheme(tempScheme.id + "");
+           activeSchemeId = nextActiveSchemeId;
+           codeEditorManager.editorContainer.hide();
+           codeEditorManager.editorContainer.find("tbody").empty();
+           codeEditorManager.bindAddCodeButtonListener();
+           codeEditorManager.editorContainer.find("#scheme-name-input").val("");
+           editorOpen = false;
+           tempScheme = {};
+
+        });
+
     },
 
     bindNameInputListeners: function() {
@@ -520,6 +532,30 @@ var codeEditorManager =  {
             }
 
         });
+    },
+
+    deleteScheme: function(schemeId) {
+
+        // delegate uglifying to datastructure
+        newDataset.deleteScheme(schemeId);
+        delete schemes[schemeId];
+
+        let schemeOrderIndex = messageViewerManager.codeSchemeOrder.indexOf(schemeId);
+        if (schemeOrderIndex > -1) messageViewerManager.codeSchemeOrder.splice(schemeOrderIndex, 1);
+
+        if (Object.keys(schemes).length == 0) {
+            // create new default coding scheme
+            let newScheme = new CodeScheme(UIUtils.randomId([]), "default", true);
+            newScheme.codes.set(newScheme.id + "-" + "1", new Code(newScheme, newScheme.id + "-" + "1", "test", "#ffffff", "", false));
+            schemes[newScheme.id] = newScheme;
+            newDataset.schemes[newScheme.id] = newScheme;
+            messageViewerManager.addNewSchemeColumn(newScheme);
+            messageViewerManager.codeSchemeOrder.push(newScheme.id);
+        }
+
+        // handle UI changes
+        messageViewerManager.deleteSchemeColumn(schemeId);
 
     }
+
 };

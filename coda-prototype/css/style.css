@@ -113,6 +113,9 @@ div[class*=col-], #message-panel {
   margin-left: 5px;
 }
 
+#delete-scheme-btn-group {
+  float: right;
+}
 
 
 #editor-row, #panel-row {

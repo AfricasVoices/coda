@@ -115,7 +115,7 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
             });
 
             var session = new Session(sessionKey, events);
-            properDataset.sessions.push(session);
+            properDataset.sessions.set(sessionKey,session);
         });
 
         properDataset.schemes = schemes;
@@ -133,11 +133,14 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
     var editorRow = $("#editor-row");
 
     console.time("total messageview init");
+    $("#success-codescheme-alert").hide();
+    $("#success-dataset-alert").hide();
+    $("#fail-upload").hide();
     messageViewerManager.init(messagePanel, dataset);
     console.timeEnd("total messageview init");
 
     console.time("stickyheaders init");
-    $('#message-table').stickyTableHeaders({scrollableArea: messagePanel});
+    $('#message-table').stickyTableHeaders({scrollableArea: messagePanel, container:messagePanel});
     $('#code-table').stickyTableHeaders({scrollableArea: editorRow});
     console.timeEnd("stickyheaders init");
 
@@ -216,7 +219,9 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
        });
     });
 
-    $("#dataset-file").on("change", () => {
+    $("#dataset-file").on("change", event => {
+
+        $(event.target).parents(".dropdown").removeClass("open");
 
         let files = $("#dataset-file")[0].files;
         let len = files.length;
@@ -228,13 +233,23 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
 
 
             let read = new FileReader();
-
-            read.readAsBinaryString(files[0]);
-
+            read.readAsText(files[0]);
             read.onloadend = function(){
                 let csvResult = read.result;
                 let parse = Papa.parse(csvResult, {header: true});
                 if (parse.errors.length > 0) {
+                    let failAlert = $("#alert");
+                    failAlert.addClass("alert-danger");
+                    failAlert.append("<strong>Oh snap!</strong> Something is wrong with the data format. Change a few things up and try again.");
+                    $(".tableFloatingHeaderOriginal").hide();
+                    failAlert.show();
+                    failAlert.fadeTo(4000, 500).slideUp(500, () => {
+                        failAlert.slideUp(500, () => {
+                            failAlert.removeClass("alert-danger");
+                            failAlert.empty();
+                            $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
+                        });
+                    });
                     return; // todo: alert error
                 }
 
@@ -278,6 +293,10 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                             newEvent = events.get(eventRow["id"]);
                         }
 
+                        if (!dataset.sessions.has(eventRow["owner"])) {
+                            let newSession = new Session(eventRow["owner"], newEvent);
+                            dataset.sessions.set(eventRow["owner"], newSession);
+                        }
 
                         if (schemeId & schemeName && deco_codevalue && deco_codeId && deco_manual) {
                             let newScheme;
@@ -318,6 +337,33 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                     newDataset.schemes = schemes;
                     messageViewerManager.buildTable(newDataset, messageViewerManager.rowsInTable);
                     $("body").show();
+
+                    let successAlert = $("#alert");
+                    successAlert.addClass("alert-success");
+                    successAlert.append("<strong>Success!</strong> New dataset was imported.");
+                    successAlert.show();
+                    $(".tableFloatingHeaderOriginal").hide();
+                    successAlert.fadeTo(2000, 500).slideUp(500, () => {
+                        successAlert.slideUp(500, () => {
+                            successAlert.removeClass("alert-success");
+                            successAlert.empty();
+                            $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
+                        });
+                    });
+
+                } else {
+                    let failAlert = $("#alert");
+                    failAlert.addClass("alert-danger");
+                    failAlert.append("<strong>Oh snap!</strong> Something is wrong with the data format. Change a few things up and try again.");
+                    $(".tableFloatingHeaderOriginal").hide();
+                    failAlert.show();
+                    failAlert.fadeTo(4000, 500).slideUp(500, () => {
+                        failAlert.slideUp(500, () => {
+                            failAlert.removeClass("alert-danger");
+                            failAlert.empty();
+                            $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
+                        });
+                    });
                 }
             }
         }
@@ -326,6 +372,8 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
     });
 
     $("#scheme-file").on("change", event => {
+
+        $(event.target).parents(".dropdown").removeClass("open");
 
         let files = $("#scheme-file")[0].files;
         let len = files.length;
@@ -337,13 +385,25 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
 
 
             let read = new FileReader();
-            read.readAsBinaryString(files[0]);
+            read.readAsText(files[0]);
             // todo: error handling
 
             read.onloadend = function(){
                 let csvResult = read.result;
                 let parse = Papa.parse(csvResult, {header: true});
                 if (parse.errors.length > 0) {
+                    let failAlert = $("#alert");
+                    failAlert.addClass("alert-danger");
+                    failAlert.append("<strong>Oh snap!</strong> Something is wrong with the data format. Change a few things up and try again.");
+                    $(".tableFloatingHeaderOriginal").hide();
+                    failAlert.show();
+                    failAlert.fadeTo(4000, 500).slideUp(500, () => {
+                        failAlert.slideUp(500, () => {
+                            failAlert.removeClass("alert-danger");
+                            failAlert.empty();
+                            $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
+                        });
+                    });
                     return; // todo: alert error
                 }
 
@@ -394,6 +454,20 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                 schemes[newScheme["id"]] = newScheme;
                 messageViewerManager.codeSchemeOrder.push(newScheme["id"]);
                 messageViewerManager.addNewSchemeColumn(newScheme);
+
+                let successAlert = $("#alert");
+                successAlert.addClass("alert-success");
+                successAlert.append("<strong>Success!</strong> New coding scheme was imported.");
+                successAlert.show();
+                $(".tableFloatingHeaderOriginal").hide();
+                successAlert.fadeTo(2000, 500).slideUp(500, () => {
+                    successAlert.slideUp(500, () => {
+                        successAlert.removeClass("alert-danger");
+                        successAlert.empty();
+                        $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
+                    });
+                });
+
 
             }
         }
@@ -448,7 +522,7 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
             console.log("Size: " + files[0].size + " bytes");
 
             let read = new FileReader();
-            read.readAsBinaryString(files[0]);
+            read.readAsText(files[0]);
             // todo: error handling
 
             read.onloadend = function() {

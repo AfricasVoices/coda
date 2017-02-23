@@ -84,7 +84,6 @@ var scrollbarManager = {
     redraw : function (dataset, activeSchemeId, loadedPages) {
 
         var colors = [];
-        var sessionData = dataset.sessions;
         if (this.subsamplingNum > 0) {
             colors = this.subsample(dataset, activeSchemeId);
         } else {
@@ -204,14 +203,10 @@ var scrollbarManager = {
 
         // make sure activeSchemeId is a string
         activeSchemeId = activeSchemeId + "";
-
-        var sessionData = dataset.sessions;
         var sampleColours = [];
 
         // divide dataset into datasetSize / numSamples subarrays
         // pick one from each subarray at random!
-        // sadly need to loop because sessions have different numbers of events... oh yeah
-        // sad times
 
         // CHECK IF IT FITS INTO SCROLLBAR PX OF SUBSAMPLING NEEDED!
 

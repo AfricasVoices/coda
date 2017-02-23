@@ -22,13 +22,8 @@ SOFTWARE.
 let ENDING_PATTERN = "_";
 class Dataset {
     constructor() {
-        this.sessions = [];
+        this.sessions = new Map();
         this.events = [];
-    }
-    getAllSessionIds() {
-        return this.sessions.map(function (session) {
-            return session.id;
-        });
     }
     /*
     NB: event names/ids are the initial indices when read from file for the first time!
@@ -137,8 +132,12 @@ class Dataset {
         }
         return this.events;
     }
-    stringifyEvents() {
-        return "";
+    deleteScheme(schemeId) {
+        for (let event of this.events) {
+            event.uglify(schemeId);
+        }
+        delete this.schemes[schemeId];
+        return this.events;
     }
 }
 class RawEvent {
@@ -169,7 +168,9 @@ class RawEvent {
     }
     uglify(schemeId) {
         let deco = this.decorations.get(schemeId);
-        deco.code.removeEvent(this);
+        if (deco.code) {
+            deco.code.removeEvent(this);
+        }
         this.decorations.delete(schemeId);
         this.codes.delete(schemeId);
         return this;

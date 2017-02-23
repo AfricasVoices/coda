@@ -571,6 +571,38 @@ var messageViewerManager = {
 
     },
 
+    deleteSchemeColumn: function(schemeId) {
+        let decorationCell = $("#header-decoration-column").find(".row");
+        let decoNumber = Object.keys(schemes).length;
+        let newDecoColumnWidth = (12/decoNumber>>0);
+
+        let schemeHeader = decorationCell.find("div[scheme='" + schemeId + "']");
+        let nextActiveSchemeId = schemeHeader.prev();
+
+        schemeHeader.remove();
+        decorationCell.children("div[class*=col-]").attr("class", "col-md-" + newDecoColumnWidth + ' scheme-col');
+
+        let tbody = "";
+        for (let i = 0; i < messageViewerManager.rowsInTable; i++) {
+            tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
+        }
+
+        this.lastLoadedPageIndex = 1; // todo store which page was loaded
+
+        let tbodyObj = this.table.find("tbody");
+        tbodyObj.empty();
+        tbodyObj.append(tbody);
+        this.messageContainer.scrollTop(0);
+
+        activeRow.removeClass("active");
+        activeRow = $(".message").first().addClass("active");
+
+        scrollbarManager.redraw(newDataset, nextActiveSchemeId);
+        scrollbarManager.redrawThumb(0);
+
+        return nextActiveSchemeId;
+    },
+
     bindEditSchemeButtonListener: function(editButton, scheme) {
 
         var codeEditor = $("#code-editor");

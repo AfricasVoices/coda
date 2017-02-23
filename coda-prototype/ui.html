@@ -97,7 +97,6 @@ SOFTWARE.
                 </div>
               </li>
               <li>
-
               </li>
             </ul>
           </div><!--/.nav-collapse -->
@@ -106,6 +105,7 @@ SOFTWARE.
 
       <!-- Main container -->
       <div class="container-fluid" id="message-viewer">
+        <div id="alert" class="alert" role="alert" style="display:none"></div>
         <div class="row">
           <div class="col-md-1 col-xs-1" id="scrollbar-col">
             <canvas id="scrollbar"></canvas>
@@ -116,7 +116,7 @@ SOFTWARE.
               <table class="table table-fixed table-hover" id="message-table">
                 <thead>
                 <tr>
-                  <th class="col-md-1 col-xs-1">Timestamp</th>
+                  <th class="col-md-1 col-xs-1">ID</th>
                   <th class="col-md-5 col-xs-5">Data</th>
                   <th class="col-md-6 col-xs-6" id="header-decoration-column">
                     <div class="row">
@@ -228,6 +228,11 @@ SOFTWARE.
               <div class="btn-group">
                 <button type="button" id="cancel-button" class="btn btn-danger">Cancel</button>
               </div>
+                <div class="btn-group" id="delete-scheme-btn-group">
+                  <button type="button" id="delete-scheme-button" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete entire scheme" data-container="body">
+                    <span class="glyphicon glyphicon-trash"></span>
+                  </button>
+                </div>
             </div>
           </div>
         </div>
