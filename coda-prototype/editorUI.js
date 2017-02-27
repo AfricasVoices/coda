@@ -152,7 +152,7 @@ var codeEditorManager =  {
                 editorContainer.find("#scheme-name-input").val("");
                 scrollbarManager.redraw(newDataset, newId);
                 scrollbarManager.redrawThumb(0);
-                //$(scrollbarManager.scrollbarEl).drawLayers();
+                $(scrollbarManager.scrollbarEl).drawLayers();
                 editorOpen = false;
                 tempScheme = {};
             });
@@ -215,10 +215,6 @@ var codeEditorManager =  {
                 newDataset.restoreDefaultSort();
             }
 
-            // redraw scrollbar
-            const thumbPosition = scrollbarManager.getThumbPosition();
-            scrollbarManager.redraw(newDataset, tempScheme["id"]);
-            scrollbarManager.redrawThumb(thumbPosition);
 
             // redraw rows
             var tbody = "";
@@ -227,6 +223,11 @@ var codeEditorManager =  {
             for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex * halfPage + halfPage; i++) {
                 tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
             }
+
+            // redraw scrollbar
+            const thumbPosition = scrollbarManager.getThumbPosition();
+            scrollbarManager.redraw(newDataset, tempScheme["id"]);
+            scrollbarManager.redrawThumb(thumbPosition);
 
             var messagesTbody = messageViewerManager.messageContainer.find("tbody");
             var previousScrollTop = messageViewerManager.messageContainer.scrollTop();
@@ -299,6 +300,7 @@ var codeEditorManager =  {
 
         var bindInputListeners = codeEditorManager.bindInputListeners;
         var codeObject;
+        if (!color ||color == undefined) color = "#ffffff";
 
         var newId = id;
         if (id.length === 0) {
@@ -312,9 +314,9 @@ var codeEditorManager =  {
         var row = $("<tr class='row active code-row' id='" + newId + "'></tr>").insertBefore($(".add-code-row"));
         state.activeEditorRow = row;
 
-        var codeCell = $("<td class='col-md-6'></td>").appendTo(row);
-        var shortcutCell = $("<td class='col-md-5'></td>").appendTo(row);
-        var buttonCell = $("<td class='col-md-1'></td>").appendTo(row);
+        var codeCell = $("<td class='col-md-6' style='background-color:" + color + "'></td>").appendTo(row);
+        var shortcutCell = $("<td class='col-md-5' style='background-color:" + color + "'></td>").appendTo(row);
+        var buttonCell = $("<td class='col-md-1' style='background-color:" + color + "'></td>").appendTo(row);
 
         var codeInput = $("<input type='text' class='form-control code-input' placeholder='enter code...' value='" + code + "'>")
             .appendTo(codeCell);

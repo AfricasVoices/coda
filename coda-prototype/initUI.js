@@ -179,7 +179,7 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                     }
                     newEventData.push(deco.confidence);
                     newEventData.push(deco.manual);
-                    newEventData.push("");
+                    newEventData.push((deco.timestamp) ? deco.timestamp : "");
                     newEventData.push("");
                 } else {
                     newEventData.push("");
@@ -240,7 +240,7 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                 if (parse.errors.length > 0) {
                     let failAlert = $("#alert");
                     failAlert.addClass("alert-danger");
-                    failAlert.append("<strong>Oh snap!</strong> Something is wrong with the data format. Change a few things up and try again.");
+                    failAlert.append("<strong>Oh snap!</strong> Something is wrong with the data format. Change a few things up, refresh and try again.");
                     $(".tableFloatingHeaderOriginal").hide();
                     failAlert.show();
                     failAlert.fadeTo(4000, 500).slideUp(500, () => {
@@ -285,12 +285,15 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                         }
 
                         let timestampData = timestamp ? eventRow["timestamp"] : "";
+                        let isEventNew;
 
                         if (!events.has(eventRow["id"])){
                             newEvent = new RawEvent(events.size + "", eventRow["owner"], timestampData, eventRow["id"], eventRow["data"]);
                             events.set(eventRow["id"], newEvent);
+                            isEventNew = true;
                         } else {
                             newEvent = events.get(eventRow["id"]);
+                            isEventNew = false;
                         }
 
                         if (!dataset.sessions.has(eventRow["owner"])) {
@@ -299,29 +302,34 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                         }
 
                         if (schemeId & schemeName && deco_codevalue && deco_codeId && deco_manual) {
-                            let newScheme;
-                            if (!schemes[eventRow["schemeId"]]) {
-                                newScheme = new CodeScheme(eventRow["schemeId"], eventRow["schemeName"], false);
-                                schemes[newScheme.id] = newScheme;
-                            } else {
-                                newScheme = schemes[eventRow["schemeId"]];
+                            if (eventRow["schemeId"].length > 0 && eventRow["schemeName"].length > 0 && eventRow["deco_codeValue"].length > 0) {
+                                let newScheme;
+                                if (!schemes[eventRow["schemeId"]]) {
+                                    newScheme = new CodeScheme(eventRow["schemeId"], eventRow["schemeName"], false);
+                                    schemes[newScheme.id] = newScheme;
+                                } else {
+                                    newScheme = schemes[eventRow["schemeId"]];
+                                }
+
+                                if (!newScheme.codes.has(eventRow["deco_codeId"])) {
+                                    newScheme.codes.set(eventRow["deco_codeId"], new Code(newScheme, eventRow["deco_codeId"], eventRow["deco_codeValue"], "", "", false));
+                                }
+
+                                let manual;
+                                if (eventRow["deco_manual"].toLocaleLowerCase() == "true") {
+                                    manual = true;
+                                } else if (eventRow["deco_manual"].toLocaleLowerCase() == "false") {
+                                    manual = false;
+                                } else {
+                                    manual = true
+                                }
+
+                                newEvent.decorate(newScheme.id, manual, newScheme.codes.get(eventRow["deco_codeId"]), deco_confidence ? eventRow["deco_confidence"] : undefined);
                             }
 
-                            if (!newScheme.codes.has(eventRow["deco_codeId"])) {
-                                newScheme.codes.set(eventRow["deco_codeId"], new Code(newScheme, eventRow["deco_codeId"], eventRow["deco_codeValue"], "", "", false));
-                            }
-
-                            let manual = undefined;
-                            if (eventRow["deco_manual"].toLocaleLowerCase() == "true") {
-                                manual = true;
-                            } else if (eventRow["deco_manual"].toLocaleLowerCase() == "false") {
-                                manual = false;
-                            }
-
-                            newEvent.decorate(newScheme.id, manual, newScheme.codes.get(eventRow["deco_codeId"]), deco_confidence ? eventRow["deco_confidence"] : undefined);
                         }
 
-                        dataset.events.push(newEvent);
+                        if (isEventNew) dataset.events.push(newEvent);
 
                     }
 
@@ -354,7 +362,7 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                 } else {
                     let failAlert = $("#alert");
                     failAlert.addClass("alert-danger");
-                    failAlert.append("<strong>Oh snap!</strong> Something is wrong with the data format. Change a few things up and try again.");
+                    failAlert.append("<strong>Oh snap!</strong> Something is wrong with the data format. Change a few things up, refresh and try again.");
                     $(".tableFloatingHeaderOriginal").hide();
                     failAlert.show();
                     failAlert.fadeTo(4000, 500).slideUp(500, () => {
@@ -394,7 +402,7 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                 if (parse.errors.length > 0) {
                     let failAlert = $("#alert");
                     failAlert.addClass("alert-danger");
-                    failAlert.append("<strong>Oh snap!</strong> Something is wrong with the data format. Change a few things up and try again.");
+                    failAlert.append("<strong>Oh snap!</strong> Something is wrong with the data format. Change a few things up, refresh and try again.");
                     $(".tableFloatingHeaderOriginal").hide();
                     failAlert.show();
                     failAlert.fadeTo(4000, 500).slideUp(500, () => {
@@ -450,25 +458,42 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                     }
                 }
 
-                // todo: what is the behaviour when scheme id is a duplicate - overwrite??
-                schemes[newScheme["id"]] = newScheme;
-                messageViewerManager.codeSchemeOrder.push(newScheme["id"]);
-                messageViewerManager.addNewSchemeColumn(newScheme);
+                if (newScheme == null || newScheme.codes.size == 0 || schemes[newScheme["id"]] != undefined) {
 
-                let successAlert = $("#alert");
-                successAlert.addClass("alert-success");
-                successAlert.append("<strong>Success!</strong> New coding scheme was imported.");
-                successAlert.show();
-                $(".tableFloatingHeaderOriginal").hide();
-                successAlert.fadeTo(2000, 500).slideUp(500, () => {
-                    successAlert.slideUp(500, () => {
-                        successAlert.removeClass("alert-danger");
-                        successAlert.empty();
-                        $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
+                    let isDuplicate = schemes[newScheme["id"]] != undefined;
+                    let errorText = (isDuplicate) ? "Can't import duplicate coding scheme (ID: '" + newScheme["id"] + "'). To update an existing coding scheme access it via code editor." : "Something is wrong with the data format. Change a few things up, refresh and try again.";
+
+                    let failAlert = $("#alert");
+                    failAlert.addClass("alert-danger");
+                    failAlert.append("<strong>Oh snap!</strong> " + errorText);
+                    $(".tableFloatingHeaderOriginal").hide();
+                    failAlert.show();
+                    failAlert.fadeTo(5000, 500).slideUp(500, () => {
+                        failAlert.slideUp(500, () => {
+                            failAlert.removeClass("alert-danger");
+                            failAlert.empty();
+                            $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
+                        });
                     });
-                });
+                } else {
+                    // todo: what is the behaviour when scheme id is a duplicate - overwrite??
+                    schemes[newScheme["id"]] = newScheme;
+                    messageViewerManager.codeSchemeOrder.push(newScheme["id"]);
+                    messageViewerManager.addNewSchemeColumn(newScheme);
 
-
+                    let successAlert = $("#alert");
+                    successAlert.addClass("alert-success");
+                    successAlert.append("<strong>Success!</strong> New coding scheme was imported.");
+                    successAlert.show();
+                    $(".tableFloatingHeaderOriginal").hide();
+                    successAlert.fadeTo(2000, 500).slideUp(500, () => {
+                        successAlert.slideUp(500, () => {
+                            successAlert.removeClass("alert-danger");
+                            successAlert.empty();
+                            $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
+                        });
+                    });
+                }
             }
         }
 
@@ -578,6 +603,7 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                         newCode.owner = tempScheme;
                         codeRow.find(".code-input").attr("value", newCode.value);
                         codeRow.find(".shortcut-input").attr("value", String.fromCharCode(newCode.shortcut));
+                        codeRow.find("td").attr("style", "background-color: " + (newCode.color ? newCode.color : "#ffffff"));
                         tempScheme.codes.set(codeId, newCode);
                         newScheme.codes.delete(codeId);
                     } else {

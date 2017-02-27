@@ -206,6 +206,9 @@ var messageViewerManager = {
         /*
         Build header
          */
+        var decoColumn = $("#header-decoration-column");
+        decoColumn.find(".row").empty();
+
         Object.keys(schemes).forEach(function(schemeKey, i) {
             messageViewerManager.codeSchemeOrder.push(schemeKey);
 
@@ -215,8 +218,6 @@ var messageViewerManager = {
             let columnDiv = "<div class='col-md-" + decoColumnWidth + " scheme-col' scheme='" + schemeKey + "'>" + triangleIcon + "<i class='scheme-name'>" + schemes[schemeKey]["name"] + "</i>" + editButton + "</div>";
 
 
-            var decoColumn = $("#header-decoration-column");
-            decoColumn.find(".row").empty();
             var appendedElements = $(columnDiv).appendTo(decoColumn.find(".row"));
 
             if (i==0) {

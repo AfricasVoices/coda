@@ -82,6 +82,7 @@ var scrollbarManager = {
     },
 
     redraw : function (dataset, activeSchemeId, loadedPages) {
+        activeSchemeId = activeSchemeId + "";
 
         var colors = [];
         if (this.subsamplingNum > 0) {
