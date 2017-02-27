@@ -88,13 +88,19 @@ var scrollbarManager = {
         if (this.subsamplingNum > 0) {
             colors = this.subsample(dataset, activeSchemeId);
         } else {
-
+            let color;
             for (event of newDataset.events) {
                 if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code != null) {
-                    colors.push(event.decorations.get(activeSchemeId).code.color);
+                    let hasColour = event.decorations.get(activeSchemeId).code.color != null && event.decorations.get(activeSchemeId).code.color != undefined && event.decorations.get(activeSchemeId).code.color.length > 0;
+                    if (hasColour) color = event.decorations.get(activeSchemeId).code.color;
+                    else {
+                        color = "#ffffff";
+                    }
                 } else {
-                    colors.push("#ffffff");
+                    color = "#ffffff";
                 }
+
+                colors.push(color);
             }
         }
 
@@ -218,13 +224,12 @@ var scrollbarManager = {
                 sampleColours.push(colors[UIUtils.randomInteger(0, colors.length-1)]);
                 colors = [];
             } else {
+                let color = "#ffffff";
                 if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code != null) {
-                    let codeHasColor = event.decorations.get(activeSchemeId).code.color != null &&  event.decorations.get(activeSchemeId).code.color.length != 0;
-                    if (codeHasColor) colors.push(event.decorations.get(activeSchemeId).code.color);
-                    else colors.push("#ffffff");
-                } else {
-                    colors.push("#ffffff");
+                    let hasColor = event.decorations.get(activeSchemeId).code.color != null && event.decorations.get(activeSchemeId).code.color != undefined && event.decorations.get(activeSchemeId).code.color.length > 0;
+                    if (hasColor) color = event.decorations.get(activeSchemeId).code.color;
                 }
+                colors.push(color);
             }
         }
 
