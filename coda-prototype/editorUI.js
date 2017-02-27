@@ -64,6 +64,18 @@ var codeEditorManager =  {
 
         });
 
+        $("#delete-scheme-button").on("click", () => {
+           let nextActiveSchemeId = codeEditorManager.deleteScheme(tempScheme.id + "");
+           activeSchemeId = nextActiveSchemeId;
+           codeEditorManager.editorContainer.hide();
+           codeEditorManager.editorContainer.find("tbody").empty();
+           codeEditorManager.bindAddCodeButtonListener();
+           codeEditorManager.editorContainer.find("#scheme-name-input").val("");
+           editorOpen = false;
+           tempScheme = {};
+
+        });
+
     },
 
     bindNameInputListeners: function() {
@@ -140,7 +152,7 @@ var codeEditorManager =  {
                 editorContainer.find("#scheme-name-input").val("");
                 scrollbarManager.redraw(newDataset, newId);
                 scrollbarManager.redrawThumb(0);
-                //$(scrollbarManager.scrollbarEl).drawLayers();
+                $(scrollbarManager.scrollbarEl).drawLayers();
                 editorOpen = false;
                 tempScheme = {};
             });
@@ -203,10 +215,6 @@ var codeEditorManager =  {
                 newDataset.restoreDefaultSort();
             }
 
-            // redraw scrollbar
-            const thumbPosition = scrollbarManager.getThumbPosition();
-            scrollbarManager.redraw(newDataset, tempScheme["id"]);
-            scrollbarManager.redrawThumb(thumbPosition);
 
             // redraw rows
             var tbody = "";
@@ -215,6 +223,11 @@ var codeEditorManager =  {
             for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex * halfPage + halfPage; i++) {
                 tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
             }
+
+            // redraw scrollbar
+            const thumbPosition = scrollbarManager.getThumbPosition();
+            scrollbarManager.redraw(newDataset, tempScheme["id"]);
+            scrollbarManager.redrawThumb(thumbPosition);
 
             var messagesTbody = messageViewerManager.messageContainer.find("tbody");
             var previousScrollTop = messageViewerManager.messageContainer.scrollTop();
@@ -287,6 +300,7 @@ var codeEditorManager =  {
 
         var bindInputListeners = codeEditorManager.bindInputListeners;
         var codeObject;
+        if (!color ||color == undefined) color = "#ffffff";
 
         var newId = id;
         if (id.length === 0) {
@@ -300,9 +314,9 @@ var codeEditorManager =  {
         var row = $("<tr class='row active code-row' id='" + newId + "'></tr>").insertBefore($(".add-code-row"));
         state.activeEditorRow = row;
 
-        var codeCell = $("<td class='col-md-6'></td>").appendTo(row);
-        var shortcutCell = $("<td class='col-md-5'></td>").appendTo(row);
-        var buttonCell = $("<td class='col-md-1'></td>").appendTo(row);
+        var codeCell = $("<td class='col-md-6' style='background-color:" + color + "'></td>").appendTo(row);
+        var shortcutCell = $("<td class='col-md-5' style='background-color:" + color + "'></td>").appendTo(row);
+        var buttonCell = $("<td class='col-md-1' style='background-color:" + color + "'></td>").appendTo(row);
 
         var codeInput = $("<input type='text' class='form-control code-input' placeholder='enter code...' value='" + code + "'>")
             .appendTo(codeCell);
@@ -358,8 +372,8 @@ var codeEditorManager =  {
         // todo problem when new row is added - codeObj doesn't exist yet, so can't bind the event handler for tags
         // assume called with valid codeObject
 
-        var color = codeObj["color"].length > 0 ? codeObj["color"] : "#ffffff";
-        let words = codeObj["words"].length > 0 ? codeObj["words"].slice(0) : [];
+        var color = codeObj ? (codeObj["color"].length > 0 ? codeObj["color"] : "#ffffff") : "#ffffff";
+        let words = codeObj ? (codeObj["words"].length > 0 ? codeObj["words"].slice(0) : []) : [];
         let colorPicker = $("#color-pick");
         var wordTextarea = $("#word-textarea");
         var regexField = $("#regex-edit").find("input");
@@ -520,6 +534,30 @@ var codeEditorManager =  {
             }
 
         });
+    },
+
+    deleteScheme: function(schemeId) {
+
+        // delegate uglifying to datastructure
+        newDataset.deleteScheme(schemeId);
+        delete schemes[schemeId];
+
+        let schemeOrderIndex = messageViewerManager.codeSchemeOrder.indexOf(schemeId);
+        if (schemeOrderIndex > -1) messageViewerManager.codeSchemeOrder.splice(schemeOrderIndex, 1);
+
+        if (Object.keys(schemes).length == 0) {
+            // create new default coding scheme
+            let newScheme = new CodeScheme(UIUtils.randomId([]), "default", true);
+            newScheme.codes.set(newScheme.id + "-" + "1", new Code(newScheme, newScheme.id + "-" + "1", "test", "#ffffff", "", false));
+            schemes[newScheme.id] = newScheme;
+            newDataset.schemes[newScheme.id] = newScheme;
+            messageViewerManager.addNewSchemeColumn(newScheme);
+            messageViewerManager.codeSchemeOrder.push(newScheme.id);
+        }
+
+        // handle UI changes
+        messageViewerManager.deleteSchemeColumn(schemeId);
 
     }
+
 };

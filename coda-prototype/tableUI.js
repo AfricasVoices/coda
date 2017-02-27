@@ -45,6 +45,13 @@ var messageViewerManager = {
         this.lastLoadedPageIndex = 1;
         this.currentSort = this.sortUtils.restoreDefaultSort;
 
+        if (data == undefined) {
+
+            this.buildTable();
+            return;
+
+        }
+
         console.time("dropdown init");
 
         $(document).on("change", function(event) {
@@ -56,7 +63,6 @@ var messageViewerManager = {
         });
 
         $("#message-table").on("mouseup", function(event) {
-            console.log("burek");
             let targetElement = event.originalEvent.target;
 
             /*
@@ -94,8 +100,8 @@ var messageViewerManager = {
            }
 
         });
-
-        $("a").on("click", messageViewerManager.sortHandler);
+        $("a.sort-button").off("click");
+        $("a.sort-button").on("click", messageViewerManager.sortHandler);
 
         console.timeEnd("dropdown init");
         console.time("shortcuts init");
@@ -182,6 +188,14 @@ var messageViewerManager = {
     },
 
     buildTable: function(data, rowsPerPage) {
+
+        if (data == undefined) {
+
+            let tableTbody = messageViewerManager.table.find("tbody");
+            tableTbody.append("<tr><td colspan='3'>Start by loading in data from Dataset menu</td></tr>");
+            return;
+        }
+
         var schemes = newDataset.schemes;
         var eventCount = newDataset.eventCount;
         var decoNumber = Object.keys(schemes).length;
@@ -192,6 +206,9 @@ var messageViewerManager = {
         /*
         Build header
          */
+        var decoColumn = $("#header-decoration-column");
+        decoColumn.find(".row").empty();
+
         Object.keys(schemes).forEach(function(schemeKey, i) {
             messageViewerManager.codeSchemeOrder.push(schemeKey);
 
@@ -201,7 +218,6 @@ var messageViewerManager = {
             let columnDiv = "<div class='col-md-" + decoColumnWidth + " scheme-col' scheme='" + schemeKey + "'>" + triangleIcon + "<i class='scheme-name'>" + schemes[schemeKey]["name"] + "</i>" + editButton + "</div>";
 
 
-            var decoColumn = $("#header-decoration-column");
             var appendedElements = $(columnDiv).appendTo(decoColumn.find(".row"));
 
             if (i==0) {
@@ -235,7 +251,9 @@ var messageViewerManager = {
             tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
         }
 
-        messageViewerManager.table.find("tbody").append(tbody);
+        let tableBodyElement =  messageViewerManager.table.find("tbody");
+        tableBodyElement.empty();
+        tableBodyElement.append(tbody);
 
         console.timeEnd("table building");
         scrollbarManager.init(newDataset.sessions, document.getElementById("scrollbar"), 100);
@@ -259,6 +277,7 @@ var messageViewerManager = {
 
 
         // keyboard nav
+        $(document).off('keydown');
         $(document).on('keydown', function(event) {
 
             if (!editorOpen && document.activeElement.nodeName === "BODY") {
@@ -315,6 +334,9 @@ var messageViewerManager = {
             }
 
         });
+
+        $("a.sort-button").off("click");
+        $("a.sort-button").on("click", messageViewerManager.sortHandler);
 
     },
 
@@ -517,19 +539,19 @@ var messageViewerManager = {
             "<button type='button' class='btn btn-default btn-xs edit-scheme-button'><i class='glyphicon glyphicon-edit'></i></button>" +
             "</div>")).appendTo(decorationCell);
 
-        div.find("i.scheme-name").on("click", this.changeActiveScheme);
-        div.find("i.scheme-name").trigger("click");
         this.bindEditSchemeButtonListener(div.find("button"), scheme);
 
         decorationCell.children("div[class*=col-]").attr("class", "col-md-" + newDecoColumnWidth + ' scheme-col');
 
-        let sortButton = $("a");
+        let sortButton = $("a.sort-button");
         sortButton.off("click");
         sortButton.on("click", messageViewerManager.sortHandler);
 
         // TODO: sort the data to default order first??? or keep it?
 
-        regexMatcher.codeDataset(tempScheme["id"]);
+        regexMatcher.codeDataset(scheme["id"]);
+        div.find("i.scheme-name").on("click", this.changeActiveScheme);
+        div.find("i.scheme-name").trigger("click");
 
         let tbody = "";
         let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
@@ -548,6 +570,38 @@ var messageViewerManager = {
         activeRow.removeClass("active");
         activeRow = $(".message").first().addClass("active");
 
+    },
+
+    deleteSchemeColumn: function(schemeId) {
+        let decorationCell = $("#header-decoration-column").find(".row");
+        let decoNumber = Object.keys(schemes).length;
+        let newDecoColumnWidth = (12/decoNumber>>0);
+
+        let schemeHeader = decorationCell.find("div[scheme='" + schemeId + "']");
+        let nextActiveSchemeId = schemeHeader.prev();
+
+        schemeHeader.remove();
+        decorationCell.children("div[class*=col-]").attr("class", "col-md-" + newDecoColumnWidth + ' scheme-col');
+
+        let tbody = "";
+        for (let i = 0; i < messageViewerManager.rowsInTable; i++) {
+            tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
+        }
+
+        this.lastLoadedPageIndex = 1; // todo store which page was loaded
+
+        let tbodyObj = this.table.find("tbody");
+        tbodyObj.empty();
+        tbodyObj.append(tbody);
+        this.messageContainer.scrollTop(0);
+
+        activeRow.removeClass("active");
+        activeRow = $(".message").first().addClass("active");
+
+        scrollbarManager.redraw(newDataset, nextActiveSchemeId);
+        scrollbarManager.redrawThumb(0);
+
+        return nextActiveSchemeId;
     },
 
     bindEditSchemeButtonListener: function(editButton, scheme) {

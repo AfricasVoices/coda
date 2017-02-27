@@ -56,7 +56,7 @@ var scrollbarManager = {
 
         $("body").hide();
 
-        this.subsamplingNum = Math.floor(newDataset.eventCount/(scrollbarEl.height-4));
+        this.subsamplingNum = Math.floor(newDataset.events.length/(scrollbarEl.height-4));
 
 
         $("#scrollbar").drawRect({
@@ -82,9 +82,9 @@ var scrollbarManager = {
     },
 
     redraw : function (dataset, activeSchemeId, loadedPages) {
+        activeSchemeId = activeSchemeId + "";
 
         var colors = [];
-        var sessionData = dataset.sessions;
         if (this.subsamplingNum > 0) {
             colors = this.subsample(dataset, activeSchemeId);
         } else {
@@ -204,14 +204,10 @@ var scrollbarManager = {
 
         // make sure activeSchemeId is a string
         activeSchemeId = activeSchemeId + "";
-
-        var sessionData = dataset.sessions;
         var sampleColours = [];
 
         // divide dataset into datasetSize / numSamples subarrays
         // pick one from each subarray at random!
-        // sadly need to loop because sessions have different numbers of events... oh yeah
-        // sad times
 
         // CHECK IF IT FITS INTO SCROLLBAR PX OF SUBSAMPLING NEEDED!
 
@@ -223,7 +219,9 @@ var scrollbarManager = {
                 colors = [];
             } else {
                 if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code != null) {
-                    colors.push(event.decorations.get(activeSchemeId).code.color);
+                    let codeHasColor = event.decorations.get(activeSchemeId).code.color != null &&  event.decorations.get(activeSchemeId).code.color.length != 0;
+                    if (codeHasColor) colors.push(event.decorations.get(activeSchemeId).code.color);
+                    else colors.push("#ffffff");
                 } else {
                     colors.push("#ffffff");
                 }

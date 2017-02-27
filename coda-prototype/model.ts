@@ -23,15 +23,10 @@ SOFTWARE.
 let ENDING_PATTERN : string = "_";
 
 class Dataset {
-    sessions: Array<Session> = [];
+    sessions: Map<string, Session> = new Map();
     schemes: {};
     events: Array<RawEvent> = [];
 
-    getAllSessionIds() {
-        return this.sessions.map(function (session: Session) {
-            return session.id;
-        });
-    }
 
     /*
     NB: event names/ids are the initial indices when read from file for the first time!
@@ -57,7 +52,7 @@ class Dataset {
 
         schemeId = schemeId + ""; // force it to string todo: here or make sure decorationForName processes it ok?
 
-        if (this.schemes.hasOwnProperty(schemeId)) {
+        if ((this.schemes.hasOwnProperty && this.schemes.hasOwnProperty(schemeId)) || this.schemes[schemeId] != undefined) {
             let codes = Array.from(this.schemes[schemeId].codes.values()).map((code:Code) => {return code.value;});
 
             this.events.sort((e1, e2) => {
@@ -126,49 +121,82 @@ class Dataset {
 
         schemeId = schemeId + ""; // force it to string todo: here or make sure decorationForName processes it ok?
 
-        if (this.schemes.hasOwnProperty(schemeId)) {
-            let codes = Array.from(this.schemes[schemeId].codes.values()).map((code:Code) => {return code.value;});
+        if ((this.schemes.hasOwnProperty && this.schemes.hasOwnProperty(schemeId)) || this.schemes[schemeId] != undefined) {
 
             this.events.sort((e1, e2) => {
+                let returnResult = 0;
 
                 let deco1 = e1.decorationForName(schemeId);
                 let deco2 = e2.decorationForName(schemeId);
 
-                if (deco1 == deco2 == undefined) {
-                    return parseInt(e1.name) - parseInt(e2.name);
-                }
+                if (deco1 == undefined && deco2 == undefined) {
+                    returnResult = parseInt(e1.name) - parseInt(e2.name);
+                } else if (deco1 == undefined) {
+                    let hasManual2 = deco2.manual != undefined || deco2.manual != null;
+                    returnResult = hasManual2 ? -1 : parseInt(e1.name) - parseInt(e2.name);
 
-                if (deco1 == undefined) {
-                    return -1;
-                }
-
-                if (deco2 == undefined) {
-                    return 1;
-                }
-
-
-                // always manual coding behind automatic!
-                if (deco1.manual) {
-
-                    if (deco2.manual) {
-                        return parseInt(e1.name) - parseInt(e2.name);
-                    }
-
-                    // deco2 is before deco1
-                    return 1;
+                } else if (deco2 == undefined) {
+                    let hasManual1 = deco1.manual != undefined || deco1.manual != null;
+                    returnResult = hasManual1 ? 1 : parseInt(e1.name) - parseInt(e2.name);
 
                 } else {
-                    if (deco2.manual) {
+                    let hasManual1 = deco1.manual != undefined || deco1.manual != null;
+                    let hasManual2 = deco2.manual != undefined || deco2.manual != null;
 
-                        // deco1 is before deco2
-                        return -1;
+                    if (hasManual1 && hasManual2) {
+
+                        if (deco1.manual) {
+
+                            if (deco2.manual) {
+                                returnResult = parseInt(e1.name) - parseInt(e2.name);
+                            } else {
+                                // deco2 is before deco1, automatic always before manual
+                                returnResult = 1
+                            }
+                        } else {
+                            if (deco2.manual) {
+                                // deco1 is before deco2, automatic always before manual
+                                returnResult = -1;
+                            } else {
+                                //both are automatic in which case compare confidence!
+                                returnResult = deco1.confidence - deco2.confidence || parseInt(e1.name, 10) - parseInt(e2.name, 10);
+                            }
+                        }
+                    } else {
+
+                        if (hasManual1 == hasManual2) {
+                            // both are uncoded
+                            returnResult = parseInt(e1.name) - parseInt(e2.name); // todo replace with ids
+                        } else if (hasManual1) {
+                            // uncoded e2 before coded e1
+                            returnResult = 1;
+                        } else if (hasManual2) {
+                            // uncoded e1 before coded e2
+                            returnResult = -1;
+                        } else {
+                            console.log("something is wrong");
+                        }
                     }
-
-                    //both are automatic in which case compare confidence!
-                    return deco1.confidence - deco2.confidence || parseInt(e1.name, 10) - parseInt(e2.name, 10);
                 }
+                if ((returnResult < 0 && (deco1 && deco1.confidence > 0 && (deco2 == undefined))) ||
+                    (returnResult > 0 && (deco2 && deco2.confidence > 0 && (deco1 == undefined))) ||
+                    (returnResult > 0 && (deco2 && deco1 && deco2.confidence > deco1.confidence && deco2.code !=null)) ||
+                    (returnResult < 0 && (deco2 && deco1 && deco1.confidence > deco2.confidence && deco1.code != null))) {
+                    console.log(e1.name + ", " + e2.name);
+                }
+                return returnResult;
+
             });
         }
+        return this.events;
+    }
+
+    deleteScheme(schemeId : string): Array<RawEvent> {
+        for (let event of this.events) {
+            event.uglify(schemeId);
+        }
+        delete this.schemes[schemeId];
+
         return this.events;
     }
 
@@ -209,15 +237,17 @@ class RawEvent {
         return Array.from(this.codes.values());
     }
 
-    decorate(schemeId : string, manual: boolean, code? : Code, confidence?: number) {
+    decorate(schemeId : string, manual: boolean, code? : Code, confidence?: number, timestamp?: string) {
        // if (this.decorations.has(schemeId)) this.uglify(schemeId);
         let stringSchemeId = "" + schemeId;
-        this.decorations.set(stringSchemeId, new EventDecoration(this, stringSchemeId, manual, code, confidence));
+        this.decorations.set(stringSchemeId, new EventDecoration(this, stringSchemeId, manual, code, confidence, timestamp));
     }
 
     uglify(schemeId: string) {
         let deco = this.decorations.get(schemeId);
-        deco.code.removeEvent(this);
+        if (deco.code) {
+            deco.code.removeEvent(this);
+        }
         this.decorations.delete(schemeId);
         this.codes.delete(schemeId);
 
@@ -232,29 +262,71 @@ class RawEvent {
         return Array.from(this.decorations.keys());
     }
 
+    /*
+    toJSON() :{} {
+
+        let obj = Object.create(null);
+        obj.name = this.name;
+        obj.timestamp = this.timestamp;
+        obj.number = this.number;
+        obj.data = this.data;
+        obj.decorations =
+
+    }
+    */
 }
 
 class EventDecoration {
-  owner : RawEvent;
-  scheme_id : String; // will take scheme id
-  code : Code;
-  confidence: number;
-  manual: boolean;
+    owner : RawEvent; // todo: makes it circular, fix to event id
 
-  constructor(owner : RawEvent, id : String, manual: boolean, code?: Code, confidence?: number) {
-      this.owner = owner;
-      this.scheme_id = id;
-      this.manual = manual;
+    scheme_id : String; // will take scheme id
+    private _code : Code;
+    confidence: number;
+    manual: boolean;
+    private _timestamp: string;
 
-      (confidence == undefined) ? this.confidence = 0 : this.confidence = confidence; // not sure this is a good idea
+    constructor(owner : RawEvent, id : String, manual: boolean, code?: Code, confidence?: number, timestamp?: string) {
+        this.owner = owner;
+        this.scheme_id = id;
+        this.manual = manual;
 
-      if (code) {
-          code.addEvent(owner);
-          this.code = code;
-      } else {
-          this.code = null; // TODO: this will require null pointer checks
-      }
-  }
+        (confidence == undefined) ? this.confidence = 0 : this.confidence = confidence; // not sure this is a good idea
+
+        if (code) {
+            if (manual) code.addEvent(owner);
+            this._timestamp = (timestamp) ? timestamp : new Date().toString();
+            this._code = code;
+        } else {
+            this._code = null; // TODO: this will require null pointer checks
+            this._timestamp = null;
+        }
+    }
+
+    toJSON() :  {owner: string; scheme_id: string; code: Code; confidence: number; manual: boolean;} {
+
+        let obj = Object.create(null);
+
+        obj.owner = this.owner.name;
+        obj.scheme_id = this.scheme_id;
+        obj.code = this.code.value;
+        obj.confidence = this.confidence;
+        obj.manual = this.manual;
+
+        return obj;
+    }
+
+    set code(code : Code) {
+        this._timestamp = new Date().toString();
+        this._code = code;
+    }
+
+    get code() : Code {
+        return this._code;
+    }
+
+    get timestamp() : string {
+        return this._timestamp;
+    }
 }
 
 class Session {
@@ -389,6 +461,21 @@ class CodeScheme {
         }
         return match;
     }
+
+    jsonForCSV() : {"fields" : Array<string>; "data" : Array<string>;} {
+
+        let obj = Object.create(null);
+        obj["fields"] = ["id","name","code_id","code_value","code_colour","code_shortcut","words"];
+        obj["data"] = [];
+
+        for (let [codeId, code] of this.codes) {
+            let codeArr = [this.id, this.name, codeId, code.value, code.color, code.shortcut, "[" + code.words.toString() + "]"];
+            obj["data"].push(codeArr);
+        }
+
+        return obj;
+    }
+
 }
 
 class Code {
@@ -443,6 +530,20 @@ class Code {
         this._words = [];
         this._isEdited = isEdited;
         this._eventsWithCode = [];
+    }
+
+    toJSON() : {owner: string, id:string, value:string, color:string, shortcut:string, words:Array<String>} {
+
+        let obj = Object.create(null);
+
+        obj.owner = this.owner.id;
+        obj.id = this.id;
+        obj.value = this.value;
+        obj.color = this.color;
+        obj.shortcut = this.shortcut;
+        obj.words = this.words;
+
+        return obj;
     }
 
     set owner(value: CodeScheme) {
@@ -509,6 +610,12 @@ class Code {
 
     static clone(original : Code) : Code {
         let newCode = new Code(original["_owner"], original["_id"], original["_value"], original["_color"], original["_shortcut"], false);
+        newCode._words = original["_words"].slice(0);
+        return newCode;
+    }
+
+    static cloneWithCustomId(original: Code, newId : string) {
+        let newCode = new Code(original["_owner"], newId, original["_value"], original["_color"], original["_shortcut"], false);
         newCode._words = original["_words"].slice(0);
         return newCode;
     }

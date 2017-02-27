@@ -82,8 +82,9 @@ div[class*=col-], #message-panel {
 
 #button-row {
   position:absolute;
-  bottom: 0px;
+  bottom: 0;
   margin-bottom: 10px;
+  width: 100%;
 }
 
 #code-editor-panel {
@@ -92,11 +93,11 @@ div[class*=col-], #message-panel {
   bottom: 0 !important;
   position:relative;
   height: 500px;
-  margin-bottom: 0px;
+  margin-bottom: 0;
 }
 
-#scheme-save-button {
-  margin-left: 30px;
+#scheme-save-btn-group {
+  margin-left: 10px;
 }
 
 .panel-heading > h4, .panel-heading > span {
@@ -112,6 +113,9 @@ div[class*=col-], #message-panel {
   margin-left: 5px;
 }
 
+#delete-scheme-btn-group {
+  float: right;
+}
 
 
 #editor-row, #panel-row {
@@ -203,6 +207,31 @@ tr.active.code-row > td {
 .bootstrap-tagsinput {
   width: 100%;
   padding: 2px 6px 3px;
+}
+
+.btn-file {
+
+  position: relative;
+  overflow: hidden;
+
+}
+
+.btn-file input[type=file] {
+
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 100%;
+  min-height: 100%;
+  font-size: 100px;
+  text-align: right;
+  filter: alpha(opacity=0);
+  opacity: 0;
+  outline: none;
+  background: white;
+  cursor: pointer;
+  display: block;
+
 }
 
 /*

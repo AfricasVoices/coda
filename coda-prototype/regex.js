@@ -65,19 +65,6 @@ var regexMatcher = {
 
                 var fullTextRegex = eventWithCodeRegexes[code[0]];
 
-
-                /*
-                if (decoration) {
-
-                    let manual = (decoration.manual && decoration.manual != undefined) ? decoration.manual : false;
-                    if (!manual) {
-                        if (fullTextRegex !== null && decoration.code !== null) {
-                            event.uglify(code[1].owner.id +"");
-                        }
-                    }
-                }
-                */
-
                 if (fullTextRegex) {
                     let fullTextMatch = fullTextRegex.exec(event.data + "");
                     if (fullTextMatch) {
@@ -90,6 +77,7 @@ var regexMatcher = {
                     }
                 }
 
+                if (code[1].words.length == 0) continue;
                 let regex = this.generateOrRegex(code[1].words);
                 if (regex == null) continue;
 
@@ -124,7 +112,7 @@ var regexMatcher = {
             if (decoration) {
                 let manual = (decoration.manual && decoration.manual != undefined) ? decoration.manual : false;
 
-                if (!maxConfEntry) {
+                if (!maxConfEntry && !manual) {
                     if (decoration.code) {
                         event.uglify(schemeId);
                     }
@@ -133,13 +121,13 @@ var regexMatcher = {
                 }
 
 
-                if (maxConfEntry[1].conf == 0 && !manual && decoration.code) {
+                if (maxConfEntry && maxConfEntry[1].conf == 0 && !manual && decoration.code) {
                     // no coding matches anymore
                     event.uglify(schemeId);
                     continue;
                 }
 
-                if (!manual && maxConfEntry[1].conf != decoration.confidence) {
+                if (maxConfEntry && !manual && maxConfEntry[1].conf != decoration.confidence) {
                     if (decoration.code) {
                         event.uglify(schemeId);
                         event.decorate(schemeId, false, codes.get(maxConfEntry[0]), maxConfEntry[1].conf);
@@ -166,8 +154,9 @@ var regexMatcher = {
     generateOrRegex: function (wordArray) {
 
         if (wordArray.length == 0 || wordArray == null) return null;
+        let filtered = wordArray.filter(word => {return word.length > 0});
 
-        return new RegExp('[\\s]*[\#]?\\b(' + wordArray.join('|') + ')[\.\,\-\?\)\]*[\\s]*', 'ig');
+        return new RegExp('[\\s]*[\#]?\\b(' + filtered.join('|') + ')[\.\,\-\?\)\]*[\\s]*', 'ig');
 
     },
 
