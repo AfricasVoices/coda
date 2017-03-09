@@ -27,6 +27,38 @@ import random
 
 decoOutputOrder = ["schemeId", "schemeName", "deco_codeValue", "deco_codeId", "deco_confidence", "deco_manual", "deco_timestamp", "deco_author"]
 nonDecoOutput = ["id", "owner", "data", "timestamp"]
+schemeHeader = ["scheme_id", "scheme_name", "code_id", "code_value"]
+
+
+def unpack_scheme_file(fp):
+    with open(fp, mode="rb") as raw_file:
+        hstrip = [h.strip() for h in raw_file.next().split(';')]
+        scheme_header = dict([(h.strip(), True) for h in hstrip])
+        scheme_reader = unicodecsv.DictReader(raw_file, delimiter=";", fieldnames=hstrip)
+
+        header_iscorrect = True
+        for h in schemeHeader:
+            if h not in scheme_header:
+                header_iscorrect = False
+
+        scheme = {}
+        if header_iscorrect:
+            for code_row in scheme_reader:
+                if "scheme_id" not in scheme and len(code_row["scheme_id"]) > 0:
+                    scheme["scheme_id"] = code_row["scheme_id"]
+                if "codes" not in scheme:
+                    scheme["codes"] = {}
+                if "code-order" not in scheme:
+                    scheme["code-order"] = []
+
+                scheme["codes"][code_row["code_value"]] = code_row["code_id"]
+                scheme["code-order"].append(code_row["code_value"])
+
+        if len(scheme["scheme_id"]) == 0 or len(scheme["codes"]) == 0:
+            return {}
+        else:
+            return scheme
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("file", help="filepath of the dataset file")
@@ -37,6 +69,16 @@ parser.add_argument("--messageIdCol", help="name of column header containing uni
 parser.add_argument("--timestamp", help="name of column header containing message timestamps")
 parser.add_argument("--schemeHeaders", help="list of names of headers for each coding scheme", nargs="+")
 args = parser.parse_args()
+
+schemeFiles = {}
+if args.schemeHeaders and len(args.schemeHeaders) > 0:
+    schemeFilesExist = raw_input("Do you have existing coding scheme files for this dataset? (Y/N)")
+
+    if schemeFilesExist == "Y" or schemeFilesExist == "y":
+        print "Great! For each given scheme header give the path of the coding scheme file or press enter to skip.\n"
+        for header in args.schemeHeaders:
+            schemeFiles[header] = raw_input("Give the filepath for the \"%s\" coding scheme or press enter to skip:\ny" % header)
+
 
 with open(args.file, "rb") as raw_file:
     hs = [h.strip() for h in raw_file.next().split(';')]
@@ -89,11 +131,25 @@ with open(args.file, "rb") as raw_file:
                 writer = unicodecsv.DictWriter(out, fieldnames=header, dialect=dialect)
                 writer.writeheader()
 
+                pre_schemes = {}
+                for scheme_name, scheme_path in schemeFiles.iteritems():
+                    if len(scheme_path) > 0:
+                        if os.path.isfile(scheme_path):
+                            unpackedScheme = unpack_scheme_file(scheme_path)
+                            if len(unpackedScheme) > 0:
+                                pre_schemes[scheme_name] = unpackedScheme
+                        else:
+                            print scheme_name, ", ", scheme_path
+                            print "WARNING: Not a valid file given for scheme \"%s\" at path \"%s\"" % (scheme_name, scheme_path)
+
                 schemeIds = random.sample(xrange(32, len(headerStringsForNewFile["decorations"]) * 100),
-                                          len(headerStringsForNewFile["decorations"]))
-                schemes = {headerStringsForNewFile["decorations"][i]:
-                               {"id": str(schemeIds[i]), "codes": {}, "code-order": []}
-                           for i in range(len(schemeIds))}
+                                          len(headerStringsForNewFile["decorations"]) - len(schemes))
+                remaining_schemes = {headerStringsForNewFile["decorations"][i]:
+                               {"scheme_id": str(schemeIds[i]), "codes": {}, "code-order": []}
+                           for i in range(len(schemeIds)) if headerStringsForNewFile["decorations"][i] not in pre_schemes}
+
+                schemes = remaining_schemes.copy()
+                schemes.update(pre_schemes)
 
                 outputDict = {}
                 rowCount = 0
@@ -112,12 +168,12 @@ with open(args.file, "rb") as raw_file:
                             if deco in row and len(row[deco]) > 0:
                                 code = row[deco]
                                 if code not in schemes[deco]["codes"]:
-                                    schemes[deco]["codes"][code] = schemes[deco]["id"] + "-" + str(len(schemes[deco]["codes"]) + 1)
+                                    schemes[deco]["codes"][code] = schemes[deco]["scheme_id"] + "-" + str(len(schemes[deco]["codes"]) + 1)
                                     schemes[deco]["code-order"].append(code)
 
                         for name, schemeObj in schemes.iteritems():
                             # ["schemeId", "schemeName", "deco_codeValue", "deco_codeId", "deco_confidence", "deco_manual", "deco_timestamp", "deco_author"]
-                            outputDict["schemeId"] = schemeObj["id"]
+                            outputDict["schemeId"] = schemeObj["scheme_id"]
                             outputDict["schemeName"] = name
                             outputDict["deco_codeValue"] = row[name]
                             outputDict["deco_codeId"] = "" if len(row[name]) == 0 else schemeObj["codes"][row[name]]
@@ -126,7 +182,7 @@ with open(args.file, "rb") as raw_file:
                             outputDict["deco_timestamp"] = ""
                             outputDict["deco_author"] = ""
 
-                            if len(outputDict) > 0 and len(row[name]) > 0:
+                            if len(outputDict) > 0:
                                 writer.writerow(outputDict)
                         rowCount += 1
 
@@ -139,6 +195,7 @@ with open(args.file, "rb") as raw_file:
                 lines[-1] = lines[-1].strip()
                 myFile.writelines([item for item in lines if len(item) > 0])
 
+            print "SUCCESS: Converted the csv, stored at %s" % os.path.join(dir_path, fileName + "-internal.csv")
 
         else:
             parser.error("Error: wrong sender ID column name was given - \"%s\" not found in "
