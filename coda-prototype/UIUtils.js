@@ -282,6 +282,18 @@ var UIUtils = (
 
             },
 
+            interpolator: function(leftMin, leftMax, rightMin, rightMax) {
+                let left = leftMax - leftMin;
+                let right = rightMax - rightMin;
+                let scaling = right/left;
+
+                let interpolate = function(value) {
+                    return rightMin + (value - leftMin) * scaling;
+                }
+
+                return interpolate;
+            },
+
 
             // BETTER!!!
             checkVisible: function(elm) {

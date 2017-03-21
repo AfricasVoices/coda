@@ -41,73 +41,74 @@ var messageViewerManager = {
 
         this.messageContainer = messageContainer;
         this.table = messageContainer.find("table");
-        this.buildTable(data, rowsInTable);
         this.lastLoadedPageIndex = 1;
         this.currentSort = this.sortUtils.restoreDefaultSort;
 
         if (data == undefined) {
 
             this.buildTable();
-            return;
 
-        }
+        } else {
+            this.buildTable(data, rowsInTable);
+            scrollbarManager.init(newDataset.sessions, document.getElementById("scrollbar"), 100);
 
-        console.time("dropdown init");
+            console.time("dropdown init");
 
-        $(document).on("change", function(event) {
-            if (event.originalEvent == undefined) return;
+            $(document).on("change", function(event) {
+                if (event.originalEvent == undefined) return;
 
                 if (event.originalEvent.target.nodeName === "SELECT") {
-               messageViewerManager.dropdownChange(event.originalEvent, true);
-           }
-        });
+                    messageViewerManager.dropdownChange(event.originalEvent, true);
+                }
+            });
 
-        $("#message-table").on("mouseup", function(event) {
-            let targetElement = event.originalEvent.target;
+            $("#message-table").on("mouseup", function(event) {
+                let targetElement = event.originalEvent.target;
 
-            /*
-            All this
-             */
-            if (targetElement.nodeName != "TD") {
-                targetElement = targetElement.parentElement;
-            }
+                /*
+                 All this
+                 */
+                if (targetElement.nodeName != "TD") {
+                    targetElement = targetElement.parentElement;
+                }
 
-            if (targetElement.nodeName === "TD" && targetElement.className.split(" ").indexOf("message-text") != -1) {
-                messageViewerManager.collectWords(targetElement);
-            }
-        });
+                if (targetElement.nodeName === "TD" && targetElement.className.split(" ").indexOf("message-text") != -1) {
+                    messageViewerManager.collectWords(targetElement);
+                }
+            });
 
-        $("#message-panel").on("scroll", (throttle(function(event) {
-            //console.log("scroll height: " + $("#message-table")[0].scrollHeight + ", scroll top: " + $("#message-panel").scrollTop() +  ", outer height: " + $("#message-panel").outerHeight(false));
-            // todo need to know if scroll is from shortcut or manual
-            messageViewerManager.infiniteScroll(event);
+            $("#message-panel").on("scroll", (throttle(function(event) {
+                //console.log("scroll height: " + $("#message-table")[0].scrollHeight + ", scroll top: " + $("#message-panel").scrollTop() +  ", outer height: " + $("#message-panel").outerHeight(false));
+                // todo need to know if scroll is from shortcut or manual
+                messageViewerManager.infiniteScroll(event);
 
-        }, 1)));
+            }, 1)));
 
-        $("#message-panel").on("scroll", function(){
-            let yDifference = (messageViewerManager.lastTableY - messageViewerManager.messageContainer.scrollTop())/messageViewerManager.table.height();
-            scrollbarManager.redrawThumb(scrollbarManager.getThumbPosition() - scrollbarManager.scrollbarEl.height * yDifference * (messageViewerManager.rowsInTable/newDataset.events.length));
+            $("#message-panel").on("scroll", function(){
+                let yDifference = (messageViewerManager.lastTableY - messageViewerManager.messageContainer.scrollTop())/messageViewerManager.table.height();
+                scrollbarManager.redrawThumb(scrollbarManager.getThumbPosition() - scrollbarManager.scrollbarEl.height * yDifference * (messageViewerManager.rowsInTable/newDataset.events.length));
 
 
-            messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
-        });
+                messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
+            });
 
-        $("#message-table").dblclick(function(event) {
-           if (event.originalEvent.target.className === "highlight") {
-               // open editor
-               let scheme = $(event.originalEvent.target).attr("codeid").split("-")[0];
-               $(".scheme-col[scheme='" + scheme + "']").find(".edit-scheme-button").trigger("click");
-           }
+            $("#message-table").dblclick(function(event) {
+                if (event.originalEvent.target.className === "highlight") {
+                    // open editor
+                    let scheme = $(event.originalEvent.target).attr("codeid").split("-")[0];
+                    $(".scheme-col[scheme='" + scheme + "']").find(".edit-scheme-button").trigger("click");
+                }
 
-        });
-        $("a.sort-button").off("click");
-        $("a.sort-button").on("click", messageViewerManager.sortHandler);
+            });
+            $("a.sort-button").off("click");
+            $("a.sort-button").on("click", messageViewerManager.sortHandler);
 
-        console.timeEnd("dropdown init");
-        console.time("shortcuts init");
-        $(window).on("keypress", this.manageShortcuts);
-        console.timeEnd("shortcuts init");
+            console.timeEnd("dropdown init");
+            console.time("shortcuts init");
+            $(window).on("keypress", this.manageShortcuts);
+            console.timeEnd("shortcuts init");
 
+        }
     },
 
     sortHandler : function(event) {
@@ -187,7 +188,7 @@ var messageViewerManager = {
 
     },
 
-    buildTable: function(data, rowsPerPage) {
+    buildTable: function(data, rowsPerPage, hasDataChanged) {
 
         if (data == undefined) {
 
@@ -196,9 +197,13 @@ var messageViewerManager = {
             return;
         }
 
+        if (hasDataChanged === undefined) {
+            hasDataChanged = true;
+        }
+
         var schemes = newDataset.schemes;
-        var eventCount = newDataset.eventCount;
-        var decoNumber = Object.keys(schemes).length;
+        var eventCount = newDataset.events.length; //newDataset.eventCount;
+        var decoNumber = Object.keys(newDataset.schemes).length;
         var decoColumnWidth = (12/decoNumber>>0);
         var bindEditSchemeButtonListener = this.bindEditSchemeButtonListener;
         var messagePanel = this.messageContainer;
@@ -209,11 +214,31 @@ var messageViewerManager = {
         var decoColumn = $("#header-decoration-column");
         decoColumn.find(".row").empty();
 
+        var activeSortIcon = "'glyphicon glyphicon-sort'";
+        if (!hasDataChanged && data.schemes[this.activeScheme]) {
+            if (this.currentSort == this.sortUtils.sortEventsByConfidenceOnly) {
+                activeSortIcon = "'glyphicon glyphicon-sort'";
+                newDataset.sortEventsByConfidenceOnly(activeSchemeId);
+            }
+            if (this.currentSort == this.sortUtils.sortEventsByScheme) {
+                activeSortIcon = "'glyphicon glyphicon-sort-by-order'";
+                newDataset.sortEventsByScheme(activeSchemeId,true);
+            }
+            if (this.currentSort == this.sortUtils.restoreDefaultSort) {
+                activeSortIcon = "'glyphicon glyphicon-sort-by-attributes'";
+                newDataset.restoreDefaultSort();
+            }
+        }
+
+        if (hasDataChanged) {
+            newDataset.restoreDefaultSort();
+        }
+
         Object.keys(schemes).forEach(function(schemeKey, i) {
-            messageViewerManager.codeSchemeOrder.push(schemeKey);
+            if (hasDataChanged) messageViewerManager.codeSchemeOrder.push(schemeKey + "");
 
             //let triangleIcon = "<a href='#' class='sort-button'><small><span class='glyphicon glyphicon-sort-by-order'></span></small></a>";
-            let triangleIcon = "<a href='#' class='sort-button'><small><span class='glyphicon glyphicon-sort'></span></small></a>";
+            let triangleIcon = "<a href='#' class='sort-button'><small><span class=" + (schemeKey == messageViewerManager.activeScheme ? activeSortIcon : "'glyphicon glyphicon-sort'") + "></span></small></a>";
             let editButton = "<button type='button' class='btn btn-default btn-xs edit-scheme-button'><i class='glyphicon glyphicon-edit'></i></button>";
             let columnDiv = "<div class='col-md-" + decoColumnWidth + " scheme-col' scheme='" + schemeKey + "'>" + triangleIcon + "<i class='scheme-name'>" + schemes[schemeKey]["name"] + "</i>" + editButton + "</div>";
 
@@ -225,7 +250,13 @@ var messageViewerManager = {
                 messageViewerManager.activeScheme = activeSchemeId;
                 $(appendedElements).children("i").css("text-decoration", "underline");
             }
-            $(appendedElements).children("i").on("click", messageViewerManager.changeActiveScheme);
+            $(appendedElements).children("i").on("click", event => {
+                activeSchemeId = $(event.target).parents("div.scheme-col").attr("scheme");
+                $("#header-decoration-column").find("i").not(".glyphicon").css("text-decoration", "");
+                $(event.target).css("text-decoration", "underline");
+                messageViewerManager.activeScheme = activeSchemeId;
+                messageViewerManager.changeActiveScheme();
+            });
             bindEditSchemeButtonListener(appendedElements.children("button"), schemes[schemeKey]);
         });
 
@@ -247,16 +278,31 @@ var messageViewerManager = {
         var subsamplingEventCount = 0;
         var subsamplingIndices = [];
 
-        for (let i = 0; i < rowsPerPage; i++) {
+        let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
+        if (hasDataChanged) {
+            messageViewerManager.lastLoadedPageIndex=1;
+        }
+        let iterationStop = messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.events.length ? newDataset.events.length : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
+        for (let i = (messageViewerManager.lastLoadedPageIndex-1) * halfPage; i < iterationStop; i++) {
             tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
         }
 
         let tableBodyElement =  messageViewerManager.table.find("tbody");
+        let prevScroll = this.messageContainer.scrollTop();
         tableBodyElement.empty();
         tableBodyElement.append(tbody);
+        if (hasDataChanged) {
+            this.messageContainer.scrollTop(0);
+        } else {
+            this.messageContainer.scrollTop(prevScroll);
+        }
 
         console.timeEnd("table building");
-        scrollbarManager.init(newDataset.sessions, document.getElementById("scrollbar"), 100);
+        if (!hasDataChanged) {
+            scrollbarManager.redraw(newDataset, activeSchemeId ? activeSchemeId : Object.keys(newDataset.schemes)[0]);
+        } else {
+            scrollbarManager.init(newDataset.sessions, document.getElementById("scrollbar"), 100);
+        }
 
         /*
         ACTIVE ROW HANDLING
@@ -365,12 +411,12 @@ var messageViewerManager = {
 
     changeActiveScheme : function() {
 
-        $("#header-decoration-column").find("i").not(".glyphicon").css("text-decoration", "");
-        $(this).css("text-decoration", "underline");
-        activeSchemeId = $(this).parents("div.scheme-col").attr("scheme");
+        //$("#header-decoration-column").find("i").not(".glyphicon").css("text-decoration", "");
+        //$(this).css("text-decoration", "underline");
+        //activeSchemeId = $(this).parents("div.scheme-col").attr("scheme");
         messageViewerManager.activeScheme = activeSchemeId;
 
-        var schemeObj = schemes[activeSchemeId];
+        var schemeObj = newDataset.schemes[activeSchemeId];
 
         let thumbPos = scrollbarManager.getThumbPosition();
         scrollbarManager.redraw(newDataset, activeSchemeId);
@@ -411,6 +457,40 @@ var messageViewerManager = {
 
     },
 
+    undoHandler: function() {
+        let undone = undoManager.undo();
+        if (undone) {
+            console.log("Undone! " + "Stack pt: " + undoManager.pointer + " Stack size: " + undoManager.modelUndoStack.length);
+
+            let newOrder = messageViewerManager.codeSchemeOrder.filter(schemeKey => !!newDataset[schemeKey]); // leave ones that are in dataset schemes
+            Object.keys(newDataset.schemes).forEach(schemeKey => {
+                if (newOrder.indexOf(schemeKey) == -1) {
+                    newOrder.push(schemeKey);
+                }
+            });
+            messageViewerManager.codeSchemeOrder = newOrder;
+            this.buildTable(newDataset, this.rowsInTable, false);
+            // todo undo manager to storage
+        }
+    },
+
+    redoHandler: function() {
+      let redone = undoManager.redo();
+      if (redone) {
+          console.log("Redone! " + "Stack pt: " + undoManager.pointer + " Stack size: " + undoManager.modelUndoStack.length);
+
+          let newOrder = messageViewerManager.codeSchemeOrder.filter(schemeKey => !!newDataset[schemeKey]); // leave ones that are in dataset schemes
+          Object.keys(newDataset.schemes).forEach(schemeKey => {
+              if (newOrder.indexOf(schemeKey) == -1) {
+                  newOrder.push(schemeKey);
+              }
+          });
+          messageViewerManager.codeSchemeOrder = newOrder;
+          this.buildTable(newDataset, this.rowsInTable, false);
+          // todo undo manager to storage
+      }
+    },
+
     dropdownChangeHandler: function(selectElement, manual) {
 
         if (manual == undefined) manual = true;
@@ -425,16 +505,16 @@ var messageViewerManager = {
         let eventId = $(row).attr("eventid");
 
         var eventObj = newDataset.events[eventId];
-        var codeObj = schemes[schemeId].getCodeByValue(value);
+        var codeObj = newDataset.schemes[schemeId].getCodeByValue(value);
 
         if (value.length > 0) {
 
             // add decoration
             let decoration = eventObj.decorationForName(schemeId);
             if (decoration === undefined) {
-                eventObj.decorate(schemeId, manual, schemes[schemeId].getCodeByValue(value));
+                eventObj.decorate(schemeId, manual, newDataset.schemes[schemeId].getCodeByValue(value));
             } else {
-                decoration.code = schemes[schemeId].getCodeByValue(value);
+                decoration.code = newDataset.schemes[schemeId].getCodeByValue(value);
                 decoration.manual = manual;
                 decoration.confidence = 0.95;
                 decoration.code.addEvent(eventObj);
@@ -445,7 +525,7 @@ var messageViewerManager = {
 
             // set color
             if (activeSchemeId === schemeId) {
-                let color = schemes[schemeId].getCodeByValue(value)["color"];
+                let color = newDataset.schemes[schemeId].getCodeByValue(value)["color"];
                 row.children("td").each(function(i, td) {
                     $(td).css("background-color", color);
                 });
@@ -496,6 +576,8 @@ var messageViewerManager = {
             newDataset.restoreDefaultSort();
         }
 
+        undoManager.markUndoPoint();
+
         let tbody = "";
         let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
 
@@ -513,6 +595,8 @@ var messageViewerManager = {
         scrollbarManager.redraw(newDataset, activeSchemeId);
         scrollbarManager.redrawThumb(thumbPos);
 
+        // todo find next active row
+
     },
 
     dropdownChange : function(event, manual) {
@@ -527,7 +611,7 @@ var messageViewerManager = {
         if (scheme["codes"].size === 0) return;
 
         var decorationCell = $("#header-decoration-column").find(".row");
-        var decoNumber = Object.keys(schemes).length;
+        var decoNumber = Object.keys(newDataset.schemes).length;
         var newDecoColumnWidth = (12/decoNumber>>0);
         /*
          Restructure the header
@@ -550,7 +634,13 @@ var messageViewerManager = {
         // TODO: sort the data to default order first??? or keep it?
 
         regexMatcher.codeDataset(scheme["id"]);
-        div.find("i.scheme-name").on("click", this.changeActiveScheme);
+        div.find("i.scheme-name").on("click", event => {
+            activeSchemeId = $(event.target).parents("div.scheme-col").attr("scheme");
+            $("#header-decoration-column").find("i").not(".glyphicon").css("text-decoration", "");
+            $(event.target).css("text-decoration", "underline");
+            messageViewerManager.activeScheme = activeSchemeId;
+            messageViewerManager.changeActiveScheme();
+        });
         div.find("i.scheme-name").trigger("click");
 
         let tbody = "";
@@ -574,11 +664,17 @@ var messageViewerManager = {
 
     deleteSchemeColumn: function(schemeId) {
         let decorationCell = $("#header-decoration-column").find(".row");
-        let decoNumber = Object.keys(schemes).length;
+        let decoNumber = Object.keys(newDataset.schemes).length;
         let newDecoColumnWidth = (12/decoNumber>>0);
 
         let schemeHeader = decorationCell.find("div[scheme='" + schemeId + "']");
-        let nextActiveSchemeId = schemeHeader.prev();
+        let nextActiveScheme = schemeHeader.prev();
+        if (!nextActiveScheme || nextActiveScheme.length == 0) {
+            nextActiveScheme = schemeHeader.next();
+        }
+
+        let nextActiveSchemeId = $(nextActiveScheme).attr("scheme");
+        this.activeScheme = nextActiveSchemeId;
 
         schemeHeader.remove();
         decorationCell.children("div[class*=col-]").attr("class", "col-md-" + newDecoColumnWidth + ' scheme-col');
@@ -597,6 +693,10 @@ var messageViewerManager = {
 
         activeRow.removeClass("active");
         activeRow = $(".message").first().addClass("active");
+        activeSchemeId = nextActiveSchemeId;
+        $("#header-decoration-column").find("i").not(".glyphicon").css("text-decoration", "");
+        $(nextActiveScheme).children("i").css("text-decoration", "underline");
+        this.changeActiveScheme();
 
         scrollbarManager.redraw(newDataset, nextActiveSchemeId);
         scrollbarManager.redrawThumb(0);
@@ -611,7 +711,7 @@ var messageViewerManager = {
         $(editButton).on("click", function() {
 
             //let schemeId = $(this).parent().attr("scheme");
-            scheme = schemes[schemeId];
+            scheme = newDataset.schemes[schemeId];
             tempScheme = CodeScheme.clone(scheme);
 
             if (!(codeEditor.is(":visible"))) {
@@ -644,14 +744,14 @@ var messageViewerManager = {
             // todo handle datastructure ohhhh
 
 
-            var shortcuts = schemes[activeSchemeId].getShortcuts();
+            var shortcuts = newDataset.schemes[activeSchemeId].getShortcuts();
             if (shortcuts.has(event.keyCode)) {
                 var codeObj = shortcuts.get(event.keyCode);
                 $(activeRow).children("td").each(function(i, td) {
 
                     var sessionId = $(td).parent(".message").attr("sessionid");
                     var eventId = $(td).parent(".message").attr("eventid");
-
+                    // todo fix inefficiency here
                     newDataset.events[eventId].decorate(codeObj.owner["id"], true, codeObj, 0.95);
 
                     var color = codeObj["color"];
@@ -665,7 +765,7 @@ var messageViewerManager = {
                 $(activeRow).removeClass("uncoded");
                 $(activeRow).addClass("coded");
                 $(activeRow).find("select." + activeSchemeId).val(codeObj["value"]).removeClass("uncoded").addClass("coded");
-
+                undoManager.markUndoPoint();
                 var next = UIUtils.nextUnfilledRow(activeRow, true, activeSchemeId);
                 if (next.length !== 0) {
                     activeRow.removeClass('active');
@@ -802,7 +902,7 @@ var messageViewerManager = {
 
     buildRow : function(eventObj, eventIndex, sessionIndex) {
 
-        var decoNumber = Object.keys(schemes).length;
+        var decoNumber = Object.keys(newDataset.schemes).length;
         var decoColumnWidth = (12/decoNumber>>0);
         var sessionRow = "";
         if (eventObj == undefined) {
@@ -819,7 +919,12 @@ var messageViewerManager = {
         // need to check if eventObj has a 'stale' decoration
         // need to perform null checks for code! if event isn't coded yet it has a null code.
         if ( activeDecoration != undefined && activeDecoration.code !== null) {
-            var parentSchemeCodes = activeDecoration.code.owner.codes;
+            //let scheme = newDataset.schemes[activeDecoration.code.owner];
+            if (typeof activeDecoration.code.owner == "string") {
+
+            }
+
+            var parentSchemeCodes = activeDecoration.code.owner instanceof CodeScheme ? activeDecoration.code.owner.codes : newDataset.schemes[activeDecoration.code.owner].codes;
             if (!parentSchemeCodes.has(activeDecoration.code.id)) {
                 // in case the event object is still coded with a code that doesn't exist in the scheme anymore
                 eventObj.uglify(activeDecoration.scheme_id);
@@ -840,7 +945,7 @@ var messageViewerManager = {
         //sessionRow += "<td class='col-md-4 message-text' style='background-color: " + rowColor+ "'><p>" + eventObj["data"] + "</p></td>";
         //sessionRow += "<td class='col-md-4 message-text' style='background-color: " + rowColor+ "'><p>" + eventObj["data"] + "</p></td>";
         sessionRow += "<td class='col-md-4 message-text' style='background-color: " + rowColor+ "'><p>" + eventText + "</p></td>";
-        sessionRow += "<td class='col-md-4 decorations' style='background-color: " + rowColor+ "'>";
+        sessionRow += "<td class='col-md-6 decorations' style='background-color: " + rowColor+ "'>";
         sessionRow += "<div class='row decorator-column'>";
 
         messageViewerManager.codeSchemeOrder.forEach(function(schemeKey) {

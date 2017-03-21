@@ -236,13 +236,26 @@ var scrollbarManager = {
         let color = decoration.code.color;
         let confidence = decoration.confidence;
 
+        if (confidence < 0.95) {
+            if (confidence <  0.1) {
+                let interpolate = UIUtils.interpolator(0,0.1, 0.2,0.4);
+                confidence = interpolate(confidence);
+
+            } else {
+                let interpolate = UIUtils.interpolator(0.1, 0.95, 0.5, 0.90);
+                confidence = interpolate(confidence);
+            }
+        }
+
         if (color == "" || color == null) return "#ffffff";
 
         let hslColor = UIUtils.rgb2hsl(UIUtils.hex2rgb(color));
         let hsl = hslColor.split("(")[1].split(")")[0].split(",");
 
         let newHsl = "hsl(" + hsl[0] + "," + confidence + "," + hsl[2] + ")";
-        return UIUtils.rgb2hex(UIUtils.hsl2rgb(newHsl));
+        let rgbReturn = UIUtils.rgb2hex(UIUtils.hsl2rgb(newHsl));
+        //console.log(newHsl);
+        return rgbReturn;
 
     },
 
@@ -262,7 +275,7 @@ var scrollbarManager = {
             pagesToLoad = pagesToLoad-2;
         }
 
-        messageViewerManager.lastLoadedPageIndex = [];
+        messageViewerManager.lastLoadedPageIndex = []; // todo what is this?
 
         var page1 = messageViewerManager.createPageHTML(pagesToLoad);
         var page2 = messageViewerManager.createPageHTML(pagesToLoad+1);

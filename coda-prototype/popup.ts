@@ -29,7 +29,23 @@ SOFTWARE.
 document.addEventListener('DOMContentLoaded', function() {
   var checkPageButton = document.getElementById('checkPage');
   checkPageButton.addEventListener('click', function() {
-
     chrome.tabs.create({url:chrome.extension.getURL("ui.html")});
   }, false);
+  var clearCacheButton = document.getElementById('clearCache');
+  clearCacheButton.addEventListener('click', function() {
+    chrome.storage.local.remove(["dataset", "schemes"], () => {
+      var error = chrome.runtime.lastError;
+      if (error) {
+        console.log(error);
+      } else {
+        console.log("Storage cleared!");
+        chrome.storage.local.getBytesInUse((bytesUnUse: number) => {
+          console.log(accText.length);
+          console.log("Bytes in use: " + bytesUnUse);
+          console.log("QUOTA_BYTES: " + chrome.storage.local.QUOTA_BYTES);
+        });
+        chrome.tabs.create({url:chrome.extension.getURL("ui.html")});
+      }
+    });
+  });
 }, false);

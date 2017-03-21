@@ -24,8 +24,53 @@ SOFTWARE.
 */
 /// <reference path="typings/chrome/chrome.d.ts" />
 document.addEventListener('DOMContentLoaded', function () {
+
     var checkPageButton = document.getElementById('checkPage');
     checkPageButton.addEventListener('click', function () {
-        chrome.tabs.create({ url: chrome.extension.getURL("ui.html") });
+
+        // http://stackoverflow.com/a/36000860
+        chrome.tabs.query({}, function(tabs) {
+            var doFlag = true;
+            var tab;
+            for (var i=tabs.length-1; i>=0; i--) {
+                console.log(tabs[i].url);
+                if (tabs[i].url === "chrome-extension://" + chrome.runtime.id + "/ui.html") {
+                    // Coda is already open!
+                    doFlag = false;
+                    break;
+                }
+            }
+
+            if (!doFlag) {
+                // already open, so focus first on the window and then on the tab
+                chrome.windows.update(tabs[i].windowId, {"focused": true}, () => {
+                    chrome.tabs.update(tabs[i].id, {active: true});
+                });
+
+            } else {
+                // initialize new Coda
+                chrome.tabs.create({ url: chrome.extension.getURL("ui.html") });
+            }
+        });
+
     }, false);
+
+    var clearCacheButton = document.getElementById('clearCache');
+    clearCacheButton.addEventListener('click', function () {
+        chrome.storage.local.remove(["dataset", "schemes"], () => {
+            var error = chrome.runtime.lastError;
+            if (error) {
+                console.log(error);
+            }
+            else {
+                console.log("Storage cleared!");
+                chrome.storage.local.getBytesInUse((bytesUnUse) => {
+                    console.log(accText.length);
+                    console.log("Bytes in use: " + bytesUnUse);
+                    console.log("QUOTA_BYTES: " + chrome.storage.local.QUOTA_BYTES);
+                });
+                chrome.tabs.create({ url: chrome.extension.getURL("ui.html") });
+            }
+        });
+    });
 }, false);

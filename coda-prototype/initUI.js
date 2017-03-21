@@ -20,25 +20,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-(function initMap() {
-
-    let mapToJSON = function() {
-        let keys = this.keys();
-        let obj = Object.create(null); // create object that doesn't inherit from Object - want 0 inherited props as used for Map
-        for (let k of keys) {
-            obj[k] = this.get(k);
-        }
-
-        return obj;
-    };
-
-    Object.defineProperty(Map.prototype, "toJSON" ,{value: mapToJSON});
-
-})();
 
 
 var dataset;
-var newDataset;
 var editorOpen;
 var UIUtils = UIUtils;
 var codeEditorPanel = $("#code-editor-panel");
@@ -63,71 +47,99 @@ $("body").hide();
 /*
 1. check if data is saved in storage
     - if yes, then populate table accordingly
-    - else: trigger open file dialog?
+    - else: load from local example file
 
  */
 
-
-$.getJSON("./data/sessions-numbered-10000.json", function(data) {
-
-    // todo ensure ALL IDs are unique
-
-    var buildDataset = function(data) {
-
-        var decorations = {};
-        var eventCount = 0;
-
-        var properDataset = new Dataset();
-        Object.keys(data).forEach(function(sessionKey) {
-            var events = [];
-            Object.keys(data[sessionKey]["events"]).forEach(function(eventKey, index) {
-                //var event = new RawEvent(data[sessionKey]["events"][eventKey]["name"], sessionKey, data[sessionKey]["events"][eventKey]["timestamp"], "", data[sessionKey]["events"][eventKey]["data"]);
-                var event = new RawEvent(eventCount + "", sessionKey, data[sessionKey]["events"][eventKey]["timestamp"], "", data[sessionKey]["events"][eventKey]["data"]);
-                properDataset.events.push(event);
-                eventCount += 1;
-
-                Object.keys(data[sessionKey]["events"][eventKey]["decorations"]).forEach(function (d) {
-
-                    var decorationValue = data[sessionKey]["events"][eventKey]["decorations"][d];
-
-                    if (!decorations.hasOwnProperty(d)) {
-                        // TODO: how to do scheme ids
-                        let newSchemeId = UIUtils.randomId(Object.keys(schemes));
-                        schemes[newSchemeId] = new CodeScheme(newSchemeId, d, true);
-                        decorations[d] = newSchemeId;
-                    }
-
-                    if (decorationValue.length > 0) {
-                        var scheme = schemes[decorations[d]];
-                        if (!schemes[decorations[d]].getCodeValues().has(decorationValue)) {
-                            var newCodeId = decorations[d] + "-" + UIUtils.randomId(Array.from(scheme.codes.keys()));
-                            scheme.codes.set(newCodeId, new Code(scheme, newCodeId, decorationValue, "#ffffff", "", false));
-                        }
-
-                        var code = scheme.getCodeByValue(decorationValue);
-                        event.decorate(decorations[d], true, code, 0.95); // has to use decorations[d] as scheme key
-                    }
+storage = StorageManager.instance;
+undoManager = new UndoManager();
 
 
-                });
+storage.isValid().then(isValid => {
 
-                events.push(event);
+    if (isValid) {
+        console.log("burek");
+        storage.getDataset().then(dataset => {
+
+            /*
+            dataset.events = dataset.events.map(event => {
+                return new RawEvent(event.name, event.owner, event.timestamp, event.number, event.data, event.decorations);
             });
-
-            var session = new Session(sessionKey, events);
-            properDataset.sessions.set(sessionKey,session);
+            */
+            console.log(dataset);
+            dataset = JSON.parse(dataset);
+            console.log(dataset);
+            newDataset = new Dataset().setFields(dataset.sessions, dataset.schemes, dataset.events);
+            undoManager.modelUndoStack = [Dataset.clone(newDataset)];
+            initUI(newDataset);
         });
 
-        properDataset.schemes = schemes;
-        properDataset.eventCount = eventCount;
-        return properDataset;
 
-    }(data);
+    } else {
 
+        $.getJSON("./data/sessions-numbered-10000.json", function (data) {
 
-    dataset = data;
-    newDataset = buildDataset;
+            // todo ensure ALL IDs are unique
 
+            var buildDataset = function (data) {
+
+                var decorations = {};
+                var eventCount = 0;
+                var schemes = {};
+
+                var properDataset = new Dataset();
+                Object.keys(data).forEach(function (sessionKey) {
+                    var events = [];
+                    Object.keys(data[sessionKey]["events"]).forEach(function (eventKey, index) {
+                        //var event = new RawEvent(data[sessionKey]["events"][eventKey]["name"], sessionKey, data[sessionKey]["events"][eventKey]["timestamp"], "", data[sessionKey]["events"][eventKey]["data"]);
+                        var event = new RawEvent(eventCount + "", sessionKey, data[sessionKey]["events"][eventKey]["timestamp"], "", data[sessionKey]["events"][eventKey]["data"]);
+                        properDataset.events.push(event);
+                        eventCount += 1;
+
+                        Object.keys(data[sessionKey]["events"][eventKey]["decorations"]).forEach(function (d) {
+
+                            var decorationValue = data[sessionKey]["events"][eventKey]["decorations"][d];
+
+                            if (!decorations.hasOwnProperty(d)) {
+                                // TODO: how to do scheme ids
+                                let newSchemeId = UIUtils.randomId(Object.keys(schemes));
+                                schemes[newSchemeId] = new CodeScheme(newSchemeId, d, true);
+                                //schemes[newSchemeId] = newDataset.schemes[newSchemeId];
+                                decorations[d] = newSchemeId;
+                            }
+
+                            if (decorationValue.length > 0) {
+                                var scheme = schemes[decorations[d]];
+                                if (!schemes[decorations[d]].getCodeValues().has(decorationValue)) {
+                                    var newCodeId = decorations[d] + "-" + UIUtils.randomId(Array.from(scheme.codes.keys()));
+                                    scheme.codes.set(newCodeId, new Code(scheme, newCodeId, decorationValue, "#ffffff", "", false));
+                                }
+
+                                var code = scheme.getCodeByValue(decorationValue);
+                                event.decorate(decorations[d], true, code, 0.95); // has to use decorations[d] as scheme key
+                            }
+                        });
+                        events.push(event);
+                    });
+                    var session = new Session(sessionKey, events);
+                    properDataset.sessions.set(sessionKey, session);
+                });
+
+                properDataset.schemes = schemes;
+                properDataset.eventCount = eventCount;
+                return properDataset;
+
+            }(data);
+
+            dataset = data;
+            newDataset = buildDataset;
+            undoManager.modelUndoStack = [Dataset.clone(newDataset)];
+            initUI(newDataset);
+        });
+    }
+});
+
+function initUI(dataset) {
     console.time("TOTAL UI INITIALISATION TIME");
     var messagePanel = $("#message-panel");
     var editorRow = $("#editor-row");
@@ -159,14 +171,14 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
 
         let eventJSON = {"data": [], "fields" : ["id", "timestamp", "owner", "data", "schemeId", "schemeName", "deco_codeValue", "deco_codeId", "deco_confidence", "deco_manual", "deco_timestamp", "deco_author"]};
         for (let event of newDataset.events) {
-            for (let schemeKey of Object.keys(schemes)) {
+            for (let schemeKey of Object.keys(newDataset.schemes)) {
                 let newEventData = [];
                 newEventData.push(event.name);
                 newEventData.push(event.timestamp);
                 newEventData.push(event.owner);
                 newEventData.push(event.data);
                 newEventData.push(schemeKey);
-                newEventData.push(schemes[schemeKey].name);
+                newEventData.push(newDataset.schemes[schemeKey].name);
 
                 if (event.decorations.has(schemeKey)) {
                     let deco = event.decorations.get(schemeKey);
@@ -192,7 +204,7 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                 eventJSON["data"].push(newEventData);
             }
 
-            if (Object.keys(schemes).length == 0) {
+            if (Object.keys(newDataset.schemes).length == 0) {
                 let newEventData = [];
                 newEventData.push(event.name);
                 newEventData.push(event.timestamp);
@@ -297,18 +309,18 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                         }
 
                         if (!dataset.sessions.has(eventRow["owner"])) {
-                            let newSession = new Session(eventRow["owner"], newEvent);
+                            let newSession = new Session(eventRow["owner"], [newEvent]);
                             dataset.sessions.set(eventRow["owner"], newSession);
                         }
 
                         if (schemeId & schemeName && deco_codevalue && deco_codeId && deco_manual) {
                             if (eventRow["schemeId"].length > 0 && eventRow["schemeName"].length > 0 && eventRow["deco_codeValue"].length > 0) {
                                 let newScheme;
-                                if (!schemes[eventRow["schemeId"]]) {
+                                if (!dataset.schemes[eventRow["schemeId"]]) {
                                     newScheme = new CodeScheme(eventRow["schemeId"], eventRow["schemeName"], false);
-                                    schemes[newScheme.id] = newScheme;
+                                    dataset.schemes[newScheme.id] = newScheme;
                                 } else {
-                                    newScheme = schemes[eventRow["schemeId"]];
+                                    newScheme = dataset.schemes[eventRow["schemeId"]];
                                 }
 
                                 if (!newScheme.codes.has(eventRow["deco_codeId"])) {
@@ -324,7 +336,23 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                                     manual = true
                                 }
 
-                                newEvent.decorate(newScheme.id, manual, newScheme.codes.get(eventRow["deco_codeId"]), deco_confidence ? eventRow["deco_confidence"] : undefined);
+                                let confidence;
+                                if (deco_confidence) {
+                                    if (eventRow["deco_confidence"].length == 0) {
+                                        confidence = 0.95;
+                                    } else {
+                                        let float = parseFloat(eventRow["deco_confidence"]);
+                                        if (!isNaN(float)) {
+                                            confidence = float;
+                                        } else {
+                                            confidence = 0.95;
+                                        }
+                                    }
+                                } else {
+                                    confidence = undefined;
+                                }
+
+                                newEvent.decorate(newScheme.id, manual, newScheme.codes.get(eventRow["deco_codeId"]), confidence);
                             }
 
                         }
@@ -336,15 +364,24 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                 }
 
                 if (dataset && dataset.events.length != 0) {
-                    if (Object.keys(schemes).length == 0) {
+                    if (Object.keys(dataset.schemes).length == 0) {
                         let defaultScheme = new CodeScheme("1", "default", false);
                         defaultScheme.codes.set(defaultScheme.id + "-" + "01", new Code(defaultScheme,defaultScheme.id + "-" + "01","Test", "#ffffff", UIUtils.ascii("t"), false));
-                        schemes[defaultScheme["id"]] = defaultScheme;
+                        dataset.schemes[defaultScheme["id"]] = defaultScheme;
                     }
                     newDataset = dataset;
-                    newDataset.schemes = schemes;
-                    messageViewerManager.buildTable(newDataset, messageViewerManager.rowsInTable);
+                    //newDataset.schemes = schemes;
+                    messageViewerManager.buildTable(newDataset, messageViewerManager.rowsInTable, true);
                     $("body").show();
+
+                    undoManager.modelUndoStack = [Dataset.clone(newDataset)];
+                    undoManager.pointer = 0;
+                    storage.saveDataset(dataset);
+                    /*
+                    for (let scheme of Object.keys(dataset.schemes)) {
+                        storage.saveScheme(dataset.schemes[scheme]);
+                    }
+                    */
 
                     let successAlert = $("#alert");
                     successAlert.addClass("alert-success");
@@ -458,9 +495,9 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                     }
                 }
 
-                if (newScheme == null || newScheme.codes.size == 0 || schemes[newScheme["id"]] != undefined) {
+                if (newScheme == null || newScheme.codes.size == 0 || newDataset.schemes[newScheme["id"]] != undefined) {
 
-                    let isDuplicate = schemes[newScheme["id"]] != undefined;
+                    let isDuplicate = newDataset.schemes[newScheme["id"]] != undefined;
                     let errorText = (isDuplicate) ? "Can't import duplicate coding scheme (ID: '" + newScheme["id"] + "'). To update an existing coding scheme access it via code editor." : "Something is wrong with the data format. Change a few things up, refresh and try again.";
 
                     let failAlert = $("#alert");
@@ -477,8 +514,8 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                     });
                 } else {
                     // todo: what is the behaviour when scheme id is a duplicate - overwrite??
-                    schemes[newScheme["id"]] = newScheme;
-                    messageViewerManager.codeSchemeOrder.push(newScheme["id"]);
+                    newDataset.schemes[newScheme["id"]] = newScheme;
+                    messageViewerManager.codeSchemeOrder.push(newScheme["id"] + "");
                     messageViewerManager.addNewSchemeColumn(newScheme);
 
                     let successAlert = $("#alert");
@@ -510,11 +547,6 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
         });
 
     });
-
-    console.time("body.show()");
-    $("body").show();
-    console.timeEnd("body.show()");
-    console.timeEnd("TOTAL UI INITIALISATION TIME");
 
 
     $("#scheme-download").on("click", () => {
@@ -570,6 +602,11 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                         code_words = codeRow.hasOwnProperty("code_words");
 
                     if (id && name && code_id && code_value) {
+
+                        if (codeRow["scheme_id"] != tempScheme["id"]) {
+                            console.log("ERROR: Trying to upload scheme with a wrong ID");
+                            return; // todo error message
+                        }
 
                         if (!newScheme) {
                             newScheme = new CodeScheme(codeRow["scheme_id"], codeRow["scheme_name"], false);
@@ -632,4 +669,18 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
 
     });
 
-});
+    $("#undo").on("click", () => {
+       messageViewerManager.undoHandler();
+    });
+
+    $("#redo").on("click", () => {
+        messageViewerManager.redoHandler();
+    });
+
+
+
+    console.time("body.show()");
+    $("body").show();
+    console.timeEnd("body.show()");
+    console.timeEnd("TOTAL UI INITIALISATION TIME");
+};

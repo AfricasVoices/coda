@@ -111,7 +111,7 @@ var codeEditorManager =  {
         addSchemeButton.on("click", function() {
 
             // TODO: cleverly assign scheme ids
-            var newId = UIUtils.randomId(Object.keys(schemes));
+            var newId = UIUtils.randomId(Object.keys(newDataset.schemes));
             tempScheme = new CodeScheme(newId, "", true);
             $("#color-pick").colorpicker('setValue', "#ffffff");
 
@@ -138,8 +138,8 @@ var codeEditorManager =  {
 
                 // todo prevent saving when there is an empty code
 
-                schemes[newId] = tempScheme;
-                messageViewerManager.codeSchemeOrder.push(newId);
+                newDataset.schemes[newId] = tempScheme;
+                messageViewerManager.codeSchemeOrder.push(newId + "");
 
                 messageViewerManager.addNewSchemeColumn(tempScheme, name);
 
@@ -200,7 +200,7 @@ var codeEditorManager =  {
             header.find("i.scheme-name").text(tempScheme["name"]);
 
             // update the original scheme
-            schemes[tempScheme["id"]].copyCodesFrom(tempScheme);
+            newDataset.schemes[tempScheme["id"]].copyCodesFrom(tempScheme);
 
             // code and re-sort dataset
             regexMatcher.codeDataset(tempScheme["id"]);
@@ -305,7 +305,7 @@ var codeEditorManager =  {
         var newId = id;
         if (id.length === 0) {
             newId = tempScheme["id"] + "-" + UIUtils.randomId();
-            codeObject = new Code(tempScheme, newId, code, color, shortcut, false)
+            codeObject = new Code(tempScheme, newId, code, color, shortcut, false);
             tempScheme.codes.set(newId, codeObject); // todo: fix owner when saving to parent scheme - what does this mean
         }
 
@@ -473,7 +473,7 @@ var codeEditorManager =  {
                 codeObj["value"] = ($(this).val());
             } else {
                 if ($(this).val().length > 0) {
-                    var newCodeId = tempScheme["id"] + "-" + UIUtils.randomId(schemes[tempScheme["id"]].codes);
+                    var newCodeId = tempScheme["id"] + "-" + UIUtils.randomId(newDataset.schemes[tempScheme["id"]].codes);
                     //tempScheme.codes[index] = new Code(tempScheme, newCodeId, $(this).val(), "#ffffff", "", false);
                 }
             }
@@ -545,15 +545,18 @@ var codeEditorManager =  {
         let schemeOrderIndex = messageViewerManager.codeSchemeOrder.indexOf(schemeId);
         if (schemeOrderIndex > -1) messageViewerManager.codeSchemeOrder.splice(schemeOrderIndex, 1);
 
-        if (Object.keys(schemes).length == 0) {
+        if (Object.keys(newDataset.schemes).length == 0) {
             // create new default coding scheme
             let newScheme = new CodeScheme(UIUtils.randomId([]), "default", true);
             newScheme.codes.set(newScheme.id + "-" + "1", new Code(newScheme, newScheme.id + "-" + "1", "test", "#ffffff", "", false));
-            schemes[newScheme.id] = newScheme;
+            //schemes[newScheme.id] = newScheme;
             newDataset.schemes[newScheme.id] = newScheme;
             messageViewerManager.addNewSchemeColumn(newScheme);
-            messageViewerManager.codeSchemeOrder.push(newScheme.id);
+            messageViewerManager.codeSchemeOrder.push(newScheme.id + "");
         }
+
+        undoManager.markUndoPoint();
+        storage.saveDataset(dataset);
 
         // handle UI changes
         messageViewerManager.deleteSchemeColumn(schemeId);

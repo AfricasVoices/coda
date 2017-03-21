@@ -114,7 +114,7 @@ class SchemaEntry {
 }
 
 // Services 
-
+/*
 class Watchdog {
     constructor() {
         console.log("Watchdog ctor");
@@ -172,3 +172,4 @@ class UndoManager {
     schema = this.schemaUndoStack[this.pointer];
   }
 }
+*/

@@ -20,13 +20,107 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-let ENDING_PATTERN : string = "_";
+/*
+globals
+ */
+
+var storage : StorageManager;
+var undoManager : UndoManager;
+var newDataset;
+
+
+(function initMap() {
+
+    let mapToJSON = function() {
+        let keys = this.keys();
+        let obj = Object.create(null); // create object that doesn't inherit from Object - want 0 inherited props as used for Map
+        for (let k of keys) {
+            obj[k] = this.get(k);
+        }
+
+        return obj;
+    };
+
+    Object.defineProperty(Map.prototype, "toJSON" ,{value: mapToJSON});
+
+})();
 
 class Dataset {
     sessions: Map<string, Session> = new Map();
-    schemes: {};
+    schemes = {};
     events: Array<RawEvent> = [];
 
+    static clone(old : Dataset) {
+        let newSchemes = {};
+        let sess = {};
+        Object.keys(old.schemes).forEach(scheme => {
+           newSchemes[scheme] = CodeScheme.clone(old.schemes[scheme]);
+        });
+
+        let newEvents : Array<RawEvent> = [];
+        for (let event of old.events) {
+            let newEvent : RawEvent = new RawEvent(event.name, event.owner, event.timestamp, event.number, event.data);
+            for (let [schemeId, deco] of event.decorations.entries()) {
+                let code = deco.code ? newSchemes[schemeId].codes.get(deco.code.id) : null;
+                newEvent.decorate(schemeId, deco.manual, code, deco.confidence, deco.timestamp);
+            }
+            newEvents.push(newEvent);
+            if (!sess.hasOwnProperty(event.owner)) {
+                sess[event.owner] = new Session(event.owner, [newEvent]);
+            } else {
+                sess[event.owner].events.push(newEvent);
+            }
+        }
+        return new Dataset().setFields(sess, newSchemes, newEvents);
+    }
+
+    setFields(sessions: Object, schemes: Object, events: Array<any>) : Dataset {  // todo check any?
+        Object.keys(sessions).forEach(sessionKey => {
+            let session = sessions[sessionKey];
+            this.sessions.set(sessionKey, new Session(session.id, session.events));
+        });
+        Object.keys(schemes).forEach(schemeKey => {
+           let scheme = schemes[schemeKey];
+           if (scheme instanceof CodeScheme) {
+               this.schemes[schemeKey] = scheme;
+           } else {
+               this.schemes[schemeKey] = new CodeScheme(scheme.id, scheme.name, scheme.isNew, scheme.codes);
+           }
+        });
+
+        var schm = this.schemes;
+        this.events = events.map(event => {
+            if (event.decorations instanceof Map) {
+                for (let [key, deco] of event.decorations.entries()) {
+                    let code = deco.code;
+                    if (deco.owner == null && event instanceof RawEvent) {
+                        deco.owner = event;
+                    }
+                    if (code) {
+                        deco.code = schm[key].codes.get(code.id);
+                        if (deco.code instanceof Code && deco.manual) {
+                            deco.code.addEvent(event);
+                        }
+                    }
+                }
+            } else {
+                Object.keys(event.decorations).forEach(schemeKey => {
+                    let code = event.decorations[schemeKey].code;
+                    if (code) {
+                        event.decorations[schemeKey].code = schm[schemeKey].codes.get(code.id);
+                        if (event.decorations[schemeKey].code instanceof Code && event.decorations[schemeKey].manual) {
+                            event.decorations[schemeKey].code.addEvent(event);
+                        }
+                    }
+                });
+            }
+
+            if (event instanceof RawEvent) return event;
+            return new RawEvent(event.name, event.owner, event.timestamp, event.number, event.data, event.decorations);
+        });
+
+        return this;
+    }
 
     /*
     NB: event names/ids are the initial indices when read from file for the first time!
@@ -200,6 +294,14 @@ class Dataset {
         return this.events;
     }
 
+    toJSON() {
+        let obj = Object.create(null);
+        obj.events = this.events;
+        obj.sessions = this.sessions;
+        obj.schemes = this.schemes;
+        return obj;
+    }
+
 }
 
 class RawEvent {
@@ -211,15 +313,46 @@ class RawEvent {
     decorations : Map<string, EventDecoration>;
     codes: Map<string, Code>;
 
-    constructor(name : string, owner : string, timestamp : string, number : string, data : string) {
+    constructor(name : string, owner : string, timestamp : string, number : string, data : string, decorations? : Object | Map<string,EventDecoration> ) {
         this.name = name;
         this.owner = owner;
         this.timestamp = timestamp;
         this.number = number;
         this.data = data;
-        this.decorations = new Map<string, EventDecoration>(); // string is code scheme id
-        this.codes = new Map<string, Code>(); // string is code scheme id todo not necessary?
 
+        if (!decorations) {
+            this.decorations = new Map<string, EventDecoration>(); // string is code scheme id
+            this.codes = new Map<string, Code>(); // string is code scheme id todo not necessary?
+        } else {
+            if (typeof decorations == 'object') {
+                let decors = new Map<string, EventDecoration>();
+                let codes = new Map<string, Code>();
+                Object.keys(decorations).forEach(deco => {
+                    let d = decorations[deco];
+                    let owner = this;
+                    decors.set(deco, new EventDecoration(this, d.scheme_id, d.manual, d.code, d.confidence, d.timestamp));
+                    codes.set(d.scheme_id, d.code);
+                });
+                this.decorations = decors;
+                this.codes = codes;
+            } /*else if (typeof decorations == 'Map') {
+                this.decorations = decorations;
+                let codes = new Map<string, Code>();
+                Object.keys(decorations).forEach(deco => {
+                    let d = decorations[deco];
+                    codes.set(d.owner.id, d.code);
+                });
+                this.codes = codes;
+            }*/
+        }
+    }
+
+    static clone(oldEvent : RawEvent) {
+        let newDecorations = new Map<string,EventDecoration>();
+        for (let [key,deco] of newDecorations.entries()) {
+            //newDecorations.set(key, EventDecoration.clone(deco, newEvent, ));
+        }
+        let newEvent = new RawEvent(oldEvent.name, oldEvent.owner, oldEvent.timestamp, oldEvent.number, oldEvent.data, newDecorations);
     }
 
     // todo refactor to not use codes just decorations
@@ -230,11 +363,11 @@ class RawEvent {
     }
 
     schemeNames(): Array<string> {
-        return Array.from(this.codes.keys());
+        return Array.from(this.codes.keys()); // todo
     }
 
     assignedCodes(): Array<Code> {
-        return Array.from(this.codes.values());
+        return Array.from(this.codes.values()); // todo
     }
 
     decorate(schemeId : string, manual: boolean, code? : Code, confidence?: number, timestamp?: string) {
@@ -245,7 +378,7 @@ class RawEvent {
 
     uglify(schemeId: string) {
         let deco = this.decorations.get(schemeId);
-        if (deco.code) {
+        if (deco && deco.code) {
             deco.code.removeEvent(this);
         }
         this.decorations.delete(schemeId);
@@ -262,30 +395,35 @@ class RawEvent {
         return Array.from(this.decorations.keys());
     }
 
-    /*
+
     toJSON() :{} {
 
         let obj = Object.create(null);
+        obj.owner = this.owner;
         obj.name = this.name;
         obj.timestamp = this.timestamp;
         obj.number = this.number;
         obj.data = this.data;
-        obj.decorations =
+        obj.decorations = Object.create(null);
+        this.decorations.forEach((value, key) => {
+           obj.decorations[key] = value;
+        });
 
+        return obj;
     }
-    */
+
 }
 
 class EventDecoration {
     owner : RawEvent; // todo: makes it circular, fix to event id
 
-    scheme_id : String; // will take scheme id
+    scheme_id : string; // will take scheme id
     private _code : Code;
     confidence: number;
     manual: boolean;
     private _timestamp: string;
 
-    constructor(owner : RawEvent, id : String, manual: boolean, code?: Code, confidence?: number, timestamp?: string) {
+    constructor(owner : RawEvent, id : string, manual: boolean, code?: Code | Object, confidence?: number, timestamp?: string) {
         this.owner = owner;
         this.scheme_id = id;
         this.manual = manual;
@@ -293,13 +431,25 @@ class EventDecoration {
         (confidence == undefined) ? this.confidence = 0 : this.confidence = confidence; // not sure this is a good idea
 
         if (code) {
-            if (manual) code.addEvent(owner);
-            this._timestamp = (timestamp) ? timestamp : new Date().toString();
-            this._code = code;
+
+            if (code instanceof Code) {
+                if (manual) code.addEvent(owner);
+                this._timestamp = (timestamp) ? timestamp : new Date().toString();
+                this._code = code;
+            } else {
+                // occurs when reading from storage... type is lost
+                /*this._code = new Code(code.owner, code.id, code.value, code.color, code.shortcut, false);
+                this._timestamp = timestamp ? timestamp : null;*/
+            }
+
         } else {
             this._code = null; // TODO: this will require null pointer checks
             this._timestamp = null;
         }
+    }
+
+    static clone(oldDeco : EventDecoration, newOwner : RawEvent, newCode : Code) {
+       return new EventDecoration(newOwner, oldDeco.scheme_id, oldDeco.manual, newCode, oldDeco.confidence, oldDeco.timestamp);
     }
 
     toJSON() :  {owner: string; scheme_id: string; code: Code; confidence: number; manual: boolean;} {
@@ -308,11 +458,15 @@ class EventDecoration {
 
         obj.owner = this.owner.name;
         obj.scheme_id = this.scheme_id;
-        obj.code = this.code.value;
+        obj.code = (this.code != null) ? {"id": this.code.id, "value": this.code.value, "owner": this.code.owner.id} : {};
         obj.confidence = this.confidence;
         obj.manual = this.manual;
 
         return obj;
+    }
+
+    changeCodeObj(code: Code) {
+        this._code = code;
     }
 
     set code(code : Code) {
@@ -360,6 +514,13 @@ class Session {
     return names;
   }
 
+  toJSON() {
+      let obj = Object.create(null);
+      obj.id = this.id;
+      obj.events = this.events.map(event => event.name); //todo point to event id;
+      obj.decorations = this.decorations;
+  }
+
   getAllEventNames() : Set<string>{
     let eventNames : Set<string> = new Set<string>();
     for (let e of this.events) {
@@ -378,19 +539,54 @@ class SessionDecoration {
        this.name = name;
        this.value = value;
    }
+
+   toJSON() {
+       let obj = Object.create(null);
+       obj.owner = this.owner.id;
+       obj.name = this.name;
+       obj.value = this.value;
+       return obj;
+   }
 }
 
 class CodeScheme {
     id : string;
     name : string;
-    codes : Map<String,Code>;
+    codes : Map<string,Code>;
     isNew : boolean;
 
-    constructor(id : string, name : string, isNew : boolean) {
+    constructor(id : string, name : string, isNew : boolean, codes? : Object | Map<string,Code>) {
         this.id = id;
         this.name = name;
-        this.codes = new Map<string,Code>();
+        if (!codes) {
+            this.codes = new Map<string,Code>();
+        } else {
+            if (!(codes instanceof Map)) {
+                let c = new Map<string, Code>();
+                Object.keys(codes).forEach(codeId => {
+                    let code = codes[codeId];
+                    if (typeof code.owner == "string" || typeof code.owner == "number") {
+                        code.owner = this;
+                    }
+                    c.set(codeId, new Code(code.owner, code.id, code.value, code.color, code.shortcut, false));
+                    c.get(codeId).addWords(code.words);
+                });
+                this.codes = c;
+            }
+        }
         this.isNew = isNew;
+    }
+
+    toJSON() {
+        let obj = Object.create(null);
+        obj.id = this.id;
+        obj.name = this.name;
+        obj.isNew = this.isNew;
+        obj.codes = Object.create(null);
+        this.codes.forEach((value, key) => {
+           obj.codes[key] = value;
+        });
+        return obj;
     }
 
     static clone(original : CodeScheme) {
@@ -522,6 +718,7 @@ class Code {
     }
 
     constructor(owner: CodeScheme, id: string, value: string, color: string, shortcut: string, isEdited: boolean) {
+        console.log(owner);
         this._owner = owner;
         this._id = id;
         this._value = value;
@@ -622,7 +819,7 @@ class Code {
 
     addEvent(event: RawEvent): void {
         // compare reference to event
-        if (this._eventsWithCode.indexOf(event) == -1) this._eventsWithCode.push(event);
+        if (event && this._eventsWithCode.indexOf(event) == -1) this._eventsWithCode.push(event);
     }
 
     removeEvent(event: RawEvent): void {
@@ -636,5 +833,245 @@ class Code {
             let decoration = event.decorationForName(this._owner.id);
             if (decoration == undefined) return false;
             return !decoration.manual && (event.data + "") === text});
+    }
+}
+
+// Services
+
+class Watchdog {
+    constructor() {
+        console.log("Watchdog ctor");
+
+        var f = this.tick;
+        setInterval(function() { f() }, 500);
+    }
+    tick() {
+        console.log("Watchdog tick");
+    }
+}
+
+
+class StorageManager {
+
+    private static _instance: StorageManager;
+    private lastEdit: Date;
+
+    private constructor() {
+
+        chrome.storage.local.get("lastEdit", (editObj) => {
+
+            if ( Object.prototype.toString.call(editObj["lastEdit"]) === "[object Date]" ) {
+                if (!isNaN((editObj["lastEdit"]).getTime())) {
+                    // date is valid
+                    this.lastEdit = editObj["lastEdit"];
+                }
+            }
+        });
+    }
+
+    static get instance() {
+        return this._instance || (this._instance = new StorageManager());
+    }
+
+    isExpired() : void {
+        // TODO
+        // on every startup of CODA, check if storage is expired, i.e. more than 30 days have passed since last edit
+        // if yes, clear storage
+    }
+
+
+
+    isValid() : Promise<boolean> {
+
+        // TODO: rewrite this so storage is not accessed TWICE!!!!
+        return new Promise(function(resolve,reject) {
+
+            var valid = true;
+
+            chrome.storage.local.get("dataset", (data) => {
+
+                if (chrome.runtime.lastError) {
+                    console.log("Error reading from storage!");
+                    console.log(valid);
+                    valid = false;
+                    console.log(valid);
+                    resolve(valid);
+
+                }
+
+                var dataset = data.hasOwnProperty("dataset") ? data["dataset"] : {};
+                if (typeof dataset == "string") {
+                    dataset = JSON.parse(dataset);
+                }
+
+                if (data == null || dataset == null || typeof data == 'undefined' || typeof dataset == 'undefined') {
+                    valid = false;
+                    resolve(valid);
+                }
+
+                else if (Object.keys(dataset).length == 0) {
+                    console.log(valid);
+                    valid = false;
+                    console.log(valid);
+                    resolve(valid);
+                }
+
+                else if (!dataset.hasOwnProperty("schemes") || !dataset.hasOwnProperty("sessions") || !dataset.hasOwnProperty("events") || dataset["events"].length == 0) {
+                    console.log("Error reading from storage: stored dataset is of the wrong format.")
+                    console.log(valid);
+                    valid = false;
+                    console.log(valid);
+                    resolve(valid);
+                }
+                resolve(valid);
+            });
+        });
+    }
+
+    getDataset() : Promise<string> {
+
+        let p = new Promise(function(resolve, reject) {
+            chrome.storage.local.get("dataset", (data) => {
+                let error = chrome.runtime.lastError;
+                if (error) {
+                    console.log("Error reading from storage!");
+                    console.log(error);
+                    resolve(null);
+                }
+                resolve(data["dataset"]);
+            });
+        });
+        return p;
+    }
+
+    getSchemes() : Promise<Object> {
+
+        let p = new Promise(function(resolve, reject) {
+            chrome.storage.local.get("schemes", (data) => {
+                let error = chrome.runtime.lastError;
+                if (error) {
+                    console.log("Error reading from storage!");
+                    console.log(error);
+                    resolve(null);
+                }
+                resolve(data["schemes"]);
+            });
+        });
+        return p;
+    }
+
+    saveDataset(dataset: Dataset) {
+        // callback hell eh
+        chrome.storage.local.set({"dataset": JSON.stringify(dataset)}, () => {
+            this.lastEdit = new Date();
+            chrome.storage.local.set({"lastEdit": this.lastEdit}, () => {
+                console.log("Edit timestamp: " + this.lastEdit);
+                chrome.storage.local.get((store) => {
+                    console.log("In storage: " + JSON.stringify(store["dataset"]));
+                    chrome.storage.local.getBytesInUse((bytesUnUse: number) => {
+                        console.log("Bytes in use: " + bytesUnUse);
+                        console.log("QUOTA_BYTES: " + chrome.storage.local.QUOTA_BYTES);
+                    });
+                });
+            });
+        });
+    }
+
+    saveScheme(scheme: CodeScheme) {
+
+        chrome.storage.local.get("schemes", (data) => {
+            let schemes = data["schemes"];
+            if (!schemes || schemes == undefined) {
+                schemes = {};
+            }
+
+            schemes[scheme.id] = scheme;
+
+            chrome.storage.local.set({"schemes": schemes}, () => {
+
+                this.lastEdit = new Date();
+                chrome.storage.local.set({"lastEdit": this.lastEdit}, () => {
+                    console.log("Edit timestamp: " + this.lastEdit);
+                });
+
+                chrome.storage.local.get((store) => {
+                    console.log("In storage: " + store["dataset"] + "," + JSON.stringify(store["schemes"]));
+                });
+
+                chrome.storage.local.getBytesInUse((bytesUnUse: number) => {
+                    console.log("Bytes in use: " + bytesUnUse);
+                    console.log("QUOTA_BYTES: " + chrome.storage.local.QUOTA_BYTES);
+                });
+
+            });
+        });
+    }
+
+    saveActivity() {
+
+        // TODO
+        // save user activity in storage for instrumentation
+
+    }
+
+    clearStorage() {
+
+        chrome.storage.local.remove(["dataset", "schemes"],function(){
+            let error = chrome.runtime.lastError;
+            if (error) {
+                console.error(error);
+            }
+        });
+
+
+    }
+
+}
+
+
+class UndoManager {
+
+    static MAX_UNDO_LEVELS = 8;
+    pointer : number = 0;
+    modelUndoStack : Array<Dataset>  = [];
+    schemaUndoStack : Array<Schema> = [];
+
+    markUndoPoint() {
+        while (this.modelUndoStack.length - 1 > 0 && this.pointer < (this.modelUndoStack.length - 1)) {
+            // We we're at the top of the stack
+            this.modelUndoStack.pop();
+            this.schemaUndoStack.pop();
+        }
+
+        this.modelUndoStack.push(Dataset.clone(newDataset));
+        this.schemaUndoStack.push(schema);
+        this.pointer++;
+
+        if (this.modelUndoStack.length > UndoManager.MAX_UNDO_LEVELS) {
+            storage.saveDataset(newDataset);
+            this.modelUndoStack.splice(0, 1);
+            this.schemaUndoStack.splice(0, 1);
+        }
+    }
+
+    canUndo() : boolean { return this.pointer != 0; }
+    canRedo() : boolean { return this.pointer
+        != this.modelUndoStack.length - 1 && this.modelUndoStack.length != 0; }
+
+
+    undo() : boolean {
+        if (!this.canUndo()) return false;
+        this.pointer--;
+        newDataset = Dataset.clone(this.modelUndoStack[this.pointer]);
+        schema = this.schemaUndoStack[this.pointer];
+        return true;
+    }
+
+    redo() : boolean {
+        if (!this.canRedo()) return false;
+        this.pointer++;
+        newDataset = Dataset.clone(this.modelUndoStack[this.pointer]);
+        schema = this.schemaUndoStack[this.pointer];
+        return true;
     }
 }
