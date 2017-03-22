@@ -556,7 +556,7 @@ var codeEditorManager =  {
         }
 
         undoManager.markUndoPoint();
-        storage.saveDataset(dataset);
+        storage.saveDataset(newDataset);
 
         // handle UI changes
         messageViewerManager.deleteSchemeColumn(schemeId);

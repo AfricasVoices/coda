@@ -305,4 +305,4 @@ var scrollbarManager = {
         return layer ? layer.y : 0;
     }
 
-}
+};

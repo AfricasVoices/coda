@@ -854,83 +854,87 @@ class Watchdog {
 class StorageManager {
 
     private static _instance: StorageManager;
-    private lastEdit: Date;
+    lastEdit: Date;
 
     private constructor() {
-
+        /*
+        var manager = this;
         chrome.storage.local.get("lastEdit", (editObj) => {
-
+            console.log(editObj);
+            editObj["lastEdit"] = new Date(JSON.parse(editObj["lastEdit"]));
+            console.log(editObj["lastEdit"]);
             if ( Object.prototype.toString.call(editObj["lastEdit"]) === "[object Date]" ) {
                 if (!isNaN((editObj["lastEdit"]).getTime())) {
-                    // date is valid
-                    this.lastEdit = editObj["lastEdit"];
+                    // date is in valid format
+                    if (this.isExpired()) {
+                        manager.lastEdit = new Date();
+                        this.clearStorage().then( () => console.log(manager.lastEdit));
+
+                    } else {
+                        manager.lastEdit = editObj["lastEdit"];
+                        console.log(editObj["lastEdit"]);
+                        console.log(manager.lastEdit);
+                    }
+
                 }
             }
-        });
+        });*/
     }
 
     static get instance() {
         return this._instance || (this._instance = new StorageManager());
     }
 
-    isExpired() : void {
+    isExpired() : boolean {
         // TODO
         // on every startup of CODA, check if storage is expired, i.e. more than 30 days have passed since last edit
         // if yes, clear storage
-    }
 
+        var _MS_PER_DAY = 1000 * 60 * 60 * 24;
+        // a and b are javascript Date objects
+        function dateDiffInDays(a, b) {
+            // Discard the time and time-zone information.
+            let utc1 = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+            let utc2 = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
 
+            return Math.floor((utc2 - utc1) / _MS_PER_DAY);
+        }
 
-    isValid() : Promise<boolean> {
+        return (30 <= dateDiffInDays(this.lastEdit, new Date()));
 
-        // TODO: rewrite this so storage is not accessed TWICE!!!!
-        return new Promise(function(resolve,reject) {
-
-            var valid = true;
-
-            chrome.storage.local.get("dataset", (data) => {
-
-                if (chrome.runtime.lastError) {
-                    console.log("Error reading from storage!");
-                    console.log(valid);
-                    valid = false;
-                    console.log(valid);
-                    resolve(valid);
-
-                }
-
-                var dataset = data.hasOwnProperty("dataset") ? data["dataset"] : {};
-                if (typeof dataset == "string") {
-                    dataset = JSON.parse(dataset);
-                }
-
-                if (data == null || dataset == null || typeof data == 'undefined' || typeof dataset == 'undefined') {
-                    valid = false;
-                    resolve(valid);
-                }
-
-                else if (Object.keys(dataset).length == 0) {
-                    console.log(valid);
-                    valid = false;
-                    console.log(valid);
-                    resolve(valid);
-                }
-
-                else if (!dataset.hasOwnProperty("schemes") || !dataset.hasOwnProperty("sessions") || !dataset.hasOwnProperty("events") || dataset["events"].length == 0) {
-                    console.log("Error reading from storage: stored dataset is of the wrong format.")
-                    console.log(valid);
-                    valid = false;
-                    console.log(valid);
-                    resolve(valid);
-                }
-                resolve(valid);
-            });
-        });
     }
 
     getDataset() : Promise<string> {
 
-        let p = new Promise(function(resolve, reject) {
+        return new Promise(function(resolve,reject) {
+
+            chrome.storage.local.get("dataset", (data) => {
+
+                if (chrome.runtime.lastError) {
+                    reject(new Error("Error reading from storage!"));
+                }
+
+                let dataset = data.hasOwnProperty("dataset") ? data["dataset"] : {};
+                if (typeof dataset == "string") {
+                    dataset = JSON.parse(dataset);
+                }
+
+                if (data == null || dataset == null || typeof data == 'undefined' ||
+                    typeof dataset == 'undefined' || Object.keys(dataset).length == 0 ||
+                    !dataset.hasOwnProperty("schemes") || !dataset.hasOwnProperty("sessions") ||
+                    !dataset.hasOwnProperty("events") || dataset["events"].length == 0) {
+
+                    reject(new Error("Error reading from storage: dataset format is corrupt, load it from external file again."));
+                }
+
+                resolve(dataset);
+            });
+        });
+    }
+
+    /*getDataset() : Promise<string> {
+
+        return new Promise(function(resolve, reject) {
             chrome.storage.local.get("dataset", (data) => {
                 let error = chrome.runtime.lastError;
                 if (error) {
@@ -941,71 +945,25 @@ class StorageManager {
                 resolve(data["dataset"]);
             });
         });
-        return p;
-    }
+    }*/
 
-    getSchemes() : Promise<Object> {
-
-        let p = new Promise(function(resolve, reject) {
-            chrome.storage.local.get("schemes", (data) => {
-                let error = chrome.runtime.lastError;
-                if (error) {
-                    console.log("Error reading from storage!");
-                    console.log(error);
-                    resolve(null);
-                }
-                resolve(data["schemes"]);
-            });
-        });
-        return p;
-    }
 
     saveDataset(dataset: Dataset) {
         // callback hell eh
-        chrome.storage.local.set({"dataset": JSON.stringify(dataset)}, () => {
-            this.lastEdit = new Date();
-            chrome.storage.local.set({"lastEdit": this.lastEdit}, () => {
-                console.log("Edit timestamp: " + this.lastEdit);
-                chrome.storage.local.get((store) => {
-                    console.log("In storage: " + JSON.stringify(store["dataset"]));
-                    chrome.storage.local.getBytesInUse((bytesUnUse: number) => {
-                        console.log("Bytes in use: " + bytesUnUse);
-                        console.log("QUOTA_BYTES: " + chrome.storage.local.QUOTA_BYTES);
-                    });
-                });
-            });
-        });
-    }
-
-    saveScheme(scheme: CodeScheme) {
-
-        chrome.storage.local.get("schemes", (data) => {
-            let schemes = data["schemes"];
-            if (!schemes || schemes == undefined) {
-                schemes = {};
-            }
-
-            schemes[scheme.id] = scheme;
-
-            chrome.storage.local.set({"schemes": schemes}, () => {
-
-                this.lastEdit = new Date();
-                chrome.storage.local.set({"lastEdit": this.lastEdit}, () => {
-                    console.log("Edit timestamp: " + this.lastEdit);
-                });
-
-                chrome.storage.local.get((store) => {
-                    console.log("In storage: " + store["dataset"] + "," + JSON.stringify(store["schemes"]));
-                });
-
+        this.lastEdit = new Date();
+        chrome.storage.local.set({"dataset": JSON.stringify(dataset), "lastEdit" : JSON.stringify(this.lastEdit)}, () => {
+            console.log("Edit timestamp: " + this.lastEdit);
+            chrome.storage.local.get((store) => {
+                console.log("In storage: " + JSON.stringify(store["dataset"]));
+                console.log("In storage: " + JSON.stringify(store["lastEdit"]));
                 chrome.storage.local.getBytesInUse((bytesUnUse: number) => {
                     console.log("Bytes in use: " + bytesUnUse);
                     console.log("QUOTA_BYTES: " + chrome.storage.local.QUOTA_BYTES);
                 });
-
             });
         });
     }
+
 
     saveActivity() {
 
@@ -1014,16 +972,19 @@ class StorageManager {
 
     }
 
-    clearStorage() {
+    clearStorage() : Promise<void> {
+        return new Promise(function(resolve, reject) {
+            chrome.storage.local.remove(["dataset", "schemes"], () => {
+                let error = chrome.runtime.lastError;
+                if (error) {
+                    console.error(error);
+                    reject(new Error(error.message));
+                } else {
+                    resolve();
+                }
+            });
 
-        chrome.storage.local.remove(["dataset", "schemes"],function(){
-            let error = chrome.runtime.lastError;
-            if (error) {
-                console.error(error);
-            }
         });
-
-
     }
 
 }
