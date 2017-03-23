@@ -90,8 +90,8 @@ var scrollbarManager = {
         } else {
             let color;
             for (event of newDataset.events) {
-                if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code != null) {
-                    colors.push(this.adjustSaturation(event.decorations.get(activeSchemeId)));
+                if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code) {
+                   color = this.adjustSaturation(event.decorations.get(activeSchemeId));
                 } else {
                     color = "#ffffff";
                 }
@@ -221,14 +221,14 @@ var scrollbarManager = {
                 colors = [];
             } else {
                 let color = "#ffffff";
-                if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code != null) {
-                    let codeHasColor = event.decorations.get(activeSchemeId).code.color != null &&  event.decorations.get(activeSchemeId).code.color.length != 0;
+                if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code) {
+                    let code = event.decorations.get(activeSchemeId).code;
+                    let codeHasColor = code.color &&  code.color.length != 0;
                     if (codeHasColor) colors.push(this.adjustSaturation(event.decorations.get(activeSchemeId)));
                     else colors.push("#ffffff");
                 } else {
                     colors.push("#ffffff");
                 }
-                colors.push(color);
             }
         }
 

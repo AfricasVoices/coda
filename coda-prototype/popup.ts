@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 var doFlag = true;
                 for (var i=tabs.length-1; i>=0; i--) {
                     console.log(tabs[i].url);
-                    if (tabs[i].url === "chrome-extension://" + chrome.runtime.id + "/ui.html") {
+                    if (tabs[i].url.startsWith("chrome-extension://" + chrome.runtime.id)) {
                         // Coda is already open!
                         doFlag = false;
                         break;
@@ -72,7 +72,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         chrome.storage.local.get("lastEdit", (editObj) => {
-
+            if (!editObj || !editObj["lastEdit"] || editObj["lastEdit"]) {
+                launch();
+                return;
+            }
             console.log(editObj);
             editObj["lastEdit"] = new Date(JSON.parse(editObj["lastEdit"]));
             console.log(editObj["lastEdit"]);
@@ -83,7 +86,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     if (isExpired(new Date(), editObj["lastEdit"])) {
                         new Promise(function(resolve, reject) {
-                            chrome.storage.local.remove(["dataset", "schemes"], () => {
+                            chrome.storage.local.clear(() => {
                                 let error = chrome.runtime.lastError;
                                 if (error) {
                                     reject(new Error(error.message));
@@ -107,7 +110,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var clearCacheButton = document.getElementById('clearCache');
 
     clearCacheButton.addEventListener('click', function () {
-        chrome.storage.local.remove(["dataset", "schemes"], () => {
+        chrome.storage.local.clear(() => {
             var error = chrome.runtime.lastError;
             if (error) {
                 console.log(error);
@@ -124,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     var doFlag = true;
                     for (var i=tabs.length-1; i>=0; i--) {
                         console.log(tabs[i].url);
-                        if (tabs[i].url === "chrome-extension://" + chrome.runtime.id + "/ui.html") {
+                        if (tabs[i].url.startsWith("chrome-extension://" + chrome.runtime.id)) {
                             // Coda is already open!
                             doFlag = false;
                             break;

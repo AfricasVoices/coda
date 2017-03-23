@@ -852,7 +852,8 @@ class Watchdog {
 
 
 class StorageManager {
-    private static _MAX_ACTIVITY_STACK = 3;
+    private static _MAX_ACTIVITY_STACK; // todo set limit and handle overruning activity stack
+    private static _MAX_ACTIVITY_SAVE_FREQ = 3;
     private static _instance: StorageManager;
     lastEdit: Date;
 
@@ -936,7 +937,7 @@ class StorageManager {
 
     getActivity() : Promise<string> {
 
-        return new Promise(function(resolve, reject) {
+        return new Promise(function (resolve, reject) {
             chrome.storage.local.get("instrumentation", data => {
                 if (chrome.runtime.lastError) {
                     reject(new Error("Error reading from storage!"));
@@ -947,20 +948,6 @@ class StorageManager {
 
         });
     }
-    /*getDataset() : Promise<string> {
-
-        return new Promise(function(resolve, reject) {
-            chrome.storage.local.get("dataset", (data) => {
-                let error = chrome.runtime.lastError;
-                if (error) {
-                    console.log("Error reading from storage!");
-                    console.log(error);
-                    resolve(null);
-                }
-                resolve(data["dataset"]);
-            });
-        });
-    }*/
 
     clearActivityLog() : Promise<boolean> {
         return new Promise(function(resolve, reject) {
@@ -984,9 +971,9 @@ class StorageManager {
             chrome.storage.local.get((store) => {
                 let data = JSON.parse(store["dataset"]);
                 let datasetString = "dataset (schemes: "
-                    + data["dataset"]["schemes"].length +
-                    ", events: " + data["dataset"]["events"].length +
-                    ", sessions: " + data["dataset"]["sessions"].length + ")";
+                    + Object.keys(data["schemes"]).length +
+                    ", events: " + data["events"].length +
+                    ", sessions: " + data["sessions"].length + ")";
 
                 console.log("In storage: Last edit (" + new Date(store["lastEdit"]) + "), " + datasetString);
                 chrome.storage.local.getBytesInUse((bytesUnUse: number) => {
@@ -998,20 +985,19 @@ class StorageManager {
     }
 
 
-    saveActivity(logEvent: {"category": string, "message": string, "data": string, "timestamp": Date}) : void {
+    saveActivity(logEvent: {"category": string, "message": string, "data": any, "timestamp": Date}) : void {
         // save user activity in storage for instrumentation
         if (logEvent.category.length != 0 && logEvent.message.length != 0 && logEvent.data.length != 0 && logEvent.timestamp instanceof Date) {
             activity.push(logEvent);
             console.log("INSTRUMENTATION: " + logEvent.category + ":"  + logEvent.message + ", stack size: " + activity.length);
-            if (activity.length % StorageManager._MAX_ACTIVITY_STACK == 0) {
+            if (activity.length % StorageManager._MAX_ACTIVITY_SAVE_FREQ== 0) {
                 chrome.storage.local.set({"instrumentation": JSON.stringify(activity)}, () => {
                     if (chrome.runtime.lastError) {
                         console.log(chrome.runtime.lastError);
                     } else {
-
                         console.log("Saved activity log!");
                         chrome.storage.local.get((store) => {
-                            console.log("In storage: " + store["instrumentation"]);
+                            console.log("In storage: instrumentation stack size" + store["instrumentation"].length);
                             chrome.storage.local.getBytesInUse((bytesUnUse: number) => {
                                 console.log("Bytes in use: " + bytesUnUse);
                                 console.log("QUOTA_BYTES: " + chrome.storage.local.QUOTA_BYTES);

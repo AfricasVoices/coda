@@ -624,7 +624,7 @@ var messageViewerManager = {
         storage.saveActivity({
             "category": "CODING",
             "message": "Used dropdown to assign " + codeObj.id + " from scheme " + schemeId,
-            "data": JSON.stringify(eventObj),
+            "data": eventObj,
             "timestamp": new Date()
         });
     },
@@ -767,7 +767,7 @@ var messageViewerManager = {
                 storage.saveActivity({
                     "category": "SCHEME",
                     "message": "Editing existing scheme " + scheme.id,
-                    "data": JSON.stringify(scheme),
+                    "data": scheme.toJSON(),
                     "timestamp": new Date()
                 });
             }
@@ -821,7 +821,7 @@ var messageViewerManager = {
                 storage.saveActivity({
                     "category": "CODING",
                     "message": "Used shortcut " + event.keyCode + " from scheme " + activeSchemeId,
-                    "data": JSON.stringify(newDataset.events[eventId]),
+                    "data": newDataset.events[eventId],
                     "timestamp": new Date()
                 });
             }
@@ -1051,7 +1051,7 @@ var messageViewerManager = {
                     storage.saveActivity({
                         "category": "SCHEME",
                         "message": "Highlighted string " + selection + " for code " + code.id + " in scheme " + code.owner.id,
-                        "data": JSON.stringify(code),
+                        "data": code,
                         "timestamp": new Date()
                     });
 
@@ -1067,7 +1067,7 @@ var messageViewerManager = {
                     storage.saveActivity({
                         "category": "SCHEME",
                         "message": "Highlighted string " + selection,
-                        "data": JSON.stringify([selection]),
+                        "data": [selection],
                         "timestamp": new Date()
                     });
 

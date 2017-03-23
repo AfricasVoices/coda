@@ -63,14 +63,16 @@ var codeEditorManager =  {
             $("#word-textarea").find(".tag").css({"background-color": event.color.toHex()});
 
             // update the activity stack
+            /* TODO find a solution that doesn't flood events
             if (code) {
                 storage.saveActivity({
                     "category": "SCHEME",
-                    "message": "Changed color for code " + code.id + " in scheme " + JSON.stringify(code.owner.id),
-                    "data": JSON.stringify(tempScheme),
+                    "message": "Changed color for code " + code.id + " in scheme " + code.owner.id,
+                    "data": tempScheme.toJSON(),
                     "timestamp": new Date()
                 });
             }
+            */
         });
 
         $("#delete-scheme-button").on("click", () => {
@@ -86,7 +88,7 @@ var codeEditorManager =  {
            storage.saveActivity({
                "category": "SCHEME",
                "message": "Deleted scheme " + tempScheme.id,
-               "data": JSON.stringify(tempScheme),
+               "data": tempScheme.toJSON(),
                "timestamp": new Date()
            });
            tempScheme = {};
@@ -235,7 +237,7 @@ var codeEditorManager =  {
             storage.saveActivity({
                 "category": "SCHEME",
                 "message": "Saved scheme " + tempScheme["id"],
-                "data": JSON.stringify(newDataset.schemes[tempScheme["id"]]),
+                "data": newDataset.schemes[tempScheme["id"]].toJSON(),
                 "timestamp": new Date()
             });
 
@@ -288,7 +290,7 @@ var codeEditorManager =  {
             storage.saveActivity({
                 "category" : "SCHEME",
                 "message": "Closed editor for scheme " + tempScheme.id,
-                "data": JSON.stringify(tempScheme),
+                "data": tempScheme.toJSON(),
                 "timestamp": new Date()
             });
         });
@@ -305,7 +307,7 @@ var codeEditorManager =  {
             storage.saveActivity({
                 "category": "SCHEME",
                 "message": "Cancel edits to scheme " + tempScheme.id,
-                "data": JSON.stringify(tempScheme),
+                "data": tempScheme.toJSON(),
                 "timestamp": new Date()
             });
         });
@@ -334,7 +336,7 @@ var codeEditorManager =  {
             storage.saveActivity({
                 "category": "SCHEME",
                 "message": "Added new code " + newCode.id + " to scheme " + tempScheme.id,
-                "data": JSON.stringify(tempScheme),
+                "data": tempScheme.toJSON(),
                 "timestamp": new Date()});
         });
     },
@@ -447,7 +449,7 @@ var codeEditorManager =  {
             storage.saveActivity({
                 "category": "SCHEME",
                 "message": "Added word " + event.item + " to code " + codeObj.id + " in scheme " + tempScheme.id,
-                "data": JSON.stringify(tempScheme),
+                "data": tempScheme.toJSON(),
                 "timestamp": new Date()});
         });
 
@@ -459,7 +461,7 @@ var codeEditorManager =  {
             storage.saveActivity({
                 "category": "SCHEME",
                 "message": "Deleted word " + event.item + " from code " + codeObj.id + " in scheme " + tempScheme.id,
-                "data": JSON.stringify(tempScheme),
+                "data": tempScheme.toJSON(),
                 "timestamp": new Date()});
 
         });
@@ -591,7 +593,7 @@ var codeEditorManager =  {
             storage.saveActivity({
                 "category": "SCHEME",
                 "message": "Deleted code " + id + " from scheme " + tempScheme.id,
-                "data": JSON.stringify(tempScheme),
+                "data": tempScheme.toJSON(),
                 "timestamp": new Date()
             });
 
@@ -599,7 +601,7 @@ var codeEditorManager =  {
     },
 
     deleteScheme: function(schemeId) {
-        let datasetSnapshot = JSON.stringify(newDataset.schemes[schemeId]);
+        let schemeSnapshot = newDataset.schemes[schemeId];
 
         // delegate uglifying to datastructure
         newDataset.deleteScheme(schemeId);
@@ -626,7 +628,7 @@ var codeEditorManager =  {
         storage.saveActivity({
             "category": "SCHEME",
             "message": "Deleted scheme " +  schemeId,
-            "data": JSON.stringify(datasetSnapshot),
+            "data": schemeSnapshot.toJSON(),
             "timestamp": new Date()
         });
 

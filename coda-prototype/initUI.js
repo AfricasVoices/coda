@@ -174,7 +174,11 @@ function initUI(dataset) {
 
     $("#export-instrumentation").on("click", () => {
         storage.getActivity().then(activity => {
-            let dataBlob = new Blob([Papa.unparse(activity, {header:true, delimiter:";"})], {type: 'text/plain'});
+            if (!activity || activity.length === 0) {
+                activity = "";
+                console.log("Exporting empy instrumentation file.");
+            }
+            let dataBlob = new Blob([activity], {type: 'application/json'});
             chrome.downloads.download({url: window.URL.createObjectURL(dataBlob), saveAs: true}, function(dlId) {
                 console.log("Downloaded activity file with id: " + dlId);
             });
@@ -245,7 +249,7 @@ function initUI(dataset) {
             storage.saveActivity({
                 "category": "DATASET",
                 "message": "Exported dataset", //todo identifier
-                "data": JSON.stringify(tempScheme),
+                "data": tempScheme.toJSON(),
                 "timestamp": new Date()
             });
         });
@@ -402,7 +406,7 @@ function initUI(dataset) {
                     storage.saveActivity({
                         "category": "DATASET",
                         "message": "Imported dataset", // todo find identifier
-                        "data": JSON.stringify(dataset.events[0]),
+                        "data": "",
                         "timestamp": new Date()
                     });
 
@@ -560,7 +564,7 @@ function initUI(dataset) {
                     storage.saveActivity({
                         "category": "SCHEME",
                         "message": "Imported new scheme " + newScheme.id,
-                        "data": JSON.stringify(newScheme),
+                        "data": newScheme.toJSON(),
                         "timestamp": new Date()
                     });
 
@@ -615,7 +619,7 @@ function initUI(dataset) {
             storage.saveActivity({
                 "category": "SCHEME",
                 "message": "Exported scheme " + tempScheme.id,
-                "data": JSON.stringify(tempScheme),
+                "data": tempScheme.toJSON(),
                 "timestamp": new Date()
             });
 
@@ -732,7 +736,7 @@ function initUI(dataset) {
                 storage.saveActivity({
                     "category": "SCHEME",
                     "message": "Uploaded new version of scheme " + tempScheme.id,
-                    "data": JSON.stringify(tempScheme),
+                    "data": tempScheme.toJSON(),
                     "timestamp": new Date()
                 });
             }
