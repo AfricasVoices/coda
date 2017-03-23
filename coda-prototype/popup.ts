@@ -28,12 +28,12 @@
 document.addEventListener('DOMContentLoaded', function () {
 
     var checkPageButton = document.getElementById('checkPage');
+
     checkPageButton.addEventListener('click', function () {
+        // on every startup of CODA, check if storage is expired, i.e. more than 30 days have passed since last edit
+        // if yes, clear storage
 
         function isExpired(a : Date,b : Date) : boolean {
-            // on every startup of CODA, check if storage is expired, i.e. more than 30 days have passed since last edit
-            // if yes, clear storage
-
             var _MS_PER_DAY = 1000 * 60 * 60 * 24;
             // a and b are javascript Date objects
             function dateDiffInDays(a, b) {
@@ -43,7 +43,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 return Math.floor((utc2 - utc1) / _MS_PER_DAY);
             }
-
             return (30 <= dateDiffInDays(a, b));
         }
 
@@ -51,7 +50,6 @@ document.addEventListener('DOMContentLoaded', function () {
             // http://stackoverflow.com/a/36000860
             chrome.tabs.query({}, function(tabs) {
                 var doFlag = true;
-                var tab;
                 for (var i=tabs.length-1; i>=0; i--) {
                     console.log(tabs[i].url);
                     if (tabs[i].url === "chrome-extension://" + chrome.runtime.id + "/ui.html") {
@@ -107,6 +105,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }, false);
 
     var clearCacheButton = document.getElementById('clearCache');
+
     clearCacheButton.addEventListener('click', function () {
         chrome.storage.local.remove(["dataset", "schemes"], () => {
             var error = chrome.runtime.lastError;
@@ -120,7 +119,28 @@ document.addEventListener('DOMContentLoaded', function () {
                     console.log("Bytes in use: " + bytesUnUse);
                     console.log("QUOTA_BYTES: " + chrome.storage.local.QUOTA_BYTES);
                 });
-                chrome.tabs.create({ url: chrome.extension.getURL("ui.html") });
+
+                chrome.tabs.query({}, function(tabs) {
+                    var doFlag = true;
+                    for (var i=tabs.length-1; i>=0; i--) {
+                        console.log(tabs[i].url);
+                        if (tabs[i].url === "chrome-extension://" + chrome.runtime.id + "/ui.html") {
+                            // Coda is already open!
+                            doFlag = false;
+                            break;
+                        }
+                    }
+                    if (!doFlag) {
+                        // already open, so close the open tab first
+                        // todo PROMPT TO EXPORT data before wiping cache in the existing tab
+                        chrome.tabs.remove([tabs[i].id], () => {
+                            chrome.tabs.create({ url: chrome.extension.getURL("ui.html") });
+                        });
+
+                    } else {
+                        chrome.tabs.create({ url: chrome.extension.getURL("ui.html") });
+                    }
+                });
             }
         });
     });

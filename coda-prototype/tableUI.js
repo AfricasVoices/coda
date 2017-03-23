@@ -169,6 +169,14 @@ var messageViewerManager = {
 
             scrollbarManager.redraw(newDataset, activeSchemeId);
             scrollbarManager.redrawThumb(thumbPos);
+
+            // update the activity stack
+            storage.saveActivity({
+                "category": "DATASET",
+                "message": "Sorted dataset", // todo enter what sort
+                "data": iconClassesNext[iconClassName],
+                "timestamp": new Date()
+            });
         }
         console.timeEnd("sort");
     },
@@ -259,7 +267,6 @@ var messageViewerManager = {
             });
             bindEditSchemeButtonListener(appendedElements.children("button"), schemes[schemeKey]);
         });
-
 
 
         /*
@@ -394,19 +401,15 @@ var messageViewerManager = {
         for (let i = visibleRange[0]; i < visibleRange[1]; i++) {
             let eventObj = newDataset.events[i];
             let code = eventObj.codeForScheme(activeSchemeId);
-            if (code != null) {
+            if (code) {
                 console.log("code");
                 $(".message[eventid='" + i + "']").find("p").html(regexMatcher.wrapText(newDataset.events[i].data, regexMatcher.generateOrRegex(code.words), "highlight", code.id));
-                let selectObj = $(".message[eventid='" + eventObj.name + "']").find("select."+ activeSchemeId).val(code["value"]).removeClass("uncoded").addClass("coded");
+                let selector = 'select.' + activeSchemeId;
+                let selectObj = $(".message[eventid='" + eventObj.name + "']").find(selector).val(code["value"]).removeClass("uncoded").addClass("coded");
 
                 this.dropdownChangeHandler(selectObj, false);
             }
-
-
         }
-
-
-
     },
 
     changeActiveScheme : function() {
@@ -428,11 +431,15 @@ var messageViewerManager = {
 
         $(".message").each(function(i, tr) {
             // find code object via selected option
+
+            /*
             let selectFields = $(tr).find("select." + activeSchemeId);
             selectFields.each(function(i, field) {
 
             });
+
             var selectedOption = $(tr).find("select." + activeSchemeId).find("option:selected").not(".unassign");
+            */
 
             $(tr).find("select").each(function(index,el){
                if ($(el).hasClass(activeSchemeId)) {
@@ -471,24 +478,40 @@ var messageViewerManager = {
             messageViewerManager.codeSchemeOrder = newOrder;
             this.buildTable(newDataset, this.rowsInTable, false);
             // todo undo manager to storage
+
+            // update the activity stack // TODO what to save here
+            storage.saveActivity({
+                "category": "DATASET",
+                "message": "Undone action",
+                "data": "",
+                "timestamp": new Date()
+            });
         }
     },
 
     redoHandler: function() {
-      let redone = undoManager.redo();
-      if (redone) {
-          console.log("Redone! " + "Stack pt: " + undoManager.pointer + " Stack size: " + undoManager.modelUndoStack.length);
+        let redone = undoManager.redo();
+        if (redone) {
+            console.log("Redone! " + "Stack pt: " + undoManager.pointer + " Stack size: " + undoManager.modelUndoStack.length);
 
-          let newOrder = messageViewerManager.codeSchemeOrder.filter(schemeKey => !!newDataset[schemeKey]); // leave ones that are in dataset schemes
-          Object.keys(newDataset.schemes).forEach(schemeKey => {
-              if (newOrder.indexOf(schemeKey) == -1) {
-                  newOrder.push(schemeKey);
-              }
-          });
-          messageViewerManager.codeSchemeOrder = newOrder;
-          this.buildTable(newDataset, this.rowsInTable, false);
-          // todo undo manager to storage
-      }
+            let newOrder = messageViewerManager.codeSchemeOrder.filter(schemeKey => !!newDataset[schemeKey]); // leave ones that are in dataset schemes
+            Object.keys(newDataset.schemes).forEach(schemeKey => {
+                if (newOrder.indexOf(schemeKey) == -1) {
+                    newOrder.push(schemeKey);
+                }
+            });
+            messageViewerManager.codeSchemeOrder = newOrder;
+            this.buildTable(newDataset, this.rowsInTable, false);
+            // todo undo manager to storage
+
+            // update the activity stack // TODO what data to save here
+            storage.saveActivity({
+                "category": "DATASET",
+                "message": "Redone action",
+                "data": "",
+                "timestamp": new Date()
+            });
+        }
     },
 
     dropdownChangeHandler: function(selectElement, manual) {
@@ -512,7 +535,7 @@ var messageViewerManager = {
             // add decoration
             let decoration = eventObj.decorationForName(schemeId);
             if (decoration === undefined) {
-                eventObj.decorate(schemeId, manual, newDataset.schemes[schemeId].getCodeByValue(value));
+                eventObj.decorate(schemeId, manual, newDataset.schemes[schemeId].getCodeByValue(value)); // todo fix codeObj
             } else {
                 decoration.code = newDataset.schemes[schemeId].getCodeByValue(value);
                 decoration.manual = manual;
@@ -597,6 +620,13 @@ var messageViewerManager = {
 
         // todo find next active row
 
+        // update the activity stack
+        storage.saveActivity({
+            "category": "CODING",
+            "message": "Used dropdown to assign " + codeObj.id + " from scheme " + schemeId,
+            "data": JSON.stringify(eventObj),
+            "timestamp": new Date()
+        });
     },
 
     dropdownChange : function(event, manual) {
@@ -730,10 +760,16 @@ var messageViewerManager = {
 
                 codeEditor.show();
 
-
                 // need to update code panel after editor is displayed so that the width is set correctly!
                 codeEditorManager.updateCodePanel(values[values.length-1]);
 
+                // update the activity stack
+                storage.saveActivity({
+                    "category": "SCHEME",
+                    "message": "Editing existing scheme " + scheme.id,
+                    "data": JSON.stringify(scheme),
+                    "timestamp": new Date()
+                });
             }
         });
     },
@@ -747,11 +783,9 @@ var messageViewerManager = {
             var shortcuts = newDataset.schemes[activeSchemeId].getShortcuts();
             if (shortcuts.has(event.keyCode)) {
                 var codeObj = shortcuts.get(event.keyCode);
+                var eventId = $(activeRow).attr("eventid");
                 $(activeRow).children("td").each(function(i, td) {
-
-                    var sessionId = $(td).parent(".message").attr("sessionid");
-                    var eventId = $(td).parent(".message").attr("eventid");
-                    // todo fix inefficiency here
+                    eventId = $(td).parent(".message").attr("eventid"); // todo this is unnecessary
                     newDataset.events[eventId].decorate(codeObj.owner["id"], true, codeObj, 0.95);
 
                     var color = codeObj["color"];
@@ -764,7 +798,10 @@ var messageViewerManager = {
 
                 $(activeRow).removeClass("uncoded");
                 $(activeRow).addClass("coded");
-                $(activeRow).find("select." + activeSchemeId).val(codeObj["value"]).removeClass("uncoded").addClass("coded");
+
+                let selector = "select." + activeSchemeId;
+                $(activeRow).find(selector).val(codeObj["value"]).removeClass("uncoded").addClass("coded");
+
                 undoManager.markUndoPoint();
                 var next = UIUtils.nextUnfilledRow(activeRow, true, activeSchemeId);
                 if (next.length !== 0) {
@@ -779,6 +816,14 @@ var messageViewerManager = {
                 } else {
                     // todo handle behaviour when there are no unfilled rows... just proceed to next row
                 }
+
+                // update the activity stack
+                storage.saveActivity({
+                    "category": "CODING",
+                    "message": "Used shortcut " + event.keyCode + " from scheme " + activeSchemeId,
+                    "data": JSON.stringify(newDataset.events[eventId]),
+                    "timestamp": new Date()
+                });
             }
         }
     },
@@ -786,20 +831,6 @@ var messageViewerManager = {
     createPageHTML: function(index) {
 
         var tbody = "";
-
-        /*
-        var sessions = newDataset.sessions;
-        var startOfPage = messageViewerManager.tablePages[index].start;
-        var endOfPage = messageViewerManager.tablePages[index].end;
-
-        for (var i = startOfPage[0]; i <= endOfPage[0]; i++) {
-            var events = sessions[i]["events"];
-            for (var j = 0; j <= endOfPage[1]; j++) {
-                if (i === startOfPage[0] && j < startOfPage[1]) continue;
-                else if (j < events.length) tbody += messageViewerManager.buildRow(sessions[i]["events"][j], j, i);
-            }
-        }
-        */
 
         const halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
         let stoppingCondition = (index * halfPage + halfPage > newDataset.events.length) ? newDataset.events.length : index * halfPage + halfPage;
@@ -809,8 +840,6 @@ var messageViewerManager = {
         }
 
        return tbody;
-
-
     },
 
     infiniteScroll : function(event) {
@@ -894,9 +923,6 @@ var messageViewerManager = {
                 console.timeEnd("infinite scroll UP");
 
             }
-
-
-
         }
     },
 
@@ -935,8 +961,6 @@ var messageViewerManager = {
 
             eventText = regexMatcher.wrapText(eventObj["data"], regexMatcher.generateOrRegex(activeDecoration.code.words), "highlight", activeDecoration.code.id);
         }
-
-
 
         sessionRow += "<tr class='message' id=" + eventObj["name"] + " eventId = '" + eventIndex + "' sessionId = '" + sessionIndex + "'>";
         //sessionRow += "<td class='col-md-2' style='background-color: " + rowColor+ "'>" + eventObj["timestamp"] + "</td>";
@@ -1023,14 +1047,30 @@ var messageViewerManager = {
                     if (selection.length > 0) regexMatcher.wrapElement(newDataset.events[eventId].data, new RegExp(selection, "ig"), code.id);
                     //schemes[messageViewerManager.activeScheme].getCodeByValue(selectElement.val()).words = words;
 
+                    // update the activity stack
+                    storage.saveActivity({
+                        "category": "SCHEME",
+                        "message": "Highlighted string " + selection + " for code " + code.id + " in scheme " + code.owner.id,
+                        "data": JSON.stringify(code),
+                        "timestamp": new Date()
+                    });
+
                 } else {
                     let regex = regexMatcher.generateOrRegex([selection]);
                     $(".message[eventid='" + eventId + "']").find("p").html(regexMatcher.wrapText(newDataset.events[eventId].data, regex, "highlight"));
 
-
                     if (messageViewerManager.wordBuffer[sessionId][eventId][selection]!= 1) {
                         messageViewerManager.wordBuffer[sessionId][eventId][selection] = 1;
                     }
+
+                    // update the activity stack
+                    storage.saveActivity({
+                        "category": "SCHEME",
+                        "message": "Highlighted string " + selection,
+                        "data": JSON.stringify([selection]),
+                        "timestamp": new Date()
+                    });
+
                 }
             }
         }

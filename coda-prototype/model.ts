@@ -27,6 +27,7 @@ globals
 var storage : StorageManager;
 var undoManager : UndoManager;
 var newDataset;
+var activity = [];
 
 
 (function initMap() {
@@ -718,7 +719,6 @@ class Code {
     }
 
     constructor(owner: CodeScheme, id: string, value: string, color: string, shortcut: string, isEdited: boolean) {
-        console.log(owner);
         this._owner = owner;
         this._id = id;
         this._value = value;
@@ -852,7 +852,7 @@ class Watchdog {
 
 
 class StorageManager {
-
+    private static _MAX_ACTIVITY_STACK = 3;
     private static _instance: StorageManager;
     lastEdit: Date;
 
@@ -920,18 +920,33 @@ class StorageManager {
                 }
 
                 if (data == null || dataset == null || typeof data == 'undefined' ||
-                    typeof dataset == 'undefined' || Object.keys(dataset).length == 0 ||
-                    !dataset.hasOwnProperty("schemes") || !dataset.hasOwnProperty("sessions") ||
-                    !dataset.hasOwnProperty("events") || dataset["events"].length == 0) {
+                    typeof dataset == 'undefined' || Object.keys(dataset).length == 0) {
+                    reject();
 
-                    reject(new Error("Error reading from storage: dataset format is corrupt, load it from external file again."));
+                }
+                if (!dataset.hasOwnProperty("schemes") || !dataset.hasOwnProperty("sessions") ||
+                    !dataset.hasOwnProperty("events") || dataset["events"].length == 0) {
+                    reject(new Error("Error reading from storage: dataset format is corrupt."));
                 }
 
-                resolve(dataset);
+                resolve(<string>dataset);
             });
         });
     }
 
+    getActivity() : Promise<string> {
+
+        return new Promise(function(resolve, reject) {
+            chrome.storage.local.get("instrumentation", data => {
+                if (chrome.runtime.lastError) {
+                    reject(new Error("Error reading from storage!"));
+                }
+                console.log(data);
+                resolve(data["instrumentation"]);
+            });
+
+        });
+    }
     /*getDataset() : Promise<string> {
 
         return new Promise(function(resolve, reject) {
@@ -947,15 +962,33 @@ class StorageManager {
         });
     }*/
 
+    clearActivityLog() : Promise<boolean> {
+        return new Promise(function(resolve, reject) {
+            chrome.storage.local.remove("instrumentation", () => {
+                if (chrome.runtime.lastError) {
+                    console.log(chrome.runtime.lastError);
+                    reject();
+                } else {
+                    console.log("Cleared activity log!");
+                    resolve(true);
+                }
+            });
+        });
+    }
+
 
     saveDataset(dataset: Dataset) {
-        // callback hell eh
         this.lastEdit = new Date();
         chrome.storage.local.set({"dataset": JSON.stringify(dataset), "lastEdit" : JSON.stringify(this.lastEdit)}, () => {
-            console.log("Edit timestamp: " + this.lastEdit);
+            console.log("Stored dataset edit timestamp: " + this.lastEdit);
             chrome.storage.local.get((store) => {
-                console.log("In storage: " + JSON.stringify(store["dataset"]));
-                console.log("In storage: " + JSON.stringify(store["lastEdit"]));
+                let data = JSON.parse(store["dataset"]);
+                let datasetString = "dataset (schemes: "
+                    + data["dataset"]["schemes"].length +
+                    ", events: " + data["dataset"]["events"].length +
+                    ", sessions: " + data["dataset"]["sessions"].length + ")";
+
+                console.log("In storage: Last edit (" + new Date(store["lastEdit"]) + "), " + datasetString);
                 chrome.storage.local.getBytesInUse((bytesUnUse: number) => {
                     console.log("Bytes in use: " + bytesUnUse);
                     console.log("QUOTA_BYTES: " + chrome.storage.local.QUOTA_BYTES);
@@ -965,14 +998,32 @@ class StorageManager {
     }
 
 
-    saveActivity() {
-
-        // TODO
+    saveActivity(logEvent: {"category": string, "message": string, "data": string, "timestamp": Date}) : void {
         // save user activity in storage for instrumentation
+        if (logEvent.category.length != 0 && logEvent.message.length != 0 && logEvent.data.length != 0 && logEvent.timestamp instanceof Date) {
+            activity.push(logEvent);
+            console.log("INSTRUMENTATION: " + logEvent.category + ":"  + logEvent.message + ", stack size: " + activity.length);
+            if (activity.length % StorageManager._MAX_ACTIVITY_STACK == 0) {
+                chrome.storage.local.set({"instrumentation": JSON.stringify(activity)}, () => {
+                    if (chrome.runtime.lastError) {
+                        console.log(chrome.runtime.lastError);
+                    } else {
 
+                        console.log("Saved activity log!");
+                        chrome.storage.local.get((store) => {
+                            console.log("In storage: " + store["instrumentation"]);
+                            chrome.storage.local.getBytesInUse((bytesUnUse: number) => {
+                                console.log("Bytes in use: " + bytesUnUse);
+                                console.log("QUOTA_BYTES: " + chrome.storage.local.QUOTA_BYTES);
+                            });
+                        });
+                    }
+                });
+            }
+        }
     }
 
-    clearStorage() : Promise<void> {
+    clearStorage() : Promise<boolean> {
         return new Promise(function(resolve, reject) {
             chrome.storage.local.remove(["dataset", "schemes"], () => {
                 let error = chrome.runtime.lastError;
@@ -980,13 +1031,12 @@ class StorageManager {
                     console.error(error);
                     reject(new Error(error.message));
                 } else {
-                    resolve();
+                    resolve(true);
                 }
             });
 
         });
     }
-
 }
 
 

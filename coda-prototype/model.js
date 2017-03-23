@@ -25,6 +25,7 @@ globals
 var storage;
 var undoManager;
 var newDataset;
+var activity = [];
 (function initMap() {
     let mapToJSON = function () {
         let keys = this.keys();
@@ -306,6 +307,7 @@ class RawEvent {
     static clone(oldEvent) {
         let newDecorations = new Map();
         for (let [key, deco] of newDecorations.entries()) {
+            //newDecorations.set(key, EventDecoration.clone(deco, newEvent, ));
         }
         let newEvent = new RawEvent(oldEvent.name, oldEvent.owner, oldEvent.timestamp, oldEvent.number, oldEvent.data, newDecorations);
     }
@@ -368,6 +370,9 @@ class EventDecoration {
                 this._code = code;
             }
             else {
+                // occurs when reading from storage... type is lost
+                /*this._code = new Code(code.owner, code.id, code.value, code.color, code.shortcut, false);
+                this._timestamp = timestamp ? timestamp : null;*/
             }
         }
         else {
@@ -552,17 +557,6 @@ class CodeScheme {
     }
 }
 class Code {
-    constructor(owner, id, value, color, shortcut, isEdited) {
-        console.log(owner);
-        this._owner = owner;
-        this._id = id;
-        this._value = value;
-        this._color = color;
-        this._shortcut = shortcut;
-        this._words = [];
-        this._isEdited = isEdited;
-        this._eventsWithCode = [];
-    }
     get owner() {
         return this._owner;
     }
@@ -586,6 +580,16 @@ class Code {
     }
     get eventsWithCode() {
         return this._eventsWithCode;
+    }
+    constructor(owner, id, value, color, shortcut, isEdited) {
+        this._owner = owner;
+        this._id = id;
+        this._value = value;
+        this._color = color;
+        this._shortcut = shortcut;
+        this._words = [];
+        this._isEdited = isEdited;
+        this._eventsWithCode = [];
     }
     toJSON() {
         let obj = Object.create(null);
@@ -738,12 +742,25 @@ class StorageManager {
                     dataset = JSON.parse(dataset);
                 }
                 if (data == null || dataset == null || typeof data == 'undefined' ||
-                    typeof dataset == 'undefined' || Object.keys(dataset).length == 0 ||
-                    !dataset.hasOwnProperty("schemes") || !dataset.hasOwnProperty("sessions") ||
+                    typeof dataset == 'undefined' || Object.keys(dataset).length == 0) {
+                    reject();
+                }
+                if (!dataset.hasOwnProperty("schemes") || !dataset.hasOwnProperty("sessions") ||
                     !dataset.hasOwnProperty("events") || dataset["events"].length == 0) {
-                    reject(new Error("Error reading from storage: dataset format is corrupt, load it from external file again."));
+                    reject(new Error("Error reading from storage: dataset format is corrupt."));
                 }
                 resolve(dataset);
+            });
+        });
+    }
+    getActivity() {
+        return new Promise(function (resolve, reject) {
+            chrome.storage.local.get("instrumentation", data => {
+                if (chrome.runtime.lastError) {
+                    reject(new Error("Error reading from storage!"));
+                }
+                console.log(data);
+                resolve(data["instrumentation"]);
             });
         });
     }
@@ -761,14 +778,31 @@ class StorageManager {
             });
         });
     }*/
+    clearActivityLog() {
+        return new Promise(function (resolve, reject) {
+            chrome.storage.local.remove("instrumentation", () => {
+                if (chrome.runtime.lastError) {
+                    console.log(chrome.runtime.lastError);
+                    reject();
+                }
+                else {
+                    console.log("Cleared activity log!");
+                    resolve(true);
+                }
+            });
+        });
+    }
     saveDataset(dataset) {
-        // callback hell eh
         this.lastEdit = new Date();
         chrome.storage.local.set({ "dataset": JSON.stringify(dataset), "lastEdit": JSON.stringify(this.lastEdit) }, () => {
-            console.log("Edit timestamp: " + this.lastEdit);
+            console.log("Stored dataset edit timestamp: " + this.lastEdit);
             chrome.storage.local.get((store) => {
-                console.log("In storage: " + JSON.stringify(store["dataset"]));
-                console.log("In storage: " + JSON.stringify(store["lastEdit"]));
+                let data = JSON.parse(store["dataset"]);
+                let datasetString = "dataset (schemes: "
+                    + data["dataset"]["schemes"].length +
+                    ", events: " + data["dataset"]["events"].length +
+                    ", sessions: " + data["dataset"]["sessions"].length + ")";
+                console.log("In storage: Last edit (" + new Date(store["lastEdit"]) + "), " + datasetString);
                 chrome.storage.local.getBytesInUse((bytesUnUse) => {
                     console.log("Bytes in use: " + bytesUnUse);
                     console.log("QUOTA_BYTES: " + chrome.storage.local.QUOTA_BYTES);
@@ -776,9 +810,29 @@ class StorageManager {
             });
         });
     }
-    saveActivity() {
-        // TODO
+    saveActivity(logEvent) {
         // save user activity in storage for instrumentation
+        if (logEvent.category.length != 0 && logEvent.message.length != 0 && logEvent.data.length != 0 && logEvent.timestamp instanceof Date) {
+            activity.push(logEvent);
+            console.log("INSTRUMENTATION: " + logEvent.category + ":" + logEvent.message + ", stack size: " + activity.length);
+            if (activity.length % StorageManager._MAX_ACTIVITY_STACK == 0) {
+                chrome.storage.local.set({ "instrumentation": JSON.stringify(activity) }, () => {
+                    if (chrome.runtime.lastError) {
+                        console.log(chrome.runtime.lastError);
+                    }
+                    else {
+                        console.log("Saved activity log!");
+                        chrome.storage.local.get((store) => {
+                            console.log("In storage: " + store["instrumentation"]);
+                            chrome.storage.local.getBytesInUse((bytesUnUse) => {
+                                console.log("Bytes in use: " + bytesUnUse);
+                                console.log("QUOTA_BYTES: " + chrome.storage.local.QUOTA_BYTES);
+                            });
+                        });
+                    }
+                });
+            }
+        }
     }
     clearStorage() {
         return new Promise(function (resolve, reject) {
@@ -789,12 +843,13 @@ class StorageManager {
                     reject(new Error(error.message));
                 }
                 else {
-                    resolve();
+                    resolve(true);
                 }
             });
         });
     }
 }
+StorageManager._MAX_ACTIVITY_STACK = 3;
 class UndoManager {
     constructor() {
         this.pointer = 0;

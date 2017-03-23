@@ -62,6 +62,15 @@ var codeEditorManager =  {
 
             $("#word-textarea").find(".tag").css({"background-color": event.color.toHex()});
 
+            // update the activity stack
+            if (code) {
+                storage.saveActivity({
+                    "category": "SCHEME",
+                    "message": "Changed color for code " + code.id + " in scheme " + JSON.stringify(code.owner.id),
+                    "data": JSON.stringify(tempScheme),
+                    "timestamp": new Date()
+                });
+            }
         });
 
         $("#delete-scheme-button").on("click", () => {
@@ -72,10 +81,16 @@ var codeEditorManager =  {
            codeEditorManager.bindAddCodeButtonListener();
            codeEditorManager.editorContainer.find("#scheme-name-input").val("");
            editorOpen = false;
+
+           // update the activity stack
+           storage.saveActivity({
+               "category": "SCHEME",
+               "message": "Deleted scheme " + tempScheme.id,
+               "data": JSON.stringify(tempScheme),
+               "timestamp": new Date()
+           });
            tempScheme = {};
-
         });
-
     },
 
     bindNameInputListeners: function() {
@@ -216,6 +231,14 @@ var codeEditorManager =  {
             }
 
 
+            // update the activity stack
+            storage.saveActivity({
+                "category": "SCHEME",
+                "message": "Saved scheme " + tempScheme["id"],
+                "data": JSON.stringify(newDataset.schemes[tempScheme["id"]]),
+                "timestamp": new Date()
+            });
+
             // redraw rows
             var tbody = "";
 
@@ -261,6 +284,13 @@ var codeEditorManager =  {
             editorOpen = false;
             state.activeEditorRow = {};
 
+            // update the activity stack
+            storage.saveActivity({
+                "category" : "SCHEME",
+                "message": "Closed editor for scheme " + tempScheme.id,
+                "data": JSON.stringify(tempScheme),
+                "timestamp": new Date()
+            });
         });
 
         cancelButton.on("click", function() {
@@ -270,6 +300,14 @@ var codeEditorManager =  {
             $("#scheme-name-input").attr("value", "").val("");
             editorOpen = false;
             state.activeEditorRow = {};
+
+            // update the activity stack
+            storage.saveActivity({
+                "category": "SCHEME",
+                "message": "Cancel edits to scheme " + tempScheme.id,
+                "data": JSON.stringify(tempScheme),
+                "timestamp": new Date()
+            });
         });
     },
 
@@ -291,9 +329,14 @@ var codeEditorManager =  {
         $(".add-code-row").on("click", function() {
             let newCode = addCodeInputRow("","", "#ffffff", "", []); // todo will return codeObject
             codeEditorManager.updateCodePanel(newCode);
+
+            // update the activity stack
+            storage.saveActivity({
+                "category": "SCHEME",
+                "message": "Added new code " + newCode.id + " to scheme " + tempScheme.id,
+                "data": JSON.stringify(tempScheme),
+                "timestamp": new Date()});
         });
-
-
     },
 
     addCodeInputRow: function(code, shortcut, color, id, words) {
@@ -400,17 +443,28 @@ var codeEditorManager =  {
             wordTextarea.find(".tag").css({'background-color': color});
             codeObj.addWords(event.item);
             regexField.val(regexMatcher.generateOrRegex(codeObj["words"]));
-
+            // update the activity stack
+            storage.saveActivity({
+                "category": "SCHEME",
+                "message": "Added word " + event.item + " to code " + codeObj.id + " in scheme " + tempScheme.id,
+                "data": JSON.stringify(tempScheme),
+                "timestamp": new Date()});
         });
+
         $(selectObj).on('itemRemoved', function(event) {
             // event.item: contains the item
             codeObj.deleteWords([event.item]);
             regexField.val(regexMatcher.generateOrRegex(codeObj["words"]));
+            // update the activity stack
+            storage.saveActivity({
+                "category": "SCHEME",
+                "message": "Deleted word " + event.item + " from code " + codeObj.id + " in scheme " + tempScheme.id,
+                "data": JSON.stringify(tempScheme),
+                "timestamp": new Date()});
 
         });
 
         regexField.val(regexMatcher.generateOrRegex(codeObj["words"]));
-
     },
 
 
@@ -533,10 +587,19 @@ var codeEditorManager =  {
                 // todo important - what happens when all codes are deleted from list
             }
 
+            // update the activity stack
+            storage.saveActivity({
+                "category": "SCHEME",
+                "message": "Deleted code " + id + " from scheme " + tempScheme.id,
+                "data": JSON.stringify(tempScheme),
+                "timestamp": new Date()
+            });
+
         });
     },
 
     deleteScheme: function(schemeId) {
+        let datasetSnapshot = JSON.stringify(newDataset.schemes[schemeId]);
 
         // delegate uglifying to datastructure
         newDataset.deleteScheme(schemeId);
@@ -555,12 +618,19 @@ var codeEditorManager =  {
             messageViewerManager.codeSchemeOrder.push(newScheme.id + "");
         }
 
+        // save for UNDO and in storage
         undoManager.markUndoPoint();
         storage.saveDataset(newDataset);
 
+        // update the activity stack
+        storage.saveActivity({
+            "category": "SCHEME",
+            "message": "Deleted scheme " +  schemeId,
+            "data": JSON.stringify(datasetSnapshot),
+            "timestamp": new Date()
+        });
+
         // handle UI changes
         messageViewerManager.deleteSchemeColumn(schemeId);
-
     }
-
 };

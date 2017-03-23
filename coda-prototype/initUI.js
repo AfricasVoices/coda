@@ -55,14 +55,27 @@ $("body").hide();
  */
 
 storage.getDataset().then(dataset => {
-
     dataset = typeof dataset == "string" ? JSON.parse(dataset) : dataset;
     newDataset = new Dataset().setFields(dataset.sessions, dataset.schemes, dataset.events);
     undoManager.modelUndoStack = [Dataset.clone(newDataset)];
-    initUI(newDataset);
+
+    // update the activity stack
+    storage.getActivity().then(act => {
+        if (act) {
+            activity = JSON.parse(act);
+        }
+        storage.saveActivity({
+            "category": "DATASET",
+            "message": "Resuming coding dataset", // todo add identifier
+            "data": "Last edit:",
+            "timestamp": new Date()
+        });
+        initUI(newDataset);
+
+    });
 
 }).catch(error => {
-    console.log(error);
+    if (error) console.log(error);
     $.getJSON("./data/sessions-numbered-10000.json", function (data) {
 
         // todo ensure ALL IDs are unique
@@ -120,6 +133,13 @@ storage.getDataset().then(dataset => {
         //dataset = data;
         //newDataset = buildDataset;
         undoManager.modelUndoStack = [Dataset.clone(newDataset)];
+        // update the activity stack
+        storage.saveActivity({
+            "category": "DATASET",
+            "message": "Loaded default dataset",
+            "data": "sessions-numbered-1000.txt",
+            "timestamp": new Date()
+        });
         initUI(newDataset);
     });
 });
@@ -151,6 +171,15 @@ function initUI(dataset) {
     codeEditorManager.init($("#code-editor"));
     console.timeEnd("editor init");
 
+
+    $("#export-instrumentation").on("click", () => {
+        storage.getActivity().then(activity => {
+            let dataBlob = new Blob([Papa.unparse(activity, {header:true, delimiter:";"})], {type: 'text/plain'});
+            chrome.downloads.download({url: window.URL.createObjectURL(dataBlob), saveAs: true}, function(dlId) {
+                console.log("Downloaded activity file with id: " + dlId);
+            });
+        });
+    });
 
     $("#export-dataset").click(() => {
 
@@ -212,8 +241,14 @@ function initUI(dataset) {
         let dataBlob = new Blob([Papa.unparse(eventJSON, {header:true, delimiter:";"})], {type: 'text/plain'});
 
         chrome.downloads.download({url: window.URL.createObjectURL(dataBlob), saveAs: true}, function(dlId) {
-           console.log("Downloaded file with id: " + dlId);
-       });
+            console.log("Downloaded file with id: " + dlId);
+            storage.saveActivity({
+                "category": "DATASET",
+                "message": "Exported dataset", //todo identifier
+                "data": JSON.stringify(tempScheme),
+                "timestamp": new Date()
+            });
+        });
     });
 
     $("#dataset-file").on("change", event => {
@@ -363,7 +398,26 @@ function initUI(dataset) {
                     undoManager.pointer = 0;
                     storage.saveDataset(dataset);
 
+                    // update the activity stack
+                    storage.saveActivity({
+                        "category": "DATASET",
+                        "message": "Imported dataset", // todo find identifier
+                        "data": JSON.stringify(dataset.events[0]),
+                        "timestamp": new Date()
+                    });
 
+                    /* TODO do we reset instrumentation on data reload?
+                    storage.clearActivityLog().then(() => {
+                        storage.saveActivity({
+                            "category": "DATASET",
+                            "message": "Imported dataset", // todo find identifier
+                            "data": JSON.stringify(dataset.events[0]),
+                            "timestamp": new Date()
+                        });
+                    });
+                    */
+
+                    // success message
                     let successAlert = $("#alert");
                     successAlert.addClass("alert-success");
                     successAlert.append("<strong>Success!</strong> New dataset was imported.");
@@ -378,6 +432,13 @@ function initUI(dataset) {
                     });
 
                 } else {
+                    // update the activity stack
+                    storage.saveActivity({
+                        "category": "DATASET",
+                        "message": "Failed to import dataset",
+                        "data": "",
+                        "timestamp": new Date()});
+
                     let failAlert = $("#alert");
                     failAlert.addClass("alert-danger");
                     failAlert.append("<strong>Oh snap!</strong> Something is wrong with the data format. Change a few things up, refresh and try again.");
@@ -495,6 +556,14 @@ function initUI(dataset) {
                     });
                 } else {
                     // todo: what is the behaviour when scheme id is a duplicate - overwrite??
+                    // update the activity stack
+                    storage.saveActivity({
+                        "category": "SCHEME",
+                        "message": "Imported new scheme " + newScheme.id,
+                        "data": JSON.stringify(newScheme),
+                        "timestamp": new Date()
+                    });
+
                     newDataset.schemes[newScheme["id"]] = newScheme;
                     messageViewerManager.codeSchemeOrder.push(newScheme["id"] + "");
                     messageViewerManager.addNewSchemeColumn(newScheme);
@@ -520,7 +589,8 @@ function initUI(dataset) {
 
     $("#quit").on("click", () => {
 
-        // todo: save to local storage
+        storage.saveDataset(newDataset);
+
         // todo: prompt to export all files with dialog box
 
         chrome.tabs.getCurrent(tab => {
@@ -541,15 +611,22 @@ function initUI(dataset) {
         let dataBlob = new Blob([Papa.unparse(schemeJSON, {header:true, delimiter:";"})], {type: 'text/plain'});
         chrome.downloads.download({url: window.URL.createObjectURL(dataBlob), saveAs: true}, function(dlId) {
             console.log("Downloaded file with id: " + dlId);
-        });
 
+            storage.saveActivity({
+                "category": "SCHEME",
+                "message": "Exported scheme " + tempScheme.id,
+                "data": JSON.stringify(tempScheme),
+                "timestamp": new Date()
+            });
+
+        });
     });
 
     $("#scheme-download").tooltip();
     $("#scheme-upload").tooltip();
 
     /*
-    SCHEME UPLOAD
+    SCHEME UPLOAD - via editor
      */
     $("#scheme-upload-file").on("change", () => {
 
@@ -648,13 +725,18 @@ function initUI(dataset) {
                 }
 
                 $("#scheme-name-input").val(newScheme.name);
-
                 let activeCode = tempScheme.codes.get($(".code-row.active").attr("id"));
                 if (activeCode) codeEditorManager.updateCodePanel(activeCode);
 
+                // update the activity stack
+                storage.saveActivity({
+                    "category": "SCHEME",
+                    "message": "Uploaded new version of scheme " + tempScheme.id,
+                    "data": JSON.stringify(tempScheme),
+                    "timestamp": new Date()
+                });
             }
         }
-
     });
 
     $("#undo").on("click", () => {
