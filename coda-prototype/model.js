@@ -788,7 +788,7 @@ class StorageManager {
                     + Object.keys(data["schemes"]).length +
                     ", events: " + data["events"].length +
                     ", sessions: " + data["sessions"].length + ")";
-                console.log("In storage: Last edit (" + new Date(store["lastEdit"]) + "), " + datasetString);
+                console.log("In storage: Last edit (" + new Date(JSON.parse(store["lastEdit"])) + "), " + datasetString);
                 chrome.storage.local.getBytesInUse((bytesUnUse) => {
                     console.log("Bytes in use: " + bytesUnUse);
                     console.log("QUOTA_BYTES: " + chrome.storage.local.QUOTA_BYTES);
@@ -802,18 +802,27 @@ class StorageManager {
             activity.push(logEvent);
             console.log("INSTRUMENTATION: " + logEvent.category + ":" + logEvent.message + ", stack size: " + activity.length);
             if (activity.length % StorageManager._MAX_ACTIVITY_SAVE_FREQ == 0) {
-                chrome.storage.local.set({ "instrumentation": JSON.stringify(activity) }, () => {
+                chrome.storage.local.get("instrumentation", data => {
                     if (chrome.runtime.lastError) {
                         console.log(chrome.runtime.lastError);
                     }
                     else {
-                        console.log("Saved activity log!");
-                        chrome.storage.local.get((store) => {
-                            console.log("In storage: instrumentation stack size" + store["instrumentation"].length);
-                            chrome.storage.local.getBytesInUse((bytesUnUse) => {
-                                console.log("Bytes in use: " + bytesUnUse);
-                                console.log("QUOTA_BYTES: " + chrome.storage.local.QUOTA_BYTES);
-                            });
+                        let instr = JSON.parse(data["instrumentation"]).concat(activity);
+                        chrome.storage.local.set({ "instrumentation": JSON.stringify(instr) }, () => {
+                            if (chrome.runtime.lastError) {
+                                console.log(chrome.runtime.lastError);
+                            }
+                            else {
+                                activity = [];
+                                console.log("Saved activity log!");
+                                chrome.storage.local.get((store) => {
+                                    console.log("In storage: instrumentation stack size " + JSON.parse(store["instrumentation"]).length);
+                                    chrome.storage.local.getBytesInUse((bytesUnUse) => {
+                                        console.log("Bytes in use: " + bytesUnUse);
+                                        console.log("QUOTA_BYTES: " + chrome.storage.local.QUOTA_BYTES);
+                                    });
+                                });
+                            }
                         });
                     }
                 });

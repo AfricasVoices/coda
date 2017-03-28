@@ -60,19 +60,14 @@ storage.getDataset().then(dataset => {
     undoManager.modelUndoStack = [Dataset.clone(newDataset)];
 
     // update the activity stack
-    storage.getActivity().then(act => {
-        if (act) {
-            activity = JSON.parse(act);
-        }
-        storage.saveActivity({
-            "category": "DATASET",
-            "message": "Resuming coding dataset", // todo add identifier
-            "data": "Last edit:",
-            "timestamp": new Date()
-        });
-        initUI(newDataset);
 
+    storage.saveActivity({
+        "category": "DATASET",
+        "message": "Resuming coding dataset", // todo add identifier
+        "data": "Last edit:",
+        "timestamp": new Date()
     });
+    initUI(newDataset);
 
 }).catch(error => {
     if (error) console.log(error);
@@ -176,7 +171,7 @@ function initUI(dataset) {
         storage.getActivity().then(activity => {
             if (!activity || activity.length === 0) {
                 activity = "";
-                console.log("Exporting empy instrumentation file.");
+                console.log("Exporting empty instrumentation file.");
             }
             let dataBlob = new Blob([activity], {type: 'application/json'});
             chrome.downloads.download({url: window.URL.createObjectURL(dataBlob), saveAs: true}, function(dlId) {
