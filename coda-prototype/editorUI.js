@@ -633,6 +633,7 @@ var codeEditorManager =  {
         });
 
         // handle UI changes
-        messageViewerManager.deleteSchemeColumn(schemeId);
+        let newSchemeId = messageViewerManager.deleteSchemeColumn(schemeId);
+        return newSchemeId;
     }
 };

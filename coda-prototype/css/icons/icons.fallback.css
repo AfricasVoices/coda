@@ -1,0 +1,20 @@
+
+.icon-cat {
+	background-image: url('png/cat.png');
+	background-repeat: no-repeat;
+}
+
+.icon-conf {
+	background-image: url('png/conf.png');
+	background-repeat: no-repeat;
+}
+
+.icon-def {
+	background-image: url('png/def.png');
+	background-repeat: no-repeat;
+}
+
+.icon-id {
+	background-image: url('png/id.png');
+	background-repeat: no-repeat;
+}

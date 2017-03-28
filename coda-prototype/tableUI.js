@@ -100,8 +100,8 @@ var messageViewerManager = {
                 }
 
             });
-            $("a.sort-button").off("click");
-            $("a.sort-button").on("click", messageViewerManager.sortHandler);
+            $(".sort-btn").off("click");
+            $(".sort-btn").on("click", messageViewerManager.sortHandler);
 
             console.timeEnd("dropdown init");
             console.time("shortcuts init");
@@ -113,51 +113,59 @@ var messageViewerManager = {
 
     sortHandler : function(event) {
 
-        // todo: decide if on click the active scheme is changed as well
+        // sorting by another column currently doesn't change the active scheme
+        // todo: do we keep state to know where we are or know from the icon?
 
         console.time("sort");
 
         var iconClassesNext = {
-            "glyphicon-sort": "glyphicon-sort-by-attributes", // default on-load order
-            "glyphicon-sort-by-attributes" : "glyphicon-sort-by-order", // sort by code + conf
-            "glyphicon-sort-by-order" : "glyphicon-sort" // sort by confidence - when we want global minimum confidence
+            "icon-def": "icon-cat", // current: default on-load order
+            "icon-cat" : "icon-conf", // current: sort by code + conf
+            "icon-conf" : "icon-def" // current: sort by confidence - when we want global minimum confidence
         };
-        // todo: do we keep state to know where we are or know from the icon?
 
-        $(".sort-button").find("span.active").toggleClass("active");
+        $(".sort-btn").find("div.active").toggleClass("active");
+
         var targetElement = event.originalEvent.target;
-        if (targetElement.className === "sort-button" || targetElement.className.split(" ")[0] === "glyphicon") {
-            // find which icon was clicked... and use the appropriate sort
-            let iconClassName = targetElement.className === "sort-button" ? $(targetElement).children(".glyphicon")[0].className.split(" ")[1] : $(targetElement).attr("class").split(" ")[1];
-            let schemeId = $(targetElement).closest("div").attr("scheme");
-            if (iconClassName === "glyphicon-sort-by-attributes") {
-                // sort as todolist
+        var elementClass;
+        if (targetElement.nodeName === "DIV") {
+            elementClass = targetElement.className.split(" ")[0];
+        } else if (targetElement.nodeName ===  "BUTTON") {
+            elementClass = "sort-btn";
+        }
+
+        if (elementClass === "sort-btn" || elementClass=== "sort-icon") {
+            // find which icon was clicked and use the appropriate sort
+
+            let iconClassName = elementClass === "sort-btn" ? $(targetElement).children(".sort-icon")[0].className.split(" ")[1] : targetElement.className.split(" ")[1];
+            let schemeId = $(targetElement).parents(".scheme-col").attr("scheme");
+
+            if (iconClassName === "icon-cat") {
                 newDataset.sortEventsByConfidenceOnly(schemeId);
                 messageViewerManager.currentSort = messageViewerManager.sortUtils.sortEventsByConfidenceOnly;
 
-            } else if (iconClassName === "glyphicon-sort") {
+            } else if (iconClassName === "icon-def") {
                 newDataset.sortEventsByScheme(schemeId, true);
                 messageViewerManager.currentSort = messageViewerManager.sortUtils.sortEventsByScheme;
 
-
-            } else if (iconClassName === "glyphicon-sort-by-order") {
+            } else if (iconClassName === "icon-conf") {
                 newDataset.restoreDefaultSort();
                 messageViewerManager.currentSort = messageViewerManager.sortUtils.restoreDefaultSort;
 
             }
 
-            if (targetElement.className == "sort-button") {
-                let glyphicon = $(targetElement).children(".glyphicon")[0];
-                glyphicon.className = glyphicon.className.replace(iconClassName, iconClassesNext[iconClassName] + " active");
+            // switch icons and assign active sort class
+            if (elementClass === "sort-btn") {
+                let icon = $(targetElement).children(".sort-icon")[0];
+                icon.className = icon.className.replace(iconClassName, iconClassesNext[iconClassName] + " active");
             } else {
                 targetElement.className = targetElement.className.replace(iconClassName, iconClassesNext[iconClassName] + " active");
             }
 
+            // redraw body
             let tbody = "";
             let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-
             let iterationStop = messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.events.length ? newDataset.events.length : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
-
             for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < iterationStop; i++) {
                 tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
             }
@@ -165,8 +173,8 @@ var messageViewerManager = {
             $(messageViewerManager.table.find("tbody").empty()).append(tbody);
             // todo adjust scroll offset appropriately!
 
+            // redraw scrollbar
             var thumbPos = scrollbarManager.getThumbPosition();
-
             scrollbarManager.redraw(newDataset, activeSchemeId);
             scrollbarManager.redrawThumb(thumbPos);
 
@@ -222,18 +230,18 @@ var messageViewerManager = {
         var decoColumn = $("#header-decoration-column");
         decoColumn.find(".row").empty();
 
-        var activeSortIcon = "'glyphicon glyphicon-sort'";
+        var activeSortIcon = "icon-def'";
         if (!hasDataChanged && data.schemes[this.activeScheme]) {
             if (this.currentSort == this.sortUtils.sortEventsByConfidenceOnly) {
-                activeSortIcon = "'glyphicon glyphicon-sort'";
+                activeSortIcon = "icon-def'";
                 newDataset.sortEventsByConfidenceOnly(activeSchemeId);
             }
             if (this.currentSort == this.sortUtils.sortEventsByScheme) {
-                activeSortIcon = "'glyphicon glyphicon-sort-by-order'";
+                activeSortIcon = "icon-conf'";
                 newDataset.sortEventsByScheme(activeSchemeId,true);
             }
             if (this.currentSort == this.sortUtils.restoreDefaultSort) {
-                activeSortIcon = "'glyphicon glyphicon-sort-by-attributes'";
+                activeSortIcon = "icon-cat'";
                 newDataset.restoreDefaultSort();
             }
         }
@@ -245,8 +253,9 @@ var messageViewerManager = {
         Object.keys(schemes).forEach(function(schemeKey, i) {
             if (hasDataChanged) messageViewerManager.codeSchemeOrder.push(schemeKey + "");
 
+            //<a href='#' class='sort-button'>
             //let triangleIcon = "<a href='#' class='sort-button'><small><span class='glyphicon glyphicon-sort-by-order'></span></small></a>";
-            let triangleIcon = "<a href='#' class='sort-button'><small><span class=" + (schemeKey == messageViewerManager.activeScheme ? activeSortIcon : "'glyphicon glyphicon-sort'") + "></span></small></a>";
+            let triangleIcon = "<button class='sort-btn btn btn-default btn-xs'><div class='sort-icon " + (schemeKey === messageViewerManager.activeScheme ? activeSortIcon : "icon-def active'") + "></div></button>";
             let editButton = "<button type='button' class='btn btn-default btn-xs edit-scheme-button'><i class='glyphicon glyphicon-edit'></i></button>";
             let columnDiv = "<div class='col-md-" + decoColumnWidth + " scheme-col' scheme='" + schemeKey + "'>" + triangleIcon + "<i class='scheme-name'>" + schemes[schemeKey]["name"] + "</i>" + editButton + "</div>";
 
@@ -388,8 +397,8 @@ var messageViewerManager = {
 
         });
 
-        $("a.sort-button").off("click");
-        $("a.sort-button").on("click", messageViewerManager.sortHandler);
+        $(".sort-btn").off("click");
+        $(".sort-btn").on("click", messageViewerManager.sortHandler);
 
     },
 
@@ -657,7 +666,7 @@ var messageViewerManager = {
 
         decorationCell.children("div[class*=col-]").attr("class", "col-md-" + newDecoColumnWidth + ' scheme-col');
 
-        let sortButton = $("a.sort-button");
+        let sortButton = $(".sort-btn");
         sortButton.off("click");
         sortButton.on("click", messageViewerManager.sortHandler);
 
@@ -705,6 +714,7 @@ var messageViewerManager = {
 
         let nextActiveSchemeId = $(nextActiveScheme).attr("scheme");
         this.activeScheme = nextActiveSchemeId;
+        activeSchemeId = nextActiveSchemeId;
 
         schemeHeader.remove();
         decorationCell.children("div[class*=col-]").attr("class", "col-md-" + newDecoColumnWidth + ' scheme-col');
@@ -723,7 +733,6 @@ var messageViewerManager = {
 
         activeRow.removeClass("active");
         activeRow = $(".message").first().addClass("active");
-        activeSchemeId = nextActiveSchemeId;
         $("#header-decoration-column").find("i").not(".glyphicon").css("text-decoration", "");
         $(nextActiveScheme).children("i").css("text-decoration", "underline");
         this.changeActiveScheme();
@@ -731,7 +740,7 @@ var messageViewerManager = {
         scrollbarManager.redraw(newDataset, nextActiveSchemeId);
         scrollbarManager.redrawThumb(0);
 
-        return nextActiveSchemeId;
+        return this.activeScheme;
     },
 
     bindEditSchemeButtonListener: function(editButton, scheme) {
