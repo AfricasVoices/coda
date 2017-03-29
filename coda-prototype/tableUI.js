@@ -253,11 +253,9 @@ var messageViewerManager = {
         Object.keys(schemes).forEach(function(schemeKey, i) {
             if (hasDataChanged) messageViewerManager.codeSchemeOrder.push(schemeKey + "");
 
-            //<a href='#' class='sort-button'>
-            //let triangleIcon = "<a href='#' class='sort-button'><small><span class='glyphicon glyphicon-sort-by-order'></span></small></a>";
-            let triangleIcon = "<button class='sort-btn btn btn-default btn-xs'><div class='sort-icon " + (schemeKey === messageViewerManager.activeScheme ? activeSortIcon : "icon-def active'") + "></div></button>";
+            let sortIcon = "<button class='sort-btn btn btn-default btn-xs'><div class='sort-icon " + (schemeKey === messageViewerManager.activeScheme ? activeSortIcon : "icon-def active'") + "></div></button>";
             let editButton = "<button type='button' class='btn btn-default btn-xs edit-scheme-button'><i class='glyphicon glyphicon-edit'></i></button>";
-            let columnDiv = "<div class='col-md-" + decoColumnWidth + " scheme-col' scheme='" + schemeKey + "'>" + triangleIcon + "<i class='scheme-name'>" + schemes[schemeKey]["name"] + "</i>" + editButton + "</div>";
+            let columnDiv = "<div class='col-md-" + decoColumnWidth + " scheme-col' scheme='" + schemeKey + "'><div>" + sortIcon + editButton + "</div><div class='scheme-name-cont'><i class='scheme-name'>" + schemes[schemeKey]["name"] + "</i></div>" +  "</div>";
 
 
             var appendedElements = $(columnDiv).appendTo(decoColumn.find(".row"));
@@ -265,16 +263,16 @@ var messageViewerManager = {
             if (i==0) {
                 activeSchemeId = schemeKey;
                 messageViewerManager.activeScheme = activeSchemeId;
-                $(appendedElements).children("i").css("text-decoration", "underline");
+                $(appendedElements).find("i.scheme-name").css("text-decoration", "underline");
             }
-            $(appendedElements).children("i").on("click", event => {
+            $(appendedElements).find("i.scheme-name").on("click", event => {
                 activeSchemeId = $(event.target).parents("div.scheme-col").attr("scheme");
-                $("#header-decoration-column").find("i").not(".glyphicon").css("text-decoration", "");
+                $("#header-decoration-column").find("i.scheme-name").css("text-decoration", "");
                 $(event.target).css("text-decoration", "underline");
                 messageViewerManager.activeScheme = activeSchemeId;
                 messageViewerManager.changeActiveScheme();
             });
-            bindEditSchemeButtonListener(appendedElements.children("button"), schemes[schemeKey]);
+            bindEditSchemeButtonListener(appendedElements.find(".edit-scheme-button"), schemes[schemeKey]);
         });
 
 
@@ -657,12 +655,12 @@ var messageViewerManager = {
          */
 
         var div = ($("<div class='col-md-" + newDecoColumnWidth + " scheme-col' scheme='" + scheme["id"] + "'>" +
-            "<a href='#' class='sort-button'><small><span class='glyphicon glyphicon-sort'></span></small></a>" +
-            "<i class='scheme-name'>" + scheme["name"] + "</i>" +
-            "<button type='button' class='btn btn-default btn-xs edit-scheme-button'><i class='glyphicon glyphicon-edit'></i></button>" +
+            "<div><button class='sort-btn btn btn-default btn-xs'><div class='sort-icon icon-def active'></div></button>" +
+            "<button type='button' class='btn btn-default btn-xs edit-scheme-button'><i class='glyphicon glyphicon-edit'></i></button></div>" +
+            "<div class='scheme-name-cont'><i class='scheme-name'>" + scheme["name"] + "</i></div>" +
             "</div>")).appendTo(decorationCell);
 
-        this.bindEditSchemeButtonListener(div.find("button"), scheme);
+        this.bindEditSchemeButtonListener(div.find(".edit-scheme-button"), scheme);
 
         decorationCell.children("div[class*=col-]").attr("class", "col-md-" + newDecoColumnWidth + ' scheme-col');
 
@@ -675,7 +673,7 @@ var messageViewerManager = {
         regexMatcher.codeDataset(scheme["id"]);
         div.find("i.scheme-name").on("click", event => {
             activeSchemeId = $(event.target).parents("div.scheme-col").attr("scheme");
-            $("#header-decoration-column").find("i").not(".glyphicon").css("text-decoration", "");
+            $("#header-decoration-column").find("i.scheme-name").css("text-decoration", "");
             $(event.target).css("text-decoration", "underline");
             messageViewerManager.activeScheme = activeSchemeId;
             messageViewerManager.changeActiveScheme();
@@ -733,8 +731,8 @@ var messageViewerManager = {
 
         activeRow.removeClass("active");
         activeRow = $(".message").first().addClass("active");
-        $("#header-decoration-column").find("i").not(".glyphicon").css("text-decoration", "");
-        $(nextActiveScheme).children("i").css("text-decoration", "underline");
+        $("#header-decoration-column").find("i.scheme-name").css("text-decoration", "");
+        $(nextActiveScheme).find("i.scheme-name").css("text-decoration", "underline");
         this.changeActiveScheme();
 
         scrollbarManager.redraw(newDataset, nextActiveSchemeId);

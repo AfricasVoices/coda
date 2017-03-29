@@ -248,6 +248,17 @@ select[disabled] {
   -webkit-appearance:none;
 }
 
+.scheme-name-cont {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.scheme-name-cont:hover {
+  white-space: nowrap;
+  overflow: visible;
+}
+
 /*
 TODO prevent code header column wrapping to next row - keep button always on top and hide the excess text
 */
