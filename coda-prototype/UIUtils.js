@@ -27,6 +27,7 @@ var UIUtils = (
         return {
 
             hex2rgb : function(hex) {
+                //http://stackoverflow.com/a/5624139
 
                 // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
                 let shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
