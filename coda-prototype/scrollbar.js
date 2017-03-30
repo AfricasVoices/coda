@@ -90,13 +90,8 @@ var scrollbarManager = {
         } else {
             let color;
             for (event of newDataset.events) {
-<<<<<<< HEAD
                 if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code) {
                    color = this.adjustSaturation(event.decorations.get(activeSchemeId));
-=======
-                if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code != null) {
-                    colors.push(this.adjustSaturation(event.decorations.get(activeSchemeId)));
->>>>>>> 60816c1bac1a68637445d64ca8f38d91c164f45a
                 } else {
                     color = "#ffffff";
                 }
