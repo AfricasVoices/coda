@@ -91,11 +91,7 @@ var scrollbarManager = {
             let color;
             for (event of newDataset.events) {
                 if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code != null) {
-                    let hasColour = event.decorations.get(activeSchemeId).code.color != null && event.decorations.get(activeSchemeId).code.color != undefined && event.decorations.get(activeSchemeId).code.color.length > 0;
-                    if (hasColour) color = event.decorations.get(activeSchemeId).code.color;
-                    else {
-                        color = "#ffffff";
-                    }
+                    colors.push(this.adjustSaturation(event.decorations.get(activeSchemeId)));
                 } else {
                     color = "#ffffff";
                 }
@@ -226,8 +222,11 @@ var scrollbarManager = {
             } else {
                 let color = "#ffffff";
                 if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code != null) {
-                    let hasColor = event.decorations.get(activeSchemeId).code.color != null && event.decorations.get(activeSchemeId).code.color != undefined && event.decorations.get(activeSchemeId).code.color.length > 0;
-                    if (hasColor) color = event.decorations.get(activeSchemeId).code.color;
+                    let codeHasColor = event.decorations.get(activeSchemeId).code.color != null &&  event.decorations.get(activeSchemeId).code.color.length != 0;
+                    if (codeHasColor) colors.push(this.adjustSaturation(event.decorations.get(activeSchemeId)));
+                    else colors.push("#ffffff");
+                } else {
+                    colors.push("#ffffff");
                 }
                 colors.push(color);
             }
@@ -236,6 +235,20 @@ var scrollbarManager = {
         return sampleColours;
     },
 
+    adjustSaturation: function(decoration) {
+
+        let color = decoration.code.color;
+        let confidence = decoration.confidence;
+
+        if (color == "" || color == null) return "#ffffff";
+
+        let hslColor = UIUtils.rgb2hsl(UIUtils.hex2rgb(color));
+        let hsl = hslColor.split("(")[1].split(")")[0].split(",");
+
+        let newHsl = "hsl(" + hsl[0] + "," + confidence + "," + hsl[2] + ")";
+        return UIUtils.rgb2hex(UIUtils.hsl2rgb(newHsl));
+
+    },
 
     scrolling : function(scrollthumbLayer) {
 

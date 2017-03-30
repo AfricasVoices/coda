@@ -365,16 +365,6 @@ class CodeScheme {
     }
 }
 class Code {
-    constructor(owner, id, value, color, shortcut, isEdited) {
-        this._owner = owner;
-        this._id = id;
-        this._value = value;
-        this._color = color;
-        this._shortcut = shortcut;
-        this._words = [];
-        this._isEdited = isEdited;
-        this._eventsWithCode = [];
-    }
     get owner() {
         return this._owner;
     }
@@ -398,6 +388,16 @@ class Code {
     }
     get eventsWithCode() {
         return this._eventsWithCode;
+    }
+    constructor(owner, id, value, color, shortcut, isEdited) {
+        this._owner = owner;
+        this._id = id;
+        this._value = value;
+        this._color = color;
+        this._shortcut = shortcut;
+        this._words = [];
+        this._isEdited = isEdited;
+        this._eventsWithCode = [];
     }
     toJSON() {
         let obj = Object.create(null);
