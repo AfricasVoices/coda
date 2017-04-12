@@ -983,7 +983,7 @@ class StorageManager {
         });
     }
 
-    saveActivity(logEvent: {"category": string, "message": string, "data": any, "timestamp": Date}) : void {
+    saveActivity(logEvent: {"category": string, "message": string, "messageDetails": Object, "data": any, "timestamp": Date}) : void {
         // save user activity in storage for instrumentation
         if (logEvent.category.length != 0 && logEvent.message.length != 0 && logEvent.data.length != 0 && logEvent.timestamp instanceof Date) {
             activity.push(logEvent);
@@ -994,7 +994,13 @@ class StorageManager {
                     if (chrome.runtime.lastError) {
                         console.log(chrome.runtime.lastError);
                     } else {
-                        let instr = JSON.parse(data["instrumentation"]).concat(activity);
+                        let instr;
+                        if (data["instrumentation"]) {
+                            instr = JSON.parse(data["instrumentation"]).concat(activity);
+                        }
+                        else {
+                            instr = activity;
+                        }
                         chrome.storage.local.set({"instrumentation": JSON.stringify(instr)}, () => {
                             if (chrome.runtime.lastError) {
                                 console.log(chrome.runtime.lastError);

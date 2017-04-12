@@ -807,7 +807,13 @@ class StorageManager {
                         console.log(chrome.runtime.lastError);
                     }
                     else {
-                        let instr = JSON.parse(data["instrumentation"]).concat(activity);
+                        let instr;
+                        if (data["instrumentation"]) {
+                            instr = JSON.parse(data["instrumentation"]).concat(activity);
+                        }
+                        else {
+                            instr = activity;
+                        }
                         chrome.storage.local.set({ "instrumentation": JSON.stringify(instr) }, () => {
                             if (chrome.runtime.lastError) {
                                 console.log(chrome.runtime.lastError);

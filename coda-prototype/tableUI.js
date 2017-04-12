@@ -174,7 +174,8 @@ var messageViewerManager = {
             storage.saveActivity({
                 "category": "DATASET",
                 "message": "Sorted dataset", // todo enter what sort
-                "data": iconClassesNext[iconClassName],
+                "messageDetails": iconClassesNext[iconClassName],
+                "data": "",
                 "timestamp": new Date()
             });
         }
@@ -483,6 +484,7 @@ var messageViewerManager = {
             storage.saveActivity({
                 "category": "DATASET",
                 "message": "Undone action",
+                "messageDetails": "",
                 "data": "",
                 "timestamp": new Date()
             });
@@ -508,6 +510,7 @@ var messageViewerManager = {
             storage.saveActivity({
                 "category": "DATASET",
                 "message": "Redone action",
+                "messageDetails":"",
                 "data": "",
                 "timestamp": new Date()
             });
@@ -623,7 +626,8 @@ var messageViewerManager = {
         // update the activity stack
         storage.saveActivity({
             "category": "CODING",
-            "message": "Used dropdown to assign " + codeObj.id + " from scheme " + schemeId,
+            "message": "Used dropdown to assign code from scheme",
+            "messageDetails": {"code": codeObj.id, "scheme": schemeId},
             "data": eventObj,
             "timestamp": new Date()
         });
@@ -766,7 +770,8 @@ var messageViewerManager = {
                 // update the activity stack
                 storage.saveActivity({
                     "category": "SCHEME",
-                    "message": "Editing existing scheme " + scheme.id,
+                    "message": "Editing existing scheme",
+                    "messageDetails": {"scheme":scheme.id},
                     "data": scheme.toJSON(),
                     "timestamp": new Date()
                 });
@@ -820,7 +825,8 @@ var messageViewerManager = {
                 // update the activity stack
                 storage.saveActivity({
                     "category": "CODING",
-                    "message": "Used shortcut " + event.keyCode + " from scheme " + activeSchemeId,
+                    "message": "Used shortcut from scheme",
+                    "messageDetails": {"shortcut": event.keyCode, "scheme": activeSchemeId},
                     "data": newDataset.events[eventId],
                     "timestamp": new Date()
                 });
@@ -1050,7 +1056,8 @@ var messageViewerManager = {
                     // update the activity stack
                     storage.saveActivity({
                         "category": "SCHEME",
-                        "message": "Highlighted string " + selection + " for code " + code.id + " in scheme " + code.owner.id,
+                        "message": "Highlighted string for code in scheme",
+                        "messageDetails": {"word": selection, "scheme":code.owner.id, "code": code.id},
                         "data": code,
                         "timestamp": new Date()
                     });
@@ -1066,11 +1073,11 @@ var messageViewerManager = {
                     // update the activity stack
                     storage.saveActivity({
                         "category": "SCHEME",
-                        "message": "Highlighted string " + selection,
+                        "message": "Highlighted string",
+                        "messageDetails": {"word": selection},
                         "data": [selection],
                         "timestamp": new Date()
                     });
-
                 }
             }
         }

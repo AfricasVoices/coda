@@ -21,7 +21,6 @@ SOFTWARE.
 */
 
 //UI globals
-//var dataset;
 var editorOpen;
 var UIUtils = UIUtils;
 var codeEditorPanel = $("#code-editor-panel");
@@ -60,10 +59,10 @@ storage.getDataset().then(dataset => {
     undoManager.modelUndoStack = [Dataset.clone(newDataset)];
 
     // update the activity stack
-
     storage.saveActivity({
         "category": "DATASET",
-        "message": "Resuming coding dataset", // todo add identifier
+        "message": "Resuming coding dataset",
+        "messageDetails": "", // todo add identifier
         "data": "Last edit:",
         "timestamp": new Date()
     });
@@ -132,7 +131,8 @@ storage.getDataset().then(dataset => {
         storage.saveActivity({
             "category": "DATASET",
             "message": "Loaded default dataset",
-            "data": "sessions-numbered-1000.txt",
+            "messageDetails": "sessions-numbered-1000.txt",
+            "data": "",
             "timestamp": new Date()
         });
         initUI(newDataset);
@@ -243,7 +243,8 @@ function initUI(dataset) {
             console.log("Downloaded file with id: " + dlId);
             storage.saveActivity({
                 "category": "DATASET",
-                "message": "Exported dataset", //todo identifier
+                "message": "Exported dataset",
+                "messageDetails": "", //todo identifier
                 "data": tempScheme.toJSON(),
                 "timestamp": new Date()
             });
@@ -258,7 +259,8 @@ function initUI(dataset) {
         let len = files.length;
 
         if (len) {
-            console.log("Filename: " + files[0].name);
+            var fileName = files[0].name;
+            console.log("Filename: " + fileName);
             console.log("Type: " + files[0].type);
             console.log("Size: " + files[0].size + " bytes");
 
@@ -400,21 +402,13 @@ function initUI(dataset) {
                     // update the activity stack
                     storage.saveActivity({
                         "category": "DATASET",
-                        "message": "Imported dataset", // todo find identifier
+                        "message": "Imported dataset",
+                        "messageDetails": {"dataset": fileName},
                         "data": "",
                         "timestamp": new Date()
                     });
 
-                    /* TODO do we reset instrumentation on data reload?
-                    storage.clearActivityLog().then(() => {
-                        storage.saveActivity({
-                            "category": "DATASET",
-                            "message": "Imported dataset", // todo find identifier
-                            "data": JSON.stringify(dataset.events[0]),
-                            "timestamp": new Date()
-                        });
-                    });
-                    */
+                    // TODO do we reset instrumentation on data reload?
 
                     // success message
                     let successAlert = $("#alert");
@@ -435,6 +429,7 @@ function initUI(dataset) {
                     storage.saveActivity({
                         "category": "DATASET",
                         "message": "Failed to import dataset",
+                        "messageDetails": {"dataset": fileName},
                         "data": "",
                         "timestamp": new Date()});
 
@@ -558,7 +553,8 @@ function initUI(dataset) {
                     // update the activity stack
                     storage.saveActivity({
                         "category": "SCHEME",
-                        "message": "Imported new scheme " + newScheme.id,
+                        "message": "Imported new scheme",
+                        "messageDetails": {"scheme": newScheme.id},
                         "data": newScheme.toJSON(),
                         "timestamp": new Date()
                     });
@@ -613,7 +609,8 @@ function initUI(dataset) {
 
             storage.saveActivity({
                 "category": "SCHEME",
-                "message": "Exported scheme " + tempScheme.id,
+                "message": "Exported scheme",
+                "messageDetails": {"scheme": tempScheme.id},
                 "data": tempScheme.toJSON(),
                 "timestamp": new Date()
             });
@@ -730,7 +727,8 @@ function initUI(dataset) {
                 // update the activity stack
                 storage.saveActivity({
                     "category": "SCHEME",
-                    "message": "Uploaded new version of scheme " + tempScheme.id,
+                    "message": "Uploaded new version of scheme",
+                    "messageDetails": {"scheme": tempScheme.id},
                     "data": tempScheme.toJSON(),
                     "timestamp": new Date()
                 });
