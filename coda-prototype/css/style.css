@@ -234,11 +234,29 @@ tr.active.code-row > td {
 
 }
 
-/*
+.sort-btn {
+  padding: 1px;
+  margin-right: 5px;
+}
 
- */
+.sort-icon {
+  height: 18px;
+  width: 19px;
+}
+
 select[disabled] {
   -webkit-appearance:none;
+}
+
+.scheme-name-cont {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.scheme-name-cont:hover {
+  white-space: nowrap;
+  overflow: visible;
 }
 
 /*

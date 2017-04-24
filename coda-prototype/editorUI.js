@@ -635,7 +635,7 @@ var codeEditorManager =  {
         storage.saveDataset(newDataset);
 
         // handle UI changes
-        nextSchemeId = messageViewerManager.deleteSchemeColumn(schemeId);
-        return nextSchemeId;
+        let newSchemeId = messageViewerManager.deleteSchemeColumn(schemeId);
+        return newSchemeId;
     }
 };
