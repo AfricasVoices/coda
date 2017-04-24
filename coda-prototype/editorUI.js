@@ -49,6 +49,20 @@ var codeEditorManager =  {
         this.bindAddSchemeListeners();
         this.bindNameInputListeners();
 
+        var logColorChange = debounce((code, color) => {
+            if (code) {
+                console.log(new Date() + " color");
+                // update the activity stack
+                storage.saveActivity({
+                    "category": "SCHEME",
+                    "message": "Changed color for code in scheme",
+                    "messageDetails": {"scheme": code.owner.id, "code": code.id, "color": color.toHex()},
+                    "data": tempScheme.toJSON(),
+                    "timestamp": new Date()
+                });
+            }
+        }, 1000, false);
+
         $('#color-pick').colorpicker({component: $("#colorpicker-trigger")});
         $('#color-pick').on("changeColor", function(event) {
 
@@ -61,18 +75,7 @@ var codeEditorManager =  {
             }
 
             $("#word-textarea").find(".tag").css({"background-color": event.color.toHex()});
-
-            // update the activity stack
-            /* TODO find a solution that doesn't flood events
-            if (code) {
-                storage.saveActivity({
-                    "category": "SCHEME",
-                    "message": "Changed color for code " + code.id + " in scheme " + code.owner.id,
-                    "data": tempScheme.toJSON(),
-                    "timestamp": new Date()
-                });
-            }
-            */
+            logColorChange(code, event.color); // will only run every N ms in order not to flood the activity log
         });
 
         $("#delete-scheme-button").on("click", () => {
@@ -87,7 +90,8 @@ var codeEditorManager =  {
            // update the activity stack
            storage.saveActivity({
                "category": "SCHEME",
-               "message": "Deleted scheme " + tempScheme.id,
+               "message": "Deleted scheme",
+               "messageDetails": {"scheme": tempScheme["id"]},
                "data": tempScheme.toJSON(),
                "timestamp": new Date()
            });
@@ -189,7 +193,6 @@ var codeEditorManager =  {
         var headerDecoColumn = $("#header-decoration-column");
 
         saveSchemeButton.off("click"); // only have one listener at a time
-
         saveSchemeButton.one("click", function () {
 
             tempScheme.codes.forEach(function(codeObj,codeIndex) {
@@ -236,7 +239,8 @@ var codeEditorManager =  {
             // update the activity stack
             storage.saveActivity({
                 "category": "SCHEME",
-                "message": "Saved scheme " + tempScheme["id"],
+                "message": "Saved scheme",
+                "messageDetails": {"scheme": tempScheme["id"]},
                 "data": newDataset.schemes[tempScheme["id"]].toJSON(),
                 "timestamp": new Date()
             });
@@ -292,7 +296,8 @@ var codeEditorManager =  {
             // update the activity stack
             storage.saveActivity({
                 "category" : "SCHEME",
-                "message": "Closed editor for scheme " + tempScheme.id,
+                "message": "Closed editor for scheme",
+                "messageDetails": {"scheme": tempScheme["id"]},
                 "data": tempScheme.toJSON(),
                 "timestamp": new Date()
             });
@@ -309,7 +314,8 @@ var codeEditorManager =  {
             // update the activity stack
             storage.saveActivity({
                 "category": "SCHEME",
-                "message": "Cancel edits to scheme " + tempScheme.id,
+                "message": "Cancel edits to scheme",
+                "messageDetails": {"scheme": tempScheme["id"]},
                 "data": tempScheme.toJSON(),
                 "timestamp": new Date()
             });
@@ -338,7 +344,8 @@ var codeEditorManager =  {
             // update the activity stack
             storage.saveActivity({
                 "category": "SCHEME",
-                "message": "Added new code " + newCode.id + " to scheme " + tempScheme.id,
+                "message": "Added new code to scheme",
+                "messageDetails": {"scheme": tempScheme["id"], "code": newCode.id},
                 "data": tempScheme.toJSON(),
                 "timestamp": new Date()});
         });
@@ -451,7 +458,8 @@ var codeEditorManager =  {
             // update the activity stack
             storage.saveActivity({
                 "category": "SCHEME",
-                "message": "Added word " + event.item + " to code " + codeObj.id + " in scheme " + tempScheme.id,
+                "message": "Added word to code in scheme",
+                "messageDetails": {"word": event.item, "scheme": tempScheme["id"], "code": codeObj["id"]},
                 "data": tempScheme.toJSON(),
                 "timestamp": new Date()});
         });
@@ -463,10 +471,10 @@ var codeEditorManager =  {
             // update the activity stack
             storage.saveActivity({
                 "category": "SCHEME",
-                "message": "Deleted word " + event.item + " from code " + codeObj.id + " in scheme " + tempScheme.id,
+                "message": "Deleted word from code in scheme",
+                "messageDetails": {"word": event.item, "scheme": tempScheme["id"], "code": codeObj["id"]},
                 "data": tempScheme.toJSON(),
                 "timestamp": new Date()});
-
         });
 
         regexField.val(regexMatcher.generateOrRegex(codeObj["words"]));
@@ -595,7 +603,8 @@ var codeEditorManager =  {
             // update the activity stack
             storage.saveActivity({
                 "category": "SCHEME",
-                "message": "Deleted code " + id + " from scheme " + tempScheme.id,
+                "message": "Deleted code from scheme",
+                "messageDetails": {"code": id ,"scheme": tempScheme["id"]},
                 "data": tempScheme.toJSON(),
                 "timestamp": new Date()
             });
@@ -605,6 +614,7 @@ var codeEditorManager =  {
 
     deleteScheme: function(schemeId) {
         let schemeSnapshot = newDataset.schemes[schemeId];
+        let nextSchemeId;
 
         // delegate uglifying to datastructure
         newDataset.deleteScheme(schemeId);
@@ -615,12 +625,12 @@ var codeEditorManager =  {
 
         if (Object.keys(newDataset.schemes).length === 0) {
             // create new default coding scheme
-            let newScheme = new CodeScheme(UIUtils.randomId([]), "default", true);
+            let newScheme = new CodeScheme(UIUtils.randomId([]) + "", "default", true);
             newScheme.codes.set(newScheme.id + "-" + "1", new Code(newScheme, newScheme.id + "-" + "1", "test", "#ffffff", "", false));
             newDataset.schemes[newScheme.id] = newScheme;
+
             messageViewerManager.codeSchemeOrder.push(newScheme.id + "");
             messageViewerManager.addNewSchemeColumn(newScheme);
-
             schemeId = newScheme.id;
 
             // save for UNDO and in storage
