@@ -50,6 +50,9 @@ var messageViewerManager = {
 
         } else {
             this.buildTable(data, rowsInTable);
+            if (Object.keys(newDataset.schemes).length > 4) {
+                $("#message-viewer").css("width", (1230 + (Object.keys(newDataset.schemes).length - 4) * 360) + "");
+            }
             scrollbarManager.init(newDataset.sessions, document.getElementById("scrollbar"), 100);
 
             console.time("dropdown init");
@@ -215,6 +218,7 @@ var messageViewerManager = {
         }
 
         if (hasDataChanged === undefined) {
+            // checks if this is a result of UNDO/REDO action or new data was loaded in
             hasDataChanged = true;
         }
 
@@ -251,12 +255,41 @@ var messageViewerManager = {
             newDataset.restoreDefaultSort();
         }
 
+        let decoColumnToAppend = UIUtils.decoHeaderColumn(Object.keys(newDataset.schemes).length, newDataset.schemes, activeSortIcon);
+        let appendedElement = $(decoColumnToAppend).appendTo(decoColumn);
+
+        let firstCol = $(".scheme-col:first");
+        let firstSchemeKey = firstCol.attr("scheme");
+        activeSchemeId = firstSchemeKey;
+        messageViewerManager.activeScheme = activeSchemeId;
+        //$(firstCol).find("i.scheme-name").css("text-decoration", "underline");
+        $(firstCol).find("i.scheme-name").addClass("active-scheme");
+
+        $(appendedElement).find("i.scheme-name").on("click", event => {
+            messageViewerManager.changeActiveScheme(event);
+        });
+
+        appendedElement.find(".scheme-col").each((i,col) => {
+            let column = $(col);
+            let schemeKey = column.attr("scheme");
+            let button = column.find(".edit-scheme-button");
+
+            bindEditSchemeButtonListener(button, newDataset["schemes"][schemeKey]);
+        });
+
+        if ($(".scheme-col:first").outerWidth() <= 180 && Object.keys(newDataset.schemes).length > 4) {
+            let outerContainer = $("#message-viewer");
+            let current = outerContainer.outerWidth();
+            outerContainer.outerWidth(current + ((Object.keys(newDataset.schemes).length - 4) * 400));
+        }
+
+        /*
         Object.keys(schemes).forEach(function(schemeKey, i) {
             if (hasDataChanged) messageViewerManager.codeSchemeOrder.push(schemeKey + "");
 
             let sortIcon = "<button class='sort-btn btn btn-default btn-xs'><div class='sort-icon " + (schemeKey === messageViewerManager.activeScheme ? activeSortIcon : "icon-def active'") + "></div></button>";
             let editButton = "<button type='button' class='btn btn-default btn-xs edit-scheme-button'><i class='glyphicon glyphicon-edit'></i></button>";
-            let columnDiv = "<div class='col-md-" + decoColumnWidth + " scheme-col' scheme='" + schemeKey + "'><div>" + sortIcon + editButton + "</div><div class='scheme-name-cont'><i class='scheme-name'>" + schemes[schemeKey]["name"] + "</i></div>" +  "</div>";
+            let columnDiv = "<div class='col-md-" + decoColumnWidth + " col-xs-" + decoColumnWidth + " scheme-col' scheme='" + schemeKey + "'><div>" + sortIcon + editButton + "</div><div class='scheme-name-cont'><i class='scheme-name'>" + schemes[schemeKey]["name"] + "</i></div>" +  "</div>";
 
 
             var appendedElements = $(columnDiv).appendTo(decoColumn.find(".row"));
@@ -275,7 +308,7 @@ var messageViewerManager = {
             });
             bindEditSchemeButtonListener(appendedElements.find(".edit-scheme-button"), schemes[schemeKey]);
         });
-
+*/
 
         /*
         Build rows
@@ -311,6 +344,8 @@ var messageViewerManager = {
         } else {
             this.messageContainer.scrollTop(prevScroll);
         }
+
+
 
         console.timeEnd("table building");
         if (!hasDataChanged) {
@@ -420,55 +455,85 @@ var messageViewerManager = {
         }
     },
 
-    changeActiveScheme : function() {
+    changeActiveScheme: function(event) {
 
+        // todo handle UI changes here!!!
+        // todo change to event handler
         //$("#header-decoration-column").find("i").not(".glyphicon").css("text-decoration", "");
         //$(this).css("text-decoration", "underline");
         //activeSchemeId = $(this).parents("div.scheme-col").attr("scheme");
+
+        let schemeHeaderContainer = $(event.target).parents("div.scheme-col"); // coding scheme header - container for buttons and name of particular scheme
+        let headerDecorationColumn = $("#header-decoration-column"); // container for all the coding scheme headers
+        activeSchemeId = schemeHeaderContainer.attr("scheme");
+        headerDecorationColumn.find("i.scheme-name").removeClass("active-scheme");
+        $(event.target).addClass("active-scheme");
         messageViewerManager.activeScheme = activeSchemeId;
 
-        var schemeObj = newDataset.schemes[activeSchemeId];
+        // 1. move header
+        headerDecorationColumn.find(".row").prepend(schemeHeaderContainer);
 
+
+
+        var schemeObj = newDataset.schemes[activeSchemeId];
         let thumbPos = scrollbarManager.getThumbPosition();
         scrollbarManager.redraw(newDataset, activeSchemeId);
         scrollbarManager.redrawThumb(thumbPos);
 
-        // todo think about whether inactive select should be disabled or just greyed out!
         // TODO: INDICATE WHICH SORTING IS ACTIVE.... !!!!
 
+        /*
+        1. Pass each row
+        2. In each row, pass each decoration column
+        3. In each decoration column: enable or disable the select field, enable or disable the checkbox, set or unset background and box-shadow
+         */
 
-        $(".message").each(function(i, tr) {
-            // find code object via selected option
+        $(".message").each((i, tr) => {
+            var activeColumn = {};
+            var decoContainer  = {};
+            $(tr).find(".deco-container").each((i, col) => {
+                let schemeKey = $(col).attr("scheme");
+                var selectField = $(col).find("select");
+                var checkbox = $(col).find(".checkbox-manual");
 
-            /*
-            let selectFields = $(tr).find("select." + activeSchemeId);
-            selectFields.each(function(i, field) {
+                if (schemeKey === activeSchemeId) {
+                    activeColumn = $(col);
+                    if (selectField.hasClass(activeSchemeId)) {
+                        selectField.removeAttr("disabled");
+                        let selectedOption = selectField.find("option:selected").not(".unassign"); // ignore 'empty' option
+                        if (selectedOption.length !== 0) {
+                            let color = schemeObj.codes.get(selectedOption.attr("id"))["color"];
+                            $(tr).children("td").each(function(i, td) {
+                                if ($(td).hasClass("message-text")) {
+                                    if (color && color.length !== 0 && color !== "#ffffff") {
+                                        $(td).css("box-shadow", "inset 0px 0px 0px 4px " + color);
+                                    }
+                                } else {
+                                    $(td).css("background-color", color);
+                                }
+                            });
+                        } else {
+                            $(tr).children("td").each(function(i, td) {
+                                $(td).css({"background-color":"#ffffff", "box-shadow": ""});
+                            });
+                        }
+                    }
 
+                    checkbox.removeAttr("disabled");
+
+                } else {
+                    $(selectField).attr("disabled", "");
+                    $(checkbox).attr("disabled", "");
+                }
             });
 
-            var selectedOption = $(tr).find("select." + activeSchemeId).find("option:selected").not(".unassign");
-            */
+            $(tr).find(".decorator-column").prepend(activeColumn);
 
-            $(tr).find("select").each(function(index,el){
-               if ($(el).hasClass(activeSchemeId)) {
-                   $(el).removeAttr("disabled");
-                   let selectedOption = $(el).find("option:selected").not(".unassign");
-                   if (selectedOption.length !== 0) {
-                       var color = schemeObj.codes.get(selectedOption.attr("id"))["color"];
-                       $(tr).children("td").each(function(i, td) {
-                           $(td).css("background-color", color);
-                       });
-                   } else {
-                       $(tr).children("td").each(function(i, td) {
-                           $(td).css("background-color", "#ffffff");
-                       });
-                   }
-
-               } else {
-                   $(el).attr("disabled", "");
-               }
-            });
         });
+
+        let indexOfScheme = messageViewerManager.codeSchemeOrder.indexOf(activeSchemeId);
+        let movedSchemeKey = messageViewerManager.codeSchemeOrder.splice(indexOfScheme, 1)[0]; // remove active scheme key
+        messageViewerManager.codeSchemeOrder.splice(0, 0, movedSchemeKey); // insert it at the beginning
 
     },
 
@@ -479,7 +544,7 @@ var messageViewerManager = {
 
             let newOrder = messageViewerManager.codeSchemeOrder.filter(schemeKey => !!newDataset[schemeKey]); // leave ones that are in dataset schemes
             Object.keys(newDataset.schemes).forEach(schemeKey => {
-                if (newOrder.indexOf(schemeKey) == -1) {
+                if (newOrder.indexOf(schemeKey) === -1) {
                     newOrder.push(schemeKey);
                 }
             });
@@ -505,7 +570,7 @@ var messageViewerManager = {
 
             let newOrder = messageViewerManager.codeSchemeOrder.filter(schemeKey => !!newDataset[schemeKey]); // leave ones that are in dataset schemes
             Object.keys(newDataset.schemes).forEach(schemeKey => {
-                if (newOrder.indexOf(schemeKey) == -1) {
+                if (newOrder.indexOf(schemeKey) === -1) {
                     newOrder.push(schemeKey);
                 }
             });
@@ -560,7 +625,18 @@ var messageViewerManager = {
             if (activeSchemeId === schemeId) {
                 let color = newDataset.schemes[schemeId].getCodeByValue(value)["color"];
                 row.children("td").each(function(i, td) {
-                    $(td).css("background-color", color);
+                    if ($(td).hasClass("message-text")) {
+                        if (color && color.length !== 0 && color !== "#ffffff") {
+                            $(td).css("box-shadow", "inset 0px 0px 0px 4px " + color);
+                        }
+                    } else {
+                        if (color && color.length !== 0) {
+                            $(td).css("background-color", color);
+                        } else {
+                            $(td).css("background-color", "#ffffff");
+                        }
+                    }
+
                 });
             }
 
@@ -597,6 +673,7 @@ var messageViewerManager = {
                 return $(element).text()});
             //schemes[schemeId].deleteWords(words); // todo keep track which message is the origin of the added words... ?
 
+            // uncheck checkbox
         }
 
         if (messageViewerManager.currentSort == messageViewerManager.sortUtils.sortEventsByConfidenceOnly) {
@@ -611,6 +688,9 @@ var messageViewerManager = {
 
         undoManager.markUndoPoint();
 
+        /*
+        redraw body
+         */
         let tbody = "";
         let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
 
@@ -623,12 +703,30 @@ var messageViewerManager = {
         $(messageViewerManager.table.find("tbody").empty()).append(tbody);
         // todo adjust scroll offset appropriately!
 
+        /*
+        refresh scrollbar
+         */
         var thumbPos = scrollbarManager.getThumbPosition();
-
         scrollbarManager.redraw(newDataset, activeSchemeId);
         scrollbarManager.redrawThumb(thumbPos);
 
-        // todo find next active row
+        /*
+        get new active row
+         */
+        let activeRowId = activeRow.attr("id"); // active row element is stale since tbody has been redrawn, so need to get the new copy
+        activeRow = $("#" + activeRowId);
+        var next = UIUtils.nextUnfilledRow(activeRow, true, activeSchemeId);
+        if (next.length !== 0) {
+            activeRow.removeClass('active');
+            activeRow = next.addClass('active');
+
+            if (!UIUtils.isRowVisible(next[0], messageViewerManager.messageContainer[0])) {
+                UIUtils.scrollRowToTop(next[0], messageViewerManager.messageContainer[0]);
+            }
+
+        } else {
+            // todo handle behaviour when there are no unfilled rows... just proceed to next row
+        }
 
         // update the activity stack
         storage.saveActivity({
@@ -651,39 +749,17 @@ var messageViewerManager = {
         // TODO: warning message in case of empty codes
         if (scheme["codes"].size === 0) return;
 
-        var decorationCell = $("#header-decoration-column").find(".row");
+        var decorationCell = $("#header-decoration-column");
         var decoNumber = Object.keys(newDataset.schemes).length;
         var newDecoColumnWidth = (12/decoNumber>>0);
-        /*
-         Restructure the header
-         */
-
-        var div = ($("<div class='col-md-" + newDecoColumnWidth + " scheme-col' scheme='" + scheme["id"] + "'>" +
-            "<div><button class='sort-btn btn btn-default btn-xs'><div class='sort-icon icon-def active'></div></button>" +
-            "<button type='button' class='btn btn-default btn-xs edit-scheme-button'><i class='glyphicon glyphicon-edit'></i></button></div>" +
-            "<div class='scheme-name-cont'><i class='scheme-name'>" + scheme["name"] + "</i></div>" +
-            "</div>")).appendTo(decorationCell);
-
-        this.bindEditSchemeButtonListener(div.find(".edit-scheme-button"), scheme);
-
-        decorationCell.children("div[class*=col-]").attr("class", "col-md-" + newDecoColumnWidth + ' scheme-col');
-
-        let sortButton = $(".sort-btn");
-        sortButton.off("click");
-        sortButton.on("click", messageViewerManager.sortHandler);
 
         // TODO: sort the data to default order first??? or keep it?
 
         regexMatcher.codeDataset(scheme["id"]);
-        div.find("i.scheme-name").on("click", event => {
-            activeSchemeId = $(event.target).parents("div.scheme-col").attr("scheme");
-            $("#header-decoration-column").find("i.scheme-name").css("text-decoration", "");
-            $(event.target).css("text-decoration", "underline");
-            messageViewerManager.activeScheme = activeSchemeId;
-            messageViewerManager.changeActiveScheme();
-        });
-        div.find("i.scheme-name").trigger("click");
 
+        /*
+        Rebuild the table body
+         */
         let tbody = "";
         let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
         for (let i = 0; i < messageViewerManager.rowsInTable; i++) {
@@ -701,6 +777,38 @@ var messageViewerManager = {
         activeRow.removeClass("active");
         activeRow = $(".message").first().addClass("active");
 
+        /*
+        Rebuild table header
+         */
+        decorationCell.empty();
+        let newHeader = UIUtils.decoHeaderColumn(Object.keys(newDataset.schemes).length, newDataset.schemes, "icon-def", false);
+        let appendedElement = $(newHeader).appendTo(decorationCell);
+
+        $(appendedElement).find("i.scheme-name").on("click", event => {
+            messageViewerManager.changeActiveScheme(event);
+        });
+
+        appendedElement.find(".scheme-col").each((i,col) => {
+            let column = $(col);
+            let schemeKey = column.attr("scheme");
+            let button = column.find(".edit-scheme-button");
+
+            messageViewerManager.bindEditSchemeButtonListener(button, newDataset["schemes"][schemeKey]);
+
+            if (schemeKey === (scheme.id + "")) {
+                column.find("i.scheme-name").trigger("click");
+            }
+        });
+
+        let sortButton = $(".sort-btn");
+        sortButton.off("click");
+        sortButton.on("click", messageViewerManager.sortHandler);
+
+        if ($(".scheme-col:first").outerWidth() <= 170 && Object.keys(newDataset.schemes).length > 4) {
+            let outerContainer = $("#message-viewer");
+            let current = outerContainer.outerWidth();
+            outerContainer.outerWidth(current + 360);
+        }
     },
 
     deleteSchemeColumn: function(schemeId) {
@@ -709,17 +817,55 @@ var messageViewerManager = {
         let newDecoColumnWidth = (12/decoNumber>>0);
 
         let schemeHeader = decorationCell.find("div[scheme='" + schemeId + "']");
-        let nextActiveScheme = schemeHeader.prev();
-        if (!nextActiveScheme || nextActiveScheme.length == 0) {
+        let nextActiveScheme = decorationCell.find(".scheme-col:first");
+        if (!nextActiveScheme || nextActiveScheme.length === 0 || nextActiveScheme.attr("scheme") === schemeHeader.attr("scheme")) {
             nextActiveScheme = schemeHeader.next();
         }
 
-        let nextActiveSchemeId = $(nextActiveScheme).attr("scheme");
+        var nextActiveSchemeId = $(nextActiveScheme).attr("scheme");
         this.activeScheme = nextActiveSchemeId;
         activeSchemeId = nextActiveSchemeId;
 
         schemeHeader.remove();
         decorationCell.children("div[class*=col-]").attr("class", "col-md-" + newDecoColumnWidth + ' scheme-col');
+
+        // draw new header
+        let newHeader = UIUtils.decoHeaderColumn(Object.keys(newDataset.schemes).length, newDataset.schemes, "icon-def", false);
+        let decorationParent = $("#header-decoration-column").empty();
+        let appendedElement = $(newHeader).appendTo(decorationParent);
+
+        // set up all listeners for header again
+        $(appendedElement).find("i.scheme-name").on("click", event => {
+            messageViewerManager.changeActiveScheme(event);
+        });
+
+        appendedElement.find(".scheme-col").each((i,col) => {
+            let column = $(col);
+            let schemeKey = column.attr("scheme");
+            let button = column.find(".edit-scheme-button");
+
+            messageViewerManager.bindEditSchemeButtonListener(button, newDataset["schemes"][schemeKey]);
+
+            if (schemeKey === (nextActiveSchemeId)) {
+                column.find("i.scheme-name").trigger("click");
+            }
+        });
+
+        let sortButton = $(".sort-btn");
+        sortButton.off("click");
+        sortButton.on("click", messageViewerManager.sortHandler);
+
+        if ($(".scheme-col:first").outerWidth() > 170 && Object.keys(newDataset.schemes).length > 4) {
+            let outerContainer = $("#message-viewer");
+            let current = outerContainer.outerWidth();
+            outerContainer.outerWidth(current - 360);
+        } else if (Object.keys(newDataset.schemes).length === 4) {
+            let outerContainer = $("#message-viewer");
+            let current = outerContainer.outerWidth();
+            outerContainer.outerWidth($(window).width());
+        }
+
+        // todo sort using the right sorting! so it's consistent with the sorting icon in the new active column
 
         let tbody = "";
         for (let i = 0; i < messageViewerManager.rowsInTable; i++) {
@@ -735,9 +881,6 @@ var messageViewerManager = {
 
         activeRow.removeClass("active");
         activeRow = $(".message").first().addClass("active");
-        $("#header-decoration-column").find("i.scheme-name").css("text-decoration", "");
-        $(nextActiveScheme).find("i.scheme-name").css("text-decoration", "underline");
-        this.changeActiveScheme();
 
         scrollbarManager.redraw(newDataset, nextActiveSchemeId);
         scrollbarManager.redrawThumb(0);
@@ -789,9 +932,6 @@ var messageViewerManager = {
     manageShortcuts : function(event) {
         if (!editorOpen && activeSchemeId && activeRow && activeSchemeId.length > 0 && activeRow.length) {
 
-            // todo handle datastructure ohhhh
-
-
             var shortcuts = newDataset.schemes[activeSchemeId].getShortcuts();
             if (shortcuts.has(event.keyCode)) {
                 var codeObj = shortcuts.get(event.keyCode);
@@ -799,22 +939,30 @@ var messageViewerManager = {
                 $(activeRow).children("td").each(function(i, td) {
                     eventId = $(td).parent(".message").attr("eventid"); // todo this is unnecessary
                     newDataset.events[eventId].decorate(codeObj.owner["id"], true, codeObj, 0.95);
-
                     var color = codeObj["color"];
-                    if (color) {
-                        $(td).css("background-color", color);
+
+                    if ($(td).hasClass("message-text")) {
+                        if (color && color.length !== 0 && color !== "#ffffff") {
+                            $(td).css("box-shadow", "inset 0px 0px 0px 4px " + color);
+                        }
                     } else {
-                        $(td).css("background-color", "#ffffff");
+                        $(td).css("background-color", color);
                     }
                 });
 
                 $(activeRow).removeClass("uncoded");
                 $(activeRow).addClass("coded");
 
+                // set dropdown value
                 let selector = "select." + activeSchemeId;
                 $(activeRow).find(selector).val(codeObj["value"]).removeClass("uncoded").addClass("coded");
 
+                // check checkbox
+                activeRow.find(".checkbox-manual").attr("checked", "");
+
                 undoManager.markUndoPoint();
+
+                // get new active row
                 var next = UIUtils.nextUnfilledRow(activeRow, true, activeSchemeId);
                 if (next.length !== 0) {
                     activeRow.removeClass('active');
@@ -939,16 +1087,16 @@ var messageViewerManager = {
         }
     },
 
-    buildRow : function(eventObj, eventIndex, sessionIndex) {
+    buildRow: function(eventObj, eventIndex, sessionIndex) {
 
         var decoNumber = Object.keys(newDataset.schemes).length;
         var decoColumnWidth = (12/decoNumber>>0);
         var sessionRow = "";
-        if (eventObj == undefined) {
+        if (eventObj === undefined) {
             console.log("undefined");
         }
 
-        if (eventObj == undefined) {
+        if (eventObj === undefined) {
             console.log(eventObj);
         }
         var activeDecoration = eventObj["decorations"].get(activeSchemeId);
@@ -957,9 +1105,9 @@ var messageViewerManager = {
 
         // need to check if eventObj has a 'stale' decoration
         // need to perform null checks for code! if event isn't coded yet it has a null code.
-        if ( activeDecoration != undefined && activeDecoration.code !== null) {
+        if ( activeDecoration !== undefined && activeDecoration.code !== null) {
             //let scheme = newDataset.schemes[activeDecoration.code.owner];
-            if (typeof activeDecoration.code.owner == "string") {
+            if (typeof activeDecoration.code.owner === "string") {
 
             }
 
@@ -968,63 +1116,21 @@ var messageViewerManager = {
                 // in case the event object is still coded with a code that doesn't exist in the scheme anymore
                 eventObj.uglify(activeDecoration.scheme_id);
 
-            } else if (activeDecoration.code.color !== undefined) {
+            } else if (activeDecoration.code.color !== undefined && activeDecoration.code.color.length !== 0) {
                 rowColor = activeDecoration.code.color;
             }
 
             eventText = regexMatcher.wrapText(eventObj["data"], regexMatcher.generateOrRegex(activeDecoration.code.words), "highlight", activeDecoration.code.id);
         }
 
+        let shadowStyle = (rowColor === "#ffffff") ? "" : " style='box-shadow: inset 0px 0px 0px 4px " + rowColor + "'";
+
         sessionRow += "<tr class='message' id=" + eventObj["name"] + " eventId = '" + eventIndex + "' sessionId = '" + sessionIndex + "'>";
-        //sessionRow += "<td class='col-md-2' style='background-color: " + rowColor+ "'>" + eventObj["timestamp"] + "</td>";
-        sessionRow += "<td class='col-md-2' style='background-color: " + rowColor+ "'>" + eventObj["name"] + "</td>";
+        sessionRow += "<td class='col-md-1 message-id' style='background-color: " + rowColor + "'>" + eventObj["name"] + "</td>";
+        sessionRow += "<td class='col-md-3 message-text'" + shadowStyle + "><p>" + eventText + "</p></td>";
+        sessionRow += "<td class='col-md-8 decorations' style='background-color: " + rowColor+ "'>";
 
-        //sessionRow += "<td class='col-md-4 message-text' style='background-color: " + rowColor+ "'><p>" + eventObj["data"] + "</p></td>";
-        //sessionRow += "<td class='col-md-4 message-text' style='background-color: " + rowColor+ "'><p>" + eventObj["data"] + "</p></td>";
-        sessionRow += "<td class='col-md-4 message-text' style='background-color: " + rowColor+ "'><p>" + eventText + "</p></td>";
-        sessionRow += "<td class='col-md-6 decorations' style='background-color: " + rowColor+ "'>";
-        sessionRow += "<div class='row decorator-column'>";
-
-        messageViewerManager.codeSchemeOrder.forEach(function(schemeKey) {
-
-            var codes = Array.from(newDataset.schemes[schemeKey].codes.values());
-            sessionRow += "<div class='col-md-" + decoColumnWidth + " deco-container' scheme='" + schemeKey + "'>";
-            var optionsString = "";
-            var selectClass = "uncoded";
-            var somethingSelected = false;
-            var schemeKey = schemeKey + "";
-
-            codes.forEach(function(codeObj) {
-
-                if (eventObj["decorations"].has(schemeKey)) {
-                    var currentEventCode = eventObj["decorations"].get(schemeKey).code;
-                    if (currentEventCode !== null && currentEventCode["value"] === codeObj["value"]) {
-                        optionsString += "<option id='" + codeObj["id"] + "' selected>" + codeObj["value"] + "</option>";
-                        selectClass = "coded";
-                        somethingSelected = true;
-                    } else {
-                        optionsString += "<option id='" + codeObj["id"] + "'>" + codeObj["value"] + "</option>";
-                    }
-                } else {
-                    eventObj.decorate(schemeKey);
-                    optionsString += "<option id='" + codeObj["id"] + "'>" + codeObj["value"] + "</option>";
-                }
-
-            });
-
-            let disabled = schemeKey == messageViewerManager.activeScheme ? "" : "disabled";
-            sessionRow += "<select class='form-control " + schemeKey + " " + selectClass + "' " + disabled + ">";
-            sessionRow += optionsString;
-
-            if (!somethingSelected) sessionRow += "<option class='unassign' selected></option>";
-            else sessionRow += "<option class='unassign'></option>";
-
-            sessionRow += "</select>";
-            sessionRow += "</div>";
-
-        });
-
-        sessionRow += "</div>";
+        sessionRow += UIUtils.decoRowColumn(Object.keys(newDataset.schemes).length, newDataset.schemes, eventObj);
         sessionRow += "</td>";
         sessionRow += "</td>";
         sessionRow += "</tr>";
