@@ -263,6 +263,9 @@ var codeEditorManager =  {
             messageViewerManager.messageContainer.scrollTop(previousScrollTop);
             activeRow = $("#" + previousActiveRow).addClass("active");
 
+            header.find("i.scheme-name").trigger("click"); // will make it active column
+
+
             editorContainer.hide();
             editorContainer.find("tbody").empty();
             codeEditorManager.bindAddCodeButtonListener();
@@ -610,30 +613,47 @@ var codeEditorManager =  {
         let schemeOrderIndex = messageViewerManager.codeSchemeOrder.indexOf(schemeId);
         if (schemeOrderIndex > -1) messageViewerManager.codeSchemeOrder.splice(schemeOrderIndex, 1);
 
-        if (Object.keys(newDataset.schemes).length == 0) {
+        if (Object.keys(newDataset.schemes).length === 0) {
             // create new default coding scheme
             let newScheme = new CodeScheme(UIUtils.randomId([]), "default", true);
             newScheme.codes.set(newScheme.id + "-" + "1", new Code(newScheme, newScheme.id + "-" + "1", "test", "#ffffff", "", false));
-            //schemes[newScheme.id] = newScheme;
             newDataset.schemes[newScheme.id] = newScheme;
-            messageViewerManager.addNewSchemeColumn(newScheme);
             messageViewerManager.codeSchemeOrder.push(newScheme.id + "");
+            messageViewerManager.addNewSchemeColumn(newScheme);
+
+            schemeId = newScheme.id;
+
+            // save for UNDO and in storage
+            undoManager.markUndoPoint();
+            storage.saveDataset(newDataset);
+
+            // update the activity stack
+            storage.saveActivity({
+                "category": "SCHEME",
+                "message": "Deleted scheme " +  schemeId,
+                "data": schemeSnapshot.toJSON(),
+                "timestamp": new Date()
+            });
+
+            // in this case the default coding scheme was added and UI changes were already handled by addNewSchemeColumn
+            return schemeId;
+
+        } else {
+            // save for UNDO and in storage
+            undoManager.markUndoPoint();
+            storage.saveDataset(newDataset);
+
+            // update the activity stack
+            storage.saveActivity({
+                "category": "SCHEME",
+                "message": "Deleted scheme " +  schemeId,
+                "data": schemeSnapshot.toJSON(),
+                "timestamp": new Date()
+            });
+
+            // UI changes need extra handling since there are multiple columns
+            let newSchemeId = messageViewerManager.deleteSchemeColumn(schemeId);
+            return newSchemeId;
         }
-
-        // save for UNDO and in storage
-        undoManager.markUndoPoint();
-        storage.saveDataset(newDataset);
-
-        // update the activity stack
-        storage.saveActivity({
-            "category": "SCHEME",
-            "message": "Deleted scheme " +  schemeId,
-            "data": schemeSnapshot.toJSON(),
-            "timestamp": new Date()
-        });
-
-        // handle UI changes
-        let newSchemeId = messageViewerManager.deleteSchemeColumn(schemeId);
-        return newSchemeId;
     }
 };

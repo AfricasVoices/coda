@@ -101,9 +101,6 @@ var regexMatcher = {
                 confidences.set(code[0], {"conf":regexMatcher.confidenceMatchLen(event.data, matchCount)});
                 confidences.get(code[0]).isKeywordMatch = matchCount.size !== 0;
                 confidences.get(code[0]).isFullTextMatch = false;
-
-
-                //this.codeEvent(newDataset.events[i], code[1], matchCount);
             }
 
             var maxConfEntry = null;
@@ -125,13 +122,13 @@ var regexMatcher = {
                 }
 
 
-                if (maxConfEntry && maxConfEntry[1].conf == 0 && !manual && decoration.code) {
+                if (maxConfEntry && maxConfEntry[1].conf === 0 && !manual && decoration.code) {
                     // no coding matches anymore
                     event.uglify(schemeId);
                     continue;
                 }
 
-                if (maxConfEntry && !manual && maxConfEntry[1].conf != decoration.confidence) {
+                if (maxConfEntry && !manual && maxConfEntry[1].conf !== decoration.confidence) {
                     if (decoration.code) {
                         event.uglify(schemeId);
                         event.decorate(schemeId, false, codes.get(maxConfEntry[0]), maxConfEntry[1].conf);

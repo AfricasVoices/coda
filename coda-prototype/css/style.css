@@ -46,6 +46,10 @@ div[class*=col-], #message-panel {
   height: 100%;
 }
 
+#message-viewer {
+  min-width: 1230px !important;
+}
+
 #message-panel {
   height: 97%;
   overflow-y: auto;
@@ -53,7 +57,7 @@ div[class*=col-], #message-panel {
 }
 
 #message-panel::-webkit-scrollbar {
-  width: 0px;   /* remove scrollbar space */
+  width: 0;   /* remove scrollbar space */
   background: transparent;   /* optional: just make scrollbar invisible */
 }
 
@@ -71,7 +75,7 @@ div[class*=col-], #message-panel {
 }
 
 #code-editor {
-  z-index: 1;
+  z-index: 5;
   position: fixed !important;
   bottom: 0;
   right: 0;
@@ -262,3 +266,73 @@ select[disabled] {
 /*
 TODO prevent code header column wrapping to next row - keep button always on top and hide the excess text
 */
+
+.checkbox-manual {
+  transform: scale(1.1);
+}
+
+i.scheme-name {
+  cursor: pointer;
+}
+
+i.scheme-name:hover {
+  background-color: #f9f9f9;
+  border: solid #9d9d9d 1px;
+  border-radius: 3px;
+}
+
+i.scheme-name.active-scheme {
+  border: solid black 1px;
+  border-radius: 3px;
+  font-size: 16px;
+  font-style: normal;
+
+}
+
+.table tbody tr:hover td,
+.table tbody tr:hover th {
+  background-color: transparent;
+}
+
+
+  .five-cols .col-md-1,
+  .five-cols .col-sm-1,
+  .five-cols .col-xs-1,
+  .five-cols .col-lg-1 {
+    width: 20%;
+  }
+
+  .seven-cols .col-md-1,
+  .seven-cols .col-sm-1,
+  .seven-cols .col-xs-1,
+  .seven-cols .col-lg-1 {
+    width: 14.285714285714285714285714285714%;
+  }
+
+  .eight-cols .col-md-1,
+  .eight-cols .col-sm-1,
+  .eight-cols .col-xs-1,
+  .eight-cols .col-lg-1 {
+    width: 12.5%;
+  }
+
+  .nine-cols .col-md-1,
+  .nine-cols .col-sm-1,
+  .nine-cols .col-xs-1,
+  .nine-cols .col-lg-1 {
+    width: 11.11111111111111%;
+  }
+
+  .ten-cols .col-md-1,
+  .ten-cols .col-sm-1,
+  .ten-cols .col-xs-1,
+  .ten-cols .col-lg-1 {
+    width: 10%;
+  }
+
+  .eleven-cols .col-md-1,
+  .eleven-cols .col-sm-1,
+  .eleven-cols .col-xs-1,
+  .eleven-cols .col-lg-1 {
+    width: 9.090909090909092%;
+  }

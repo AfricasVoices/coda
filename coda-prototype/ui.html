@@ -29,11 +29,12 @@ SOFTWARE.
       <link rel="stylesheet" href="external/jquery/jquery-ui/jquery-ui.css"/>
       <link rel="stylesheet" href="external/colorpicker/css/bootstrap-colorpicker.min.css"/>
       <link rel="stylesheet" type="text/css" href="external/bootstrap-tagsinput/bootstrap-tagsinput.css"/>
+      <link rel="stylesheet" type="text/css" href="external/fontawesome/css/font-awesome.css"/>
       <link rel="stylesheet" href="css/style.css"/>
 
       <!-- LIB JS -->
       <script src="external/jquery/jquery-3.1.1.min.js"></script>
-      <script src="external/jquery/jquery-ui/jquery-ui.min.js"></script>
+      <script src="external/jquery/jquery-ui/jquery-ui.js"></script>
       <script src="external/bootstrap/js/bootstrap.min.js"></script>
       <script src="external/colorpicker/js/bootstrap-colorpicker.min.js"></script>
       <script src="external/jcanvas/jcanvas.js"></script>
@@ -42,6 +43,7 @@ SOFTWARE.
       <script src="external/underscore/underscore.js"></script>
       <script src="external/papaparse/papaparse.js"></script>
       <script src="external/grunticon/grunticon.loader.js"></script>
+      <script src="external/jquery/jquery.dragtable.js"></script>
 
       <!-- Toolbar UI -->
       <script src="ui.js"></script>
@@ -88,11 +90,20 @@ SOFTWARE.
                   </div>
                   <!-- Navigate between recent active messages -->
                   <div class="btn-group" role="group" aria-label="message navigation">
+                    <button type="button" class="btn btn-default btn-sm navbar-btn">
+                      <i class="fa fa-undo" id="undo" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="btn btn-default btn-sm navbar-btn">
+                      <i class="fa fa-repeat" id="redo" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                  <!-- Navigate between recent active messages -->
+                  <div class="btn-group" role="group" aria-label="message navigation">
                     <button type="button" class="btn btn-default btn-xs navbar-btn">
-                      <i class="glyphicon glyphicon-chevron-left" id="undo" aria-hidden="true"></i>
+                      <i class="glyphicon glyphicon-chevron-left" id="back" aria-hidden="true"></i>
                     </button>
                     <button type="button" class="btn btn-default btn-xs navbar-btn">
-                      <i class="glyphicon glyphicon-chevron-right" id="redo" aria-hidden="true"></i>
+                      <i class="glyphicon glyphicon-chevron-right" id="forward" aria-hidden="true"></i>
                     </button>
                   </div>
                 </div>
@@ -118,10 +129,10 @@ SOFTWARE.
                 <thead>
                 <tr>
                   <th class="col-md-1 col-xs-1">ID</th>
-                  <th class="col-md-5 col-xs-5">Data</th>
-                  <th class="col-md-6 col-xs-6" id="header-decoration-column">
-                    <div class="row">
-                    </div>
+                  <th class="col-md-3 col-xs-3">Data</th>
+                  <th class="col-md-8 col-xs-8" id="header-decoration-column">
+                    <!--<div class="row">
+                    </div>-->
                   </th>
                 </tr>
                 </thead>
@@ -131,7 +142,7 @@ SOFTWARE.
             </div>
           </div>
           <div class="col-md-1 col-xs-1" id="button-col">
-            <button id="add-scheme" type="button" class="btn btn-default" data-spy="affix" data-target=".panel">
+            <button id="add-scheme" type="button" class="btn btn-default" data-target=".panel">
               <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
             </button>
           </div>
