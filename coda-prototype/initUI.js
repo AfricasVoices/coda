@@ -20,25 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-(function initMap() {
-
-    let mapToJSON = function() {
-        let keys = this.keys();
-        let obj = Object.create(null); // create object that doesn't inherit from Object - want 0 inherited props as used for Map
-        for (let k of keys) {
-            obj[k] = this.get(k);
-        }
-
-        return obj;
-    };
-
-    Object.defineProperty(Map.prototype, "toJSON" ,{value: mapToJSON});
-
-})();
-
-
-var dataset;
-var newDataset;
+//UI globals
 var editorOpen;
 var UIUtils = UIUtils;
 var codeEditorPanel = $("#code-editor-panel");
@@ -49,85 +31,115 @@ var tempScheme = Object.create(null);
 var activeRow;
 var activeSchemeId;
 
-
 var state = {
     activeMessageRow: {},
     activeEditorRow: {},
 };
 
+storage = StorageManager.instance;
+undoManager = new UndoManager();
+
 // need to set height of editor before hiding the body & we hide the body before loading the data
 $("#editor-row").css("height", codeEditorPanel.outerHeight(true) - codeEditorPanel.find(".panel-heading").outerHeight(true) - $('#panel-row').outerHeight(true) - $('#button-row').outerHeight(true) - 10);
 $("body").hide();
 
-
 /*
-1. check if data is saved in storage
-    - if yes, then populate table accordingly
-    - else: trigger open file dialog?
+
+ POPULATING THE UI
+
+ Check if valid data is saved in storage
+ - if yes, then populate table accordingly
+ - else: load from local example file
 
  */
 
+storage.getDataset().then(dataset => {
+    dataset = typeof dataset == "string" ? JSON.parse(dataset) : dataset;
+    newDataset = new Dataset().setFields(dataset.sessions, dataset.schemes, dataset.events);
+    undoManager.modelUndoStack = [Dataset.clone(newDataset)];
 
-$.getJSON("./data/sessions-numbered-10000.json", function(data) {
+    // update the activity stack
+    storage.saveActivity({
+        "category": "DATASET",
+        "message": "Resuming coding dataset",
+        "messageDetails": "", // todo add identifier
+        "data": "Last edit:",
+        "timestamp": new Date()
+    });
+    initUI(newDataset);
 
-    // todo ensure ALL IDs are unique
+}).catch(error => {
+    if (error) console.log(error);
+    $.getJSON("./data/sessions-numbered-10000.json", function (data) {
 
-    var buildDataset = function(data) {
+        // todo ensure ALL IDs are unique
 
-        var decorations = {};
-        var eventCount = 0;
+        //var buildDataset = function (data) {
+        newDataset = function(data) {
+            var decorations = {};
+            var eventCount = 0;
+            var schemes = {};
 
-        var properDataset = new Dataset();
-        Object.keys(data).forEach(function(sessionKey) {
-            var events = [];
-            Object.keys(data[sessionKey]["events"]).forEach(function(eventKey, index) {
-                //var event = new RawEvent(data[sessionKey]["events"][eventKey]["name"], sessionKey, data[sessionKey]["events"][eventKey]["timestamp"], "", data[sessionKey]["events"][eventKey]["data"]);
-                var event = new RawEvent(eventCount + "", sessionKey, data[sessionKey]["events"][eventKey]["timestamp"], "", data[sessionKey]["events"][eventKey]["data"]);
-                properDataset.events.push(event);
-                eventCount += 1;
+            var properDataset = new Dataset();
+            Object.keys(data).forEach(function (sessionKey) {
+                var events = [];
+                Object.keys(data[sessionKey]["events"]).forEach(function (eventKey, index) {
+                    //var event = new RawEvent(data[sessionKey]["events"][eventKey]["name"], sessionKey, data[sessionKey]["events"][eventKey]["timestamp"], "", data[sessionKey]["events"][eventKey]["data"]);
+                    var event = new RawEvent(eventCount + "", sessionKey, data[sessionKey]["events"][eventKey]["timestamp"], "", data[sessionKey]["events"][eventKey]["data"]);
+                    properDataset.events.push(event);
+                    eventCount += 1;
 
-                Object.keys(data[sessionKey]["events"][eventKey]["decorations"]).forEach(function (d) {
+                    Object.keys(data[sessionKey]["events"][eventKey]["decorations"]).forEach(function (d) {
 
-                    var decorationValue = data[sessionKey]["events"][eventKey]["decorations"][d];
+                        var decorationValue = data[sessionKey]["events"][eventKey]["decorations"][d];
 
-                    if (!decorations.hasOwnProperty(d)) {
-                        // TODO: how to do scheme ids
-                        let newSchemeId = UIUtils.randomId(Object.keys(schemes));
-                        schemes[newSchemeId] = new CodeScheme(newSchemeId, d, true);
-                        decorations[d] = newSchemeId;
-                    }
-
-                    if (decorationValue.length > 0) {
-                        var scheme = schemes[decorations[d]];
-                        if (!schemes[decorations[d]].getCodeValues().has(decorationValue)) {
-                            var newCodeId = decorations[d] + "-" + UIUtils.randomId(Array.from(scheme.codes.keys()));
-                            scheme.codes.set(newCodeId, new Code(scheme, newCodeId, decorationValue, "#ffffff", "", false));
+                        if (!decorations.hasOwnProperty(d)) {
+                            // TODO: how to do scheme ids
+                            let newSchemeId = UIUtils.randomId(Object.keys(schemes));
+                            schemes[newSchemeId] = new CodeScheme(newSchemeId, d, true);
+                            //schemes[newSchemeId] = newDataset.schemes[newSchemeId];
+                            decorations[d] = newSchemeId;
                         }
 
-                        var code = scheme.getCodeByValue(decorationValue);
-                        event.decorate(decorations[d], true, code, 0.95); // has to use decorations[d] as scheme key
-                    }
+                        if (decorationValue.length > 0) {
+                            var scheme = schemes[decorations[d]];
+                            if (!schemes[decorations[d]].getCodeValues().has(decorationValue)) {
+                                var newCodeId = decorations[d] + "-" + UIUtils.randomId(Array.from(scheme.codes.keys()));
+                                scheme.codes.set(newCodeId, new Code(scheme, newCodeId, decorationValue, "#ffffff", "", false));
+                            }
 
-
+                            var code = scheme.getCodeByValue(decorationValue);
+                            event.decorate(decorations[d], true, code, 0.95); // has to use decorations[d] as scheme key
+                        }
+                    });
+                    events.push(event);
                 });
-
-                events.push(event);
+                var session = new Session(sessionKey, events);
+                properDataset.sessions.set(sessionKey, session);
             });
 
-            var session = new Session(sessionKey, events);
-            properDataset.sessions.set(sessionKey,session);
+            properDataset.schemes = schemes;
+            properDataset.eventCount = eventCount;
+            return properDataset;
+
+        }(data);
+
+        //dataset = data;
+        //newDataset = buildDataset;
+        undoManager.modelUndoStack = [Dataset.clone(newDataset)];
+        // update the activity stack
+        storage.saveActivity({
+            "category": "DATASET",
+            "message": "Loaded default dataset",
+            "messageDetails": "sessions-numbered-1000.txt",
+            "data": "",
+            "timestamp": new Date()
         });
+        initUI(newDataset);
+    });
+});
 
-        properDataset.schemes = schemes;
-        properDataset.eventCount = eventCount;
-        return properDataset;
-
-    }(data);
-
-
-    dataset = data;
-    newDataset = buildDataset;
-
+function initUI(dataset) {
     console.time("TOTAL UI INITIALISATION TIME");
     var messagePanel = $("#message-panel");
     var editorRow = $("#editor-row");
@@ -155,18 +167,31 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
     console.timeEnd("editor init");
 
 
+    $("#export-instrumentation").on("click", () => {
+        storage.getActivity().then(activity => {
+            if (!activity || activity.length === 0) {
+                activity = "";
+                console.log("Exporting empty instrumentation file.");
+            }
+            let dataBlob = new Blob([activity], {type: 'application/json'});
+            chrome.downloads.download({url: window.URL.createObjectURL(dataBlob), saveAs: true}, function(dlId) {
+                console.log("Downloaded activity file with id: " + dlId);
+            });
+        });
+    });
+
     $("#export-dataset").click(() => {
 
         let eventJSON = {"data": [], "fields" : ["id", "timestamp", "owner", "data", "schemeId", "schemeName", "deco_codeValue", "deco_codeId", "deco_confidence", "deco_manual", "deco_timestamp", "deco_author"]};
         for (let event of newDataset.events) {
-            for (let schemeKey of Object.keys(schemes)) {
+            for (let schemeKey of Object.keys(newDataset.schemes)) {
                 let newEventData = [];
                 newEventData.push(event.name);
                 newEventData.push(event.timestamp);
                 newEventData.push(event.owner);
                 newEventData.push(event.data);
                 newEventData.push(schemeKey);
-                newEventData.push(schemes[schemeKey].name);
+                newEventData.push(newDataset.schemes[schemeKey].name);
 
                 if (event.decorations.has(schemeKey)) {
                     let deco = event.decorations.get(schemeKey);
@@ -192,7 +217,7 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                 eventJSON["data"].push(newEventData);
             }
 
-            if (Object.keys(schemes).length == 0) {
+            if (Object.keys(newDataset.schemes).length == 0) {
                 let newEventData = [];
                 newEventData.push(event.name);
                 newEventData.push(event.timestamp);
@@ -215,8 +240,15 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
         let dataBlob = new Blob([Papa.unparse(eventJSON, {header:true, delimiter:";"})], {type: 'text/plain'});
 
         chrome.downloads.download({url: window.URL.createObjectURL(dataBlob), saveAs: true}, function(dlId) {
-           console.log("Downloaded file with id: " + dlId);
-       });
+            console.log("Downloaded file with id: " + dlId);
+            storage.saveActivity({
+                "category": "DATASET",
+                "message": "Exported dataset",
+                "messageDetails": "", //todo identifier
+                "data": tempScheme.toJSON(),
+                "timestamp": new Date()
+            });
+        });
     });
 
     $("#dataset-file").on("change", event => {
@@ -227,7 +259,8 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
         let len = files.length;
 
         if (len) {
-            console.log("Filename: " + files[0].name);
+            var fileName = files[0].name;
+            console.log("Filename: " + fileName);
             console.log("Type: " + files[0].type);
             console.log("Size: " + files[0].size + " bytes");
 
@@ -297,18 +330,18 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                         }
 
                         if (!dataset.sessions.has(eventRow["owner"])) {
-                            let newSession = new Session(eventRow["owner"], newEvent);
+                            let newSession = new Session(eventRow["owner"], [newEvent]);
                             dataset.sessions.set(eventRow["owner"], newSession);
                         }
 
                         if (schemeId & schemeName && deco_codevalue && deco_codeId && deco_manual) {
                             if (eventRow["schemeId"].length > 0 && eventRow["schemeName"].length > 0 && eventRow["deco_codeValue"].length > 0) {
                                 let newScheme;
-                                if (!schemes[eventRow["schemeId"]]) {
+                                if (!dataset.schemes[eventRow["schemeId"]]) {
                                     newScheme = new CodeScheme(eventRow["schemeId"], eventRow["schemeName"], false);
-                                    schemes[newScheme.id] = newScheme;
+                                    dataset.schemes[newScheme.id] = newScheme;
                                 } else {
-                                    newScheme = schemes[eventRow["schemeId"]];
+                                    newScheme = dataset.schemes[eventRow["schemeId"]];
                                 }
 
                                 if (!newScheme.codes.has(eventRow["deco_codeId"])) {
@@ -324,7 +357,23 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                                     manual = true
                                 }
 
-                                newEvent.decorate(newScheme.id, manual, newScheme.codes.get(eventRow["deco_codeId"]), deco_confidence ? eventRow["deco_confidence"] : undefined);
+                                let confidence;
+                                if (deco_confidence) {
+                                    if (eventRow["deco_confidence"].length == 0) {
+                                        confidence = 0.95;
+                                    } else {
+                                        let float = parseFloat(eventRow["deco_confidence"]);
+                                        if (!isNaN(float)) {
+                                            confidence = float;
+                                        } else {
+                                            confidence = 0.95;
+                                        }
+                                    }
+                                } else {
+                                    confidence = undefined;
+                                }
+
+                                newEvent.decorate(newScheme.id, manual, newScheme.codes.get(eventRow["deco_codeId"]), confidence);
                             }
 
                         }
@@ -336,16 +385,32 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                 }
 
                 if (dataset && dataset.events.length != 0) {
-                    if (Object.keys(schemes).length == 0) {
+                    if (Object.keys(dataset.schemes).length == 0) {
                         let defaultScheme = new CodeScheme("1", "default", false);
                         defaultScheme.codes.set(defaultScheme.id + "-" + "01", new Code(defaultScheme,defaultScheme.id + "-" + "01","Test", "#ffffff", UIUtils.ascii("t"), false));
-                        schemes[defaultScheme["id"]] = defaultScheme;
+                        dataset.schemes[defaultScheme["id"]] = defaultScheme;
                     }
                     newDataset = dataset;
-                    newDataset.schemes = schemes;
-                    messageViewerManager.buildTable(newDataset, messageViewerManager.rowsInTable);
+                    //newDataset.schemes = schemes;
+                    messageViewerManager.buildTable(newDataset, messageViewerManager.rowsInTable, true);
                     $("body").show();
 
+                    undoManager.modelUndoStack = [Dataset.clone(newDataset)];
+                    undoManager.pointer = 0;
+                    storage.saveDataset(dataset);
+
+                    // update the activity stack
+                    storage.saveActivity({
+                        "category": "DATASET",
+                        "message": "Imported dataset",
+                        "messageDetails": {"dataset": fileName},
+                        "data": "",
+                        "timestamp": new Date()
+                    });
+
+                    // TODO do we reset instrumentation on data reload?
+
+                    // success message
                     let successAlert = $("#alert");
                     successAlert.addClass("alert-success");
                     successAlert.append("<strong>Success!</strong> New dataset was imported.");
@@ -360,6 +425,14 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                     });
 
                 } else {
+                    // update the activity stack
+                    storage.saveActivity({
+                        "category": "DATASET",
+                        "message": "Failed to import dataset",
+                        "messageDetails": {"dataset": fileName},
+                        "data": "",
+                        "timestamp": new Date()});
+
                     let failAlert = $("#alert");
                     failAlert.addClass("alert-danger");
                     failAlert.append("<strong>Oh snap!</strong> Something is wrong with the data format. Change a few things up, refresh and try again.");
@@ -458,9 +531,9 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                     }
                 }
 
-                if (newScheme == null || newScheme.codes.size == 0 || schemes[newScheme["id"]] != undefined) {
+                if (newScheme == null || newScheme.codes.size == 0 || newDataset.schemes[newScheme["id"]] != undefined) {
 
-                    let isDuplicate = schemes[newScheme["id"]] != undefined;
+                    let isDuplicate = newDataset.schemes[newScheme["id"]] != undefined;
                     let errorText = (isDuplicate) ? "Can't import duplicate coding scheme (ID: '" + newScheme["id"] + "'). To update an existing coding scheme access it via code editor." : "Something is wrong with the data format. Change a few things up, refresh and try again.";
 
                     let failAlert = $("#alert");
@@ -477,8 +550,17 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                     });
                 } else {
                     // todo: what is the behaviour when scheme id is a duplicate - overwrite??
-                    schemes[newScheme["id"]] = newScheme;
-                    messageViewerManager.codeSchemeOrder.push(newScheme["id"]);
+                    // update the activity stack
+                    storage.saveActivity({
+                        "category": "SCHEME",
+                        "message": "Imported new scheme",
+                        "messageDetails": {"scheme": newScheme.id},
+                        "data": newScheme.toJSON(),
+                        "timestamp": new Date()
+                    });
+
+                    newDataset.schemes[newScheme["id"]] = newScheme;
+                    messageViewerManager.codeSchemeOrder.push(newScheme["id"] + "");
                     messageViewerManager.addNewSchemeColumn(newScheme);
 
                     let successAlert = $("#alert");
@@ -502,7 +584,8 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
 
     $("#quit").on("click", () => {
 
-        // todo: save to local storage
+        storage.saveDataset(newDataset);
+
         // todo: prompt to export all files with dialog box
 
         chrome.tabs.getCurrent(tab => {
@@ -510,11 +593,6 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
         });
 
     });
-
-    console.time("body.show()");
-    $("body").show();
-    console.timeEnd("body.show()");
-    console.timeEnd("TOTAL UI INITIALISATION TIME");
 
 
     $("#scheme-download").on("click", () => {
@@ -528,14 +606,24 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
         let dataBlob = new Blob([Papa.unparse(schemeJSON, {header:true, delimiter:";"})], {type: 'text/plain'});
         chrome.downloads.download({url: window.URL.createObjectURL(dataBlob), saveAs: true}, function(dlId) {
             console.log("Downloaded file with id: " + dlId);
-        });
 
+            storage.saveActivity({
+                "category": "SCHEME",
+                "message": "Exported scheme",
+                "messageDetails": {"scheme": tempScheme.id},
+                "data": tempScheme.toJSON(),
+                "timestamp": new Date()
+            });
+
+        });
     });
 
     $("#scheme-download").tooltip();
     $("#scheme-upload").tooltip();
 
-
+    /*
+    SCHEME UPLOAD - via editor
+     */
     $("#scheme-upload-file").on("change", () => {
 
         let files = $("#scheme-upload-file")[0].files;
@@ -571,12 +659,18 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
 
                     if (id && name && code_id && code_value) {
 
+                        if (codeRow["scheme_id"] != tempScheme["id"]) {
+                            console.log("ERROR: Trying to upload scheme with a wrong ID");
+                            return; // todo UI error message
+                        }
+
                         if (!newScheme) {
                             newScheme = new CodeScheme(codeRow["scheme_id"], codeRow["scheme_name"], false);
                         }
 
                         let newShortcut = codeRow["code_shortcut"];
                         if (codeRow["code_shortcut"].length == 1 && Number.isNaN(parseInt(codeRow["code_shortcut"]))) {
+                            // initialize shortcuts
                             newShortcut = UIUtils.ascii(codeRow["code_shortcut"]);
                         }
 
@@ -591,12 +685,15 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                                 }
                             }
                         }
-
                         newScheme.codes.set(codeRow["code_id"], newCode);
                     }
                 }
 
+                /*
+                Update the currently loaded scheme
+                 */
                 for (let [codeId, code] of tempScheme.codes.entries()) {
+                    // update existing codes
                     let codeRow = $(".code-row[id='" + codeId + "']");
                     if (newScheme.codes.has(codeId)) {
                         let newCode = newScheme.codes.get(codeId);
@@ -617,19 +714,38 @@ $.getJSON("./data/sessions-numbered-10000.json", function(data) {
                 }
 
                 for (let [codeId, code] of newScheme.codes.entries()) {
+                    // add new codes
                     code.owner = tempScheme;
                     codeEditorManager.addCodeInputRow(code.value, code.shortcut, code.color, codeId);
                     tempScheme.codes.set(codeId, code);
                 }
 
                 $("#scheme-name-input").val(newScheme.name);
-
                 let activeCode = tempScheme.codes.get($(".code-row.active").attr("id"));
                 if (activeCode) codeEditorManager.updateCodePanel(activeCode);
 
+                // update the activity stack
+                storage.saveActivity({
+                    "category": "SCHEME",
+                    "message": "Uploaded new version of scheme",
+                    "messageDetails": {"scheme": tempScheme.id},
+                    "data": tempScheme.toJSON(),
+                    "timestamp": new Date()
+                });
             }
         }
-
     });
 
-});
+    $("#undo").on("click", () => {
+       messageViewerManager.undoHandler();
+    });
+
+    $("#redo").on("click", () => {
+        messageViewerManager.redoHandler();
+    });
+
+    console.time("body.show()");
+    $("body").show();
+    console.timeEnd("body.show()");
+    console.timeEnd("TOTAL UI INITIALISATION TIME");
+}

@@ -90,8 +90,8 @@ var scrollbarManager = {
         } else {
             let color;
             for (event of newDataset.events) {
-                if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code != null) {
-                    colors.push(this.adjustSaturation(event.decorations.get(activeSchemeId)));
+                if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code) {
+                   color = this.adjustSaturation(event.decorations.get(activeSchemeId));
                 } else {
                     color = "#ffffff";
                 }
@@ -221,14 +221,14 @@ var scrollbarManager = {
                 colors = [];
             } else {
                 let color = "#ffffff";
-                if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code != null) {
-                    let codeHasColor = event.decorations.get(activeSchemeId).code.color != null &&  event.decorations.get(activeSchemeId).code.color.length != 0;
+                if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code) {
+                    let code = event.decorations.get(activeSchemeId).code;
+                    let codeHasColor = code.color &&  code.color.length != 0;
                     if (codeHasColor) colors.push(this.adjustSaturation(event.decorations.get(activeSchemeId)));
                     else colors.push("#ffffff");
                 } else {
                     colors.push("#ffffff");
                 }
-                colors.push(color);
             }
         }
 
@@ -240,13 +240,26 @@ var scrollbarManager = {
         let color = decoration.code.color;
         let confidence = decoration.confidence;
 
+        if (confidence < 0.95) {
+            if (confidence <  0.1) {
+                let interpolate = UIUtils.interpolator(0,0.1, 0.2,0.4);
+                confidence = interpolate(confidence);
+
+            } else {
+                let interpolate = UIUtils.interpolator(0.1, 0.95, 0.5, 0.90);
+                confidence = interpolate(confidence);
+            }
+        }
+
         if (color == "" || color == null) return "#ffffff";
 
         let hslColor = UIUtils.rgb2hsl(UIUtils.hex2rgb(color));
         let hsl = hslColor.split("(")[1].split(")")[0].split(",");
 
         let newHsl = "hsl(" + hsl[0] + "," + confidence + "," + hsl[2] + ")";
-        return UIUtils.rgb2hex(UIUtils.hsl2rgb(newHsl));
+        let rgbReturn = UIUtils.rgb2hex(UIUtils.hsl2rgb(newHsl));
+        //console.log(newHsl);
+        return rgbReturn;
 
     },
 
@@ -266,7 +279,7 @@ var scrollbarManager = {
             pagesToLoad = pagesToLoad-2;
         }
 
-        messageViewerManager.lastLoadedPageIndex = [];
+        messageViewerManager.lastLoadedPageIndex = []; // todo what is this?
 
         var page1 = messageViewerManager.createPageHTML(pagesToLoad);
         var page2 = messageViewerManager.createPageHTML(pagesToLoad+1);
@@ -296,4 +309,4 @@ var scrollbarManager = {
         return layer ? layer.y : 0;
     }
 
-}
+};

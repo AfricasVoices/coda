@@ -53,7 +53,7 @@ SOFTWARE.
 
       <!-- Navbar -->
       <nav class="navbar navbar-default navbar-fixed-top">
-        <div class="container">
+        <div class="container-fluid">
           <div class="navbar-header">
             <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
               <span class="sr-only">Toggle navigation</span>
@@ -71,6 +71,7 @@ SOFTWARE.
                   <li><a class="btn-file" href="#">Load new dataset from...<input id="dataset-file" type="file"/></a></li>
                   <li><a class="btn-file">Load new code scheme from...<input id="scheme-file" type="file"/></a></li>
                   <li><a id="export-dataset" href="#">Export dataset</a></li>
+                  <li><a id="export-instrumentation" href="#">Export instrumentation</a></li>
                   <li role="separator" class="divider"></li>
                   <li><a id="quit" href="#">Quit</a></li>
                 </ul>
@@ -88,10 +89,10 @@ SOFTWARE.
                   <!-- Navigate between recent active messages -->
                   <div class="btn-group" role="group" aria-label="message navigation">
                     <button type="button" class="btn btn-default btn-xs navbar-btn">
-                      <i class="glyphicon glyphicon-chevron-left" aria-hidden="true"></i>
+                      <i class="glyphicon glyphicon-chevron-left" id="undo" aria-hidden="true"></i>
                     </button>
                     <button type="button" class="btn btn-default btn-xs navbar-btn">
-                      <i class="glyphicon glyphicon-chevron-right" aria-hidden="true"></i>
+                      <i class="glyphicon glyphicon-chevron-right" id="redo" aria-hidden="true"></i>
                     </button>
                   </div>
                 </div>

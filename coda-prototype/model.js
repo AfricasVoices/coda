@@ -19,11 +19,99 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-let ENDING_PATTERN = "_";
+/*
+globals
+ */
+var storage;
+var undoManager;
+var newDataset;
+var activity = [];
+(function initMap() {
+    let mapToJSON = function () {
+        let keys = this.keys();
+        let obj = Object.create(null); // create object that doesn't inherit from Object - want 0 inherited props as used for Map
+        for (let k of keys) {
+            obj[k] = this.get(k);
+        }
+        return obj;
+    };
+    Object.defineProperty(Map.prototype, "toJSON", { value: mapToJSON });
+})();
 class Dataset {
     constructor() {
         this.sessions = new Map();
+        this.schemes = {};
         this.events = [];
+    }
+    static clone(old) {
+        let newSchemes = {};
+        let sess = {};
+        Object.keys(old.schemes).forEach(scheme => {
+            newSchemes[scheme] = CodeScheme.clone(old.schemes[scheme]);
+        });
+        let newEvents = [];
+        for (let event of old.events) {
+            let newEvent = new RawEvent(event.name, event.owner, event.timestamp, event.number, event.data);
+            for (let [schemeId, deco] of event.decorations.entries()) {
+                let code = deco.code ? newSchemes[schemeId].codes.get(deco.code.id) : null;
+                newEvent.decorate(schemeId, deco.manual, code, deco.confidence, deco.timestamp);
+            }
+            newEvents.push(newEvent);
+            if (!sess.hasOwnProperty(event.owner)) {
+                sess[event.owner] = new Session(event.owner, [newEvent]);
+            }
+            else {
+                sess[event.owner].events.push(newEvent);
+            }
+        }
+        return new Dataset().setFields(sess, newSchemes, newEvents);
+    }
+    setFields(sessions, schemes, events) {
+        Object.keys(sessions).forEach(sessionKey => {
+            let session = sessions[sessionKey];
+            this.sessions.set(sessionKey, new Session(session.id, session.events));
+        });
+        Object.keys(schemes).forEach(schemeKey => {
+            let scheme = schemes[schemeKey];
+            if (scheme instanceof CodeScheme) {
+                this.schemes[schemeKey] = scheme;
+            }
+            else {
+                this.schemes[schemeKey] = new CodeScheme(scheme.id, scheme.name, scheme.isNew, scheme.codes);
+            }
+        });
+        var schm = this.schemes;
+        this.events = events.map(event => {
+            if (event.decorations instanceof Map) {
+                for (let [key, deco] of event.decorations.entries()) {
+                    let code = deco.code;
+                    if (deco.owner == null && event instanceof RawEvent) {
+                        deco.owner = event;
+                    }
+                    if (code) {
+                        deco.code = schm[key].codes.get(code.id);
+                        if (deco.code instanceof Code && deco.manual) {
+                            deco.code.addEvent(event);
+                        }
+                    }
+                }
+            }
+            else {
+                Object.keys(event.decorations).forEach(schemeKey => {
+                    let code = event.decorations[schemeKey].code;
+                    if (code) {
+                        event.decorations[schemeKey].code = schm[schemeKey].codes.get(code.id);
+                        if (event.decorations[schemeKey].code instanceof Code && event.decorations[schemeKey].manual) {
+                            event.decorations[schemeKey].code.addEvent(event);
+                        }
+                    }
+                });
+            }
+            if (event instanceof RawEvent)
+                return event;
+            return new RawEvent(event.name, event.owner, event.timestamp, event.number, event.data, event.decorations);
+        });
+        return this;
     }
     /*
     NB: event names/ids are the initial indices when read from file for the first time!
@@ -174,16 +262,54 @@ class Dataset {
         delete this.schemes[schemeId];
         return this.events;
     }
+    toJSON() {
+        let obj = Object.create(null);
+        obj.events = this.events;
+        obj.sessions = this.sessions;
+        obj.schemes = this.schemes;
+        return obj;
+    }
 }
 class RawEvent {
-    constructor(name, owner, timestamp, number, data) {
+    constructor(name, owner, timestamp, number, data, decorations) {
         this.name = name;
         this.owner = owner;
         this.timestamp = timestamp;
         this.number = number;
         this.data = data;
-        this.decorations = new Map(); // string is code scheme id
-        this.codes = new Map(); // string is code scheme id todo not necessary?
+        if (!decorations) {
+            this.decorations = new Map(); // string is code scheme id
+            this.codes = new Map(); // string is code scheme id todo not necessary?
+        }
+        else {
+            if (typeof decorations == 'object') {
+                let decors = new Map();
+                let codes = new Map();
+                Object.keys(decorations).forEach(deco => {
+                    let d = decorations[deco];
+                    let owner = this;
+                    decors.set(deco, new EventDecoration(this, d.scheme_id, d.manual, d.code, d.confidence, d.timestamp));
+                    codes.set(d.scheme_id, d.code);
+                });
+                this.decorations = decors;
+                this.codes = codes;
+            } /*else if (typeof decorations == 'Map') {
+                this.decorations = decorations;
+                let codes = new Map<string, Code>();
+                Object.keys(decorations).forEach(deco => {
+                    let d = decorations[deco];
+                    codes.set(d.owner.id, d.code);
+                });
+                this.codes = codes;
+            }*/
+        }
+    }
+    static clone(oldEvent) {
+        let newDecorations = new Map();
+        for (let [key, deco] of newDecorations.entries()) {
+            //newDecorations.set(key, EventDecoration.clone(deco, newEvent, ));
+        }
+        let newEvent = new RawEvent(oldEvent.name, oldEvent.owner, oldEvent.timestamp, oldEvent.number, oldEvent.data, newDecorations);
     }
     // todo refactor to not use codes just decorations
     codeForScheme(schemeId) {
@@ -191,10 +317,10 @@ class RawEvent {
         return this.decorations.get(schemeId).code;
     }
     schemeNames() {
-        return Array.from(this.codes.keys());
+        return Array.from(this.codes.keys()); // todo
     }
     assignedCodes() {
-        return Array.from(this.codes.values());
+        return Array.from(this.codes.values()); // todo
     }
     decorate(schemeId, manual, code, confidence, timestamp) {
         // if (this.decorations.has(schemeId)) this.uglify(schemeId);
@@ -203,7 +329,7 @@ class RawEvent {
     }
     uglify(schemeId) {
         let deco = this.decorations.get(schemeId);
-        if (deco.code) {
+        if (deco && deco.code) {
             deco.code.removeEvent(this);
         }
         this.decorations.delete(schemeId);
@@ -216,6 +342,19 @@ class RawEvent {
     decorationNames() {
         return Array.from(this.decorations.keys());
     }
+    toJSON() {
+        let obj = Object.create(null);
+        obj.owner = this.owner;
+        obj.name = this.name;
+        obj.timestamp = this.timestamp;
+        obj.number = this.number;
+        obj.data = this.data;
+        obj.decorations = Object.create(null);
+        this.decorations.forEach((value, key) => {
+            obj.decorations[key] = value;
+        });
+        return obj;
+    }
 }
 class EventDecoration {
     constructor(owner, id, manual, code, confidence, timestamp) {
@@ -224,24 +363,37 @@ class EventDecoration {
         this.manual = manual;
         (confidence == undefined) ? this.confidence = 0 : this.confidence = confidence; // not sure this is a good idea
         if (code) {
-            if (manual)
-                code.addEvent(owner);
-            this._timestamp = (timestamp) ? timestamp : new Date().toString();
-            this._code = code;
+            if (code instanceof Code) {
+                if (manual)
+                    code.addEvent(owner);
+                this._timestamp = (timestamp) ? timestamp : new Date().toString();
+                this._code = code;
+            }
+            else {
+                // occurs when reading from storage... type is lost
+                /*this._code = new Code(code.owner, code.id, code.value, code.color, code.shortcut, false);
+                this._timestamp = timestamp ? timestamp : null;*/
+            }
         }
         else {
             this._code = null; // TODO: this will require null pointer checks
             this._timestamp = null;
         }
     }
+    static clone(oldDeco, newOwner, newCode) {
+        return new EventDecoration(newOwner, oldDeco.scheme_id, oldDeco.manual, newCode, oldDeco.confidence, oldDeco.timestamp);
+    }
     toJSON() {
         let obj = Object.create(null);
         obj.owner = this.owner.name;
         obj.scheme_id = this.scheme_id;
-        obj.code = this.code.value;
+        obj.code = (this.code != null) ? { "id": this.code.id, "value": this.code.value, "owner": this.code.owner.id } : {};
         obj.confidence = this.confidence;
         obj.manual = this.manual;
         return obj;
+    }
+    changeCodeObj(code) {
+        this._code = code;
     }
     set code(code) {
         this._timestamp = new Date().toString();
@@ -275,6 +427,12 @@ class Session {
         }
         return names;
     }
+    toJSON() {
+        let obj = Object.create(null);
+        obj.id = this.id;
+        obj.events = this.events.map(event => event.name); //todo point to event id;
+        obj.decorations = this.decorations;
+    }
     getAllEventNames() {
         let eventNames = new Set();
         for (let e of this.events) {
@@ -289,13 +447,47 @@ class SessionDecoration {
         this.name = name;
         this.value = value;
     }
+    toJSON() {
+        let obj = Object.create(null);
+        obj.owner = this.owner.id;
+        obj.name = this.name;
+        obj.value = this.value;
+        return obj;
+    }
 }
 class CodeScheme {
-    constructor(id, name, isNew) {
+    constructor(id, name, isNew, codes) {
         this.id = id;
         this.name = name;
-        this.codes = new Map();
+        if (!codes) {
+            this.codes = new Map();
+        }
+        else {
+            if (!(codes instanceof Map)) {
+                let c = new Map();
+                Object.keys(codes).forEach(codeId => {
+                    let code = codes[codeId];
+                    if (typeof code.owner == "string" || typeof code.owner == "number") {
+                        code.owner = this;
+                    }
+                    c.set(codeId, new Code(code.owner, code.id, code.value, code.color, code.shortcut, false));
+                    c.get(codeId).addWords(code.words);
+                });
+                this.codes = c;
+            }
+        }
         this.isNew = isNew;
+    }
+    toJSON() {
+        let obj = Object.create(null);
+        obj.id = this.id;
+        obj.name = this.name;
+        obj.isNew = this.isNew;
+        obj.codes = Object.create(null);
+        this.codes.forEach((value, key) => {
+            obj.codes[key] = value;
+        });
+        return obj;
     }
     static clone(original) {
         let newScheme = new this(original["id"], original["name"], false);
@@ -468,7 +660,7 @@ class Code {
     }
     addEvent(event) {
         // compare reference to event
-        if (this._eventsWithCode.indexOf(event) == -1)
+        if (event && this._eventsWithCode.indexOf(event) == -1)
             this._eventsWithCode.push(event);
     }
     removeEvent(event) {
@@ -486,3 +678,220 @@ class Code {
         });
     }
 }
+// Services
+class Watchdog {
+    constructor() {
+        console.log("Watchdog ctor");
+        var f = this.tick;
+        setInterval(function () { f(); }, 500);
+    }
+    tick() {
+        console.log("Watchdog tick");
+    }
+}
+class StorageManager {
+    constructor() {
+        /*
+        var manager = this;
+        chrome.storage.local.get("lastEdit", (editObj) => {
+            console.log(editObj);
+            editObj["lastEdit"] = new Date(JSON.parse(editObj["lastEdit"]));
+            console.log(editObj["lastEdit"]);
+            if ( Object.prototype.toString.call(editObj["lastEdit"]) === "[object Date]" ) {
+                if (!isNaN((editObj["lastEdit"]).getTime())) {
+                    // date is in valid format
+                    if (this.isExpired()) {
+                        manager.lastEdit = new Date();
+                        this.clearStorage().then( () => console.log(manager.lastEdit));
+
+                    } else {
+                        manager.lastEdit = editObj["lastEdit"];
+                        console.log(editObj["lastEdit"]);
+                        console.log(manager.lastEdit);
+                    }
+
+                }
+            }
+        });*/
+    }
+    static get instance() {
+        return this._instance || (this._instance = new StorageManager());
+    }
+    isExpired() {
+        // TODO
+        // on every startup of CODA, check if storage is expired, i.e. more than 30 days have passed since last edit
+        // if yes, clear storage
+        var _MS_PER_DAY = 1000 * 60 * 60 * 24;
+        // a and b are javascript Date objects
+        function dateDiffInDays(a, b) {
+            // Discard the time and time-zone information.
+            let utc1 = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+            let utc2 = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+            return Math.floor((utc2 - utc1) / _MS_PER_DAY);
+        }
+        return (30 <= dateDiffInDays(this.lastEdit, new Date()));
+    }
+    getDataset() {
+        return new Promise(function (resolve, reject) {
+            chrome.storage.local.get("dataset", (data) => {
+                if (chrome.runtime.lastError) {
+                    reject(new Error("Error reading from storage!"));
+                }
+                let dataset = data.hasOwnProperty("dataset") ? data["dataset"] : {};
+                if (typeof dataset == "string") {
+                    dataset = JSON.parse(dataset);
+                }
+                if (data == null || dataset == null || typeof data == 'undefined' ||
+                    typeof dataset == 'undefined' || Object.keys(dataset).length == 0) {
+                    reject();
+                }
+                if (!dataset.hasOwnProperty("schemes") || !dataset.hasOwnProperty("sessions") ||
+                    !dataset.hasOwnProperty("events") || dataset["events"].length == 0) {
+                    reject(new Error("Error reading from storage: dataset format is corrupt."));
+                }
+                resolve(dataset);
+            });
+        });
+    }
+    getActivity() {
+        return new Promise(function (resolve, reject) {
+            chrome.storage.local.get("instrumentation", data => {
+                if (chrome.runtime.lastError) {
+                    reject(new Error("Error reading from storage!"));
+                }
+                console.log(data);
+                resolve(data["instrumentation"]);
+            });
+        });
+    }
+    clearActivityLog() {
+        return new Promise(function (resolve, reject) {
+            chrome.storage.local.remove("instrumentation", () => {
+                if (chrome.runtime.lastError) {
+                    console.log(chrome.runtime.lastError);
+                    reject();
+                }
+                else {
+                    console.log("Cleared activity log!");
+                    resolve(true);
+                }
+            });
+        });
+    }
+    saveDataset(dataset) {
+        this.lastEdit = new Date();
+        chrome.storage.local.set({ "dataset": JSON.stringify(dataset), "lastEdit": JSON.stringify(this.lastEdit) }, () => {
+            console.log("Stored dataset edit timestamp: " + this.lastEdit);
+            chrome.storage.local.get((store) => {
+                let data = JSON.parse(store["dataset"]);
+                let datasetString = "dataset (schemes: "
+                    + Object.keys(data["schemes"]).length +
+                    ", events: " + data["events"].length +
+                    ", sessions: " + data["sessions"].length + ")";
+                console.log("In storage: Last edit (" + new Date(JSON.parse(store["lastEdit"])) + "), " + datasetString);
+                chrome.storage.local.getBytesInUse((bytesUnUse) => {
+                    console.log("Bytes in use: " + bytesUnUse);
+                    console.log("QUOTA_BYTES: " + chrome.storage.local.QUOTA_BYTES);
+                });
+            });
+        });
+    }
+    saveActivity(logEvent) {
+        // save user activity in storage for instrumentation
+        if (logEvent.category.length != 0 && logEvent.message.length != 0 && logEvent.data.length != 0 && logEvent.timestamp instanceof Date) {
+            activity.push(logEvent);
+            console.log("INSTRUMENTATION: " + logEvent.category + ":" + logEvent.message + ", stack size: " + activity.length);
+            if (activity.length % StorageManager._MAX_ACTIVITY_SAVE_FREQ == 0) {
+                chrome.storage.local.get("instrumentation", data => {
+                    if (chrome.runtime.lastError) {
+                        console.log(chrome.runtime.lastError);
+                    }
+                    else {
+                        let instr;
+                        if (data["instrumentation"]) {
+                            instr = JSON.parse(data["instrumentation"]).concat(activity);
+                        }
+                        else {
+                            instr = activity;
+                        }
+                        chrome.storage.local.set({ "instrumentation": JSON.stringify(instr) }, () => {
+                            if (chrome.runtime.lastError) {
+                                console.log(chrome.runtime.lastError);
+                            }
+                            else {
+                                activity = [];
+                                console.log("Saved activity log!");
+                                chrome.storage.local.get((store) => {
+                                    console.log("In storage: instrumentation stack size " + JSON.parse(store["instrumentation"]).length);
+                                    chrome.storage.local.getBytesInUse((bytesUnUse) => {
+                                        console.log("Bytes in use: " + bytesUnUse);
+                                        console.log("QUOTA_BYTES: " + chrome.storage.local.QUOTA_BYTES);
+                                    });
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+        }
+    }
+    clearStorage() {
+        return new Promise(function (resolve, reject) {
+            chrome.storage.local.remove(["dataset", "schemes"], () => {
+                let error = chrome.runtime.lastError;
+                if (error) {
+                    console.error(error);
+                    reject(new Error(error.message));
+                }
+                else {
+                    resolve(true);
+                }
+            });
+        });
+    }
+}
+StorageManager._MAX_ACTIVITY_SAVE_FREQ = 3;
+class UndoManager {
+    constructor() {
+        this.pointer = 0;
+        this.modelUndoStack = [];
+        this.schemaUndoStack = [];
+    }
+    markUndoPoint() {
+        while (this.modelUndoStack.length - 1 > 0 && this.pointer < (this.modelUndoStack.length - 1)) {
+            // We we're at the top of the stack
+            this.modelUndoStack.pop();
+            this.schemaUndoStack.pop();
+        }
+        this.modelUndoStack.push(Dataset.clone(newDataset));
+        this.schemaUndoStack.push(schema);
+        this.pointer++;
+        if (this.modelUndoStack.length > UndoManager.MAX_UNDO_LEVELS) {
+            storage.saveDataset(newDataset);
+            this.modelUndoStack.splice(0, 1);
+            this.schemaUndoStack.splice(0, 1);
+        }
+    }
+    canUndo() { return this.pointer != 0; }
+    canRedo() {
+        return this.pointer
+            != this.modelUndoStack.length - 1 && this.modelUndoStack.length != 0;
+    }
+    undo() {
+        if (!this.canUndo())
+            return false;
+        this.pointer--;
+        newDataset = Dataset.clone(this.modelUndoStack[this.pointer]);
+        schema = this.schemaUndoStack[this.pointer];
+        return true;
+    }
+    redo() {
+        if (!this.canRedo())
+            return false;
+        this.pointer++;
+        newDataset = Dataset.clone(this.modelUndoStack[this.pointer]);
+        schema = this.schemaUndoStack[this.pointer];
+        return true;
+    }
+}
+UndoManager.MAX_UNDO_LEVELS = 8;

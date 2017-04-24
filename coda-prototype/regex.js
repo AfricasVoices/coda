@@ -48,7 +48,7 @@ var regexMatcher = {
 
         schemeId = schemeId + "";
         let events = newDataset.events;
-        let codes = schemes[schemeId].codes;
+        let codes = newDataset.schemes[schemeId].codes;
         var sortUtils = new SortUtils();
         var eventWithCodeRegexes = {};
         for (let code of codes.entries()) {
@@ -60,6 +60,10 @@ var regexMatcher = {
             var event = events[i];
             var confidences = new Map();
             var decoration = event.decorationForName(schemeId);
+
+            if (decoration && decoration.code && !codes.has(decoration.code.id)) {
+                event.uglify(schemeId);
+            }
 
             for (let code of codes.entries()) {
 
@@ -143,12 +147,11 @@ var regexMatcher = {
                 if (maxConfEntry[1].conf > 0) {
                     event.decorate(schemeId, false, codes.get(maxConfEntry[0]), maxConfEntry[1].conf);
                 }
-
             }
-
-
-
         }
+
+        undoManager.markUndoPoint();
+        storage.saveDataset(newDataset);
     },
 
     generateOrRegex: function (wordArray) {
