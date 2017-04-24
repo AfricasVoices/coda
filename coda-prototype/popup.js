@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
         chrome.storage.local.get("lastEdit", (editObj) => {
-            if (!editObj || !editObj["lastEdit"] || editObj["lastEdit"]) {
+            if (!editObj || !editObj["lastEdit"]) {
                 launch();
                 return;
             }
