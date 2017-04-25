@@ -61,7 +61,7 @@ class Dataset {
                 sess[event.owner] = new Session(event.owner, [newEvent]);
             }
             else {
-                sess[event.owner].events.push(newEvent);
+                sess[event.owner].events.set(newEvent.name, newEvent);
             }
         }
         return new Dataset().setFields(sess, newSchemes, newEvents);
@@ -107,9 +107,23 @@ class Dataset {
                     }
                 });
             }
-            if (event instanceof RawEvent)
+            if (event instanceof RawEvent) {
+                let owner = event.owner;
+                let session = this.sessions.get(owner);
+                if (session.events.has(event.name)) {
+                    session.events.set(event.name, event);
+                }
                 return event;
-            return new RawEvent(event.name, event.owner, event.timestamp, event.number, event.data, event.decorations);
+            }
+            else {
+                let newEvent = new RawEvent(event.name, event.owner, event.timestamp, event.number, event.data, event.decorations);
+                let owner = event.owner;
+                let session = this.sessions.get(owner);
+                if (session.events.has(event.name)) {
+                    session.events.set(event.name, event);
+                }
+                return newEvent;
+            }
         });
         return this;
     }
@@ -409,7 +423,15 @@ class EventDecoration {
 class Session {
     constructor(id, events) {
         this.id = id;
-        this.events = events;
+        this.events = new Map();
+        events.forEach(eventObj => {
+            if (typeof eventObj === "string") {
+                this.events.set(eventObj, null);
+            }
+            else if (eventObj instanceof RawEvent) {
+                this.events.set(eventObj.name, eventObj);
+            }
+        });
         this.decorations = new Map();
     }
     decorate(decorationName, decorationValue) {
@@ -420,7 +442,7 @@ class Session {
     }
     getAllDecorationNames() {
         let names = new Set();
-        for (let e of this.events) {
+        for (let e of this.events.values()) {
             for (let key in e.decorations) {
                 names.add(key);
             }
@@ -430,12 +452,13 @@ class Session {
     toJSON() {
         let obj = Object.create(null);
         obj.id = this.id;
-        obj.events = this.events.map(event => event.name); //todo point to event id;
+        obj.events = Array.from(this.events.values()).map(event => event.name);
         obj.decorations = this.decorations;
+        return obj;
     }
     getAllEventNames() {
         let eventNames = new Set();
-        for (let e of this.events) {
+        for (let e of this.events.values()) {
             eventNames.add(e.name);
         }
         return eventNames;

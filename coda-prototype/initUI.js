@@ -74,7 +74,6 @@ storage.getDataset().then(dataset => {
 
         // todo ensure ALL IDs are unique
 
-        //var buildDataset = function (data) {
         newDataset = function(data) {
             var decorations = {};
             var eventCount = 0;
@@ -332,6 +331,11 @@ function initUI(dataset) {
                         if (!dataset.sessions.has(eventRow["owner"])) {
                             let newSession = new Session(eventRow["owner"], [newEvent]);
                             dataset.sessions.set(eventRow["owner"], newSession);
+                        } else {
+                            let session = dataset.sessions.get(eventRow["owner"]);
+                            if (session.events.has(newEvent["name"])) {
+                                session.events.set(newEvent["name"], newEvent);
+                            }
                         }
 
                         if (schemeId & schemeName && deco_codevalue && deco_codeId && deco_manual) {
@@ -349,9 +353,9 @@ function initUI(dataset) {
                                 }
 
                                 let manual;
-                                if (eventRow["deco_manual"].toLocaleLowerCase() == "true") {
+                                if (eventRow["deco_manual"].toLocaleLowerCase() === "true") {
                                     manual = true;
-                                } else if (eventRow["deco_manual"].toLocaleLowerCase() == "false") {
+                                } else if (eventRow["deco_manual"].toLocaleLowerCase() === "false") {
                                     manual = false;
                                 } else {
                                     manual = true
@@ -359,7 +363,7 @@ function initUI(dataset) {
 
                                 let confidence;
                                 if (deco_confidence) {
-                                    if (eventRow["deco_confidence"].length == 0) {
+                                    if (eventRow["deco_confidence"].length === 0) {
                                         confidence = 0.95;
                                     } else {
                                         let float = parseFloat(eventRow["deco_confidence"]);
@@ -384,8 +388,8 @@ function initUI(dataset) {
 
                 }
 
-                if (dataset && dataset.events.length != 0) {
-                    if (Object.keys(dataset.schemes).length == 0) {
+                if (dataset && dataset.events.length !== 0) {
+                    if (Object.keys(dataset.schemes).length === 0) {
                         let defaultScheme = new CodeScheme("1", "default", false);
                         defaultScheme.codes.set(defaultScheme.id + "-" + "01", new Code(defaultScheme,defaultScheme.id + "-" + "01","Test", "#ffffff", UIUtils.ascii("t"), false));
                         dataset.schemes[defaultScheme["id"]] = defaultScheme;

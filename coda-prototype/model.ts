@@ -69,7 +69,7 @@ class Dataset {
             if (!sess.hasOwnProperty(event.owner)) {
                 sess[event.owner] = new Session(event.owner, [newEvent]);
             } else {
-                sess[event.owner].events.push(newEvent);
+                sess[event.owner].events.set(newEvent.name, newEvent);
             }
         }
         return new Dataset().setFields(sess, newSchemes, newEvents);
@@ -116,8 +116,23 @@ class Dataset {
                 });
             }
 
-            if (event instanceof RawEvent) return event;
-            return new RawEvent(event.name, event.owner, event.timestamp, event.number, event.data, event.decorations);
+            if (event instanceof RawEvent) {
+                let owner = event.owner;
+                let session = this.sessions.get(owner);
+                if (session.events.has(event.name)) {
+                    session.events.set(event.name, event);
+                }
+                return event;
+
+            } else {
+                let newEvent = new RawEvent(event.name, event.owner, event.timestamp, event.number, event.data, event.decorations);
+                let owner = event.owner;
+                let session = this.sessions.get(owner);
+                if (session.events.has(event.name)) {
+                    session.events.set(event.name, event);
+                }
+                return newEvent;
+            }
         });
 
         return this;
@@ -486,12 +501,19 @@ class EventDecoration {
 
 class Session {
   id : string;
-  events : Array<RawEvent>;
+  events : Map<string, RawEvent>;
   decorations : Map<string, SessionDecoration>;
 
-  constructor(id : string, events : Array<RawEvent>) {
+  constructor(id : string, events : Array<RawEvent|string>) {
       this.id = id;
-      this.events = events;
+      this.events = new Map();
+      events.forEach(eventObj => {
+          if (typeof eventObj === "string") {
+              this.events.set(eventObj, null);
+          } else if (eventObj instanceof RawEvent) {
+              this.events.set(eventObj.name, eventObj);
+          }
+      });
       this.decorations = new Map<string, SessionDecoration>();
   }
 
@@ -507,7 +529,7 @@ class Session {
 
     let names : Set<string> = new Set<string>();
 
-    for (let e of this.events) {
+    for (let e of this.events.values()) {
       for (let key in e.decorations) {
           names.add(key);
       }
@@ -518,13 +540,14 @@ class Session {
   toJSON() {
       let obj = Object.create(null);
       obj.id = this.id;
-      obj.events = this.events.map(event => event.name); //todo point to event id;
+      obj.events = Array.from(this.events.values()).map(event => event.name);
       obj.decorations = this.decorations;
+      return obj;
   }
 
   getAllEventNames() : Set<string>{
     let eventNames : Set<string> = new Set<string>();
-    for (let e of this.events) {
+    for (let e of this.events.values()) {
       eventNames.add(e.name);
     }
     return eventNames;
