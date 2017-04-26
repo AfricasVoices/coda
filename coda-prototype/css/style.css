@@ -28,6 +28,11 @@ SOFTWARE.
   width: 100%;
 }
 
+#message-table {
+  table-layout: fixed;
+  word-wrap: break-word;
+}
+
 thead {
   border-top: none;
   border-bottom: none;
