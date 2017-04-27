@@ -771,6 +771,24 @@ function initUI(dataset) {
         messageViewerManager.redoHandler();
     });
 
+    $("#save-all-button").on("click", () => {
+        storage.saveDataset(newDataset);
+
+        let successAlert = $("#alert");
+        successAlert.addClass("alert-success");
+        successAlert.append("<strong>Saved!</strong> Successfully stored the current dataset.");
+        successAlert.show();
+        $(".tableFloatingHeaderOriginal").hide();
+        successAlert.fadeTo(2000, 500).slideUp(350, () => {
+            successAlert.slideUp(350, () => {
+                successAlert.removeClass("alert-danger");
+                successAlert.empty();
+                $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
+            });
+        });
+
+    });
+
     console.time("body.show()");
     $("body").show();
     console.timeEnd("body.show()");
