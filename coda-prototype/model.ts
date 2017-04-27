@@ -21,6 +21,16 @@ SOFTWARE.
 */
 
 /*
+MODEL.TS/JS
+Defines datastructures used for:
+- the coding,
+- the instrumentation,
+- undo-redo system and
+- autosave.
+ */
+
+
+/*
 globals
  */
 

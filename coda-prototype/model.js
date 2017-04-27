@@ -20,6 +20,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 /*
+MODEL.TS/JS
+Defines datastructures used for:
+- the coding,
+- the instrumentation,
+- undo-redo system and
+- autosave.
+ */
+/*
 globals
  */
 var storage;

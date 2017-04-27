@@ -20,6 +20,22 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+/*
+
+TABLEUI.JS
+Responsible for drawing the main table interface and handling all events related to it:
+- sorting
+- launching editor
+- switching active schemes
+- infinite scrolling
+- coding by dropdowns
+- coding by shortcuts
+- checkbox  behaviour
+- adding/deleting schemes (i.e. UI changes, the scheme object is manipulated via editorUI)
+- collecting words to add to codes
+
+ */
+
 var messageViewerManager = {
     messageContainer: {},
     table: {},

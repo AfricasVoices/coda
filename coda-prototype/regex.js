@@ -20,6 +20,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+/*
+REGEX.JS
+
+Handles automated coding by creating and matching regexes.
+
+ */
+
 RegExp.escape = function(text) {
     text = text + "";
     return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");

@@ -20,6 +20,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+
+/*
+INITUI.JS
+Loads the initial data - either from storage or the default dataset.
+Handles data I/O
+Handles interaction via navbar menus and buttons - undo/redo, export, load...
+ */
+
+
 //UI globals
 var editorOpen;
 var UIUtils = UIUtils;

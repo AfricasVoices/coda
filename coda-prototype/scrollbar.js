@@ -20,9 +20,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-// scrollbar as high as the table is
+/*
+
+SCROLLBAR.JS
+Handles the initialisation, drawing of, and the interaction with the coloured scrollbar.
+
+ */
 
 var scrollbarManager = {
+    // scrollbar as high as the table is
 
     scrollbarEl : {},
     subsamplingNum: 0,

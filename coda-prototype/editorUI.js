@@ -20,6 +20,24 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+/*
+
+EDITORUI.JS
+Responsible for drawing and initialising the code editor
+Handles events related to, and happening within, the editor:
+
+- adding a new scheme (with the UI changes handled by tableUI as it's a part of table UI)
+- scheme name
+- adding and deleting codes
+- assigning shortcuts
+- assigning colors
+- assigning words
+- initiates uploading new coding schemes
+- initiates exporting the current coding scheme
+- deleting the coding scheme (with the UI changes handled by tableUI as it's a part of table UI)
+
+ */
+
 var codeEditorManager =  {
 
     editorContainer: {},
@@ -393,16 +411,6 @@ var codeEditorManager =  {
            $(td).css({"background-color": color});
         });
 
-        /*
-        if (code.length != 0 && color.length != 0) {
-            //$("#color-pick").colorpicker('setValue', color);
-            codeEditorManager.updateCodePanel(color, words);
-        } else {
-            //$("#color-pick").colorpicker('setValue', "#ffffff");
-            codeEditorManager.updateCodePanel("#ffffff", words);
-        }
-        */
-
         row.on("click", function() {
             state.activeEditorRow.removeClass("active");
             state.activeEditorRow = $(this);
@@ -411,10 +419,7 @@ var codeEditorManager =  {
             var code = tempScheme.codes.get($(this).attr("id"));
 
             if (code) {
-                /*
-                let textAreaParent = $("#word-textarea").parent();
-                textAreaParent.empty().append("<div id='word-textarea'></div>");
-                */
+
                 codeEditorManager.updateCodePanel(code);
             }
         });
@@ -455,7 +460,7 @@ var codeEditorManager =  {
         $(selectObj).on('itemAdded', function(event) {
             // event.item: contains the item
             // event.cancel: set to true to prevent the item getting added
-            let color = (codeObj["color"] == "#ffffff" ? "#9e9e9e" : codeObj["color"]);
+            let color = (codeObj["color"] === "#ffffff" ? "#9e9e9e" : codeObj["color"]);
             wordTextarea.find(".tag").css({'background-color': color});
             codeObj.addWords(event.item);
             regexField.val(regexMatcher.generateOrRegex(codeObj["words"]));
