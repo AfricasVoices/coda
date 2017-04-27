@@ -53,7 +53,8 @@ var messageViewerManager = {
             if (Object.keys(newDataset.schemes).length > 4) {
                 $("#message-viewer").css("width", (1230 + (Object.keys(newDataset.schemes).length - 4) * 360) + "");
             }
-            scrollbarManager.init(newDataset.sessions, document.getElementById("scrollbar"), 100);
+
+            //scrollbarManager.init(newDataset.sessions, document.getElementById("scrollbar"), 100);
 
             console.time("dropdown init");
 
@@ -62,6 +63,8 @@ var messageViewerManager = {
 
                 if (event.originalEvent.target.nodeName === "SELECT") {
                     messageViewerManager.dropdownChange(event.originalEvent, true);
+                } else if (event.originalEvent.target.nodeName === "INPUT" && event.originalEvent.target.className === "checkbox-manual") {
+                    messageViewerManager.checkboxHandler(event);
                 }
             });
 
@@ -89,7 +92,7 @@ var messageViewerManager = {
 
             $("#message-panel").on("scroll", function(){
                 let yDifference = (messageViewerManager.lastTableY - messageViewerManager.messageContainer.scrollTop())/messageViewerManager.table.height();
-                scrollbarManager.redrawThumb(scrollbarManager.getThumbPosition() - scrollbarManager.scrollbarEl.height * yDifference * (messageViewerManager.rowsInTable/newDataset.events.length));
+                scrollbarManager.redrawThumb(scrollbarManager.getThumbPosition() - scrollbarManager.scrollbarEl.height * yDifference * (messageViewerManager.rowsInTable/newDataset.eventOrder.length));
 
 
                 messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
@@ -101,8 +104,8 @@ var messageViewerManager = {
                     let scheme = $(event.originalEvent.target).attr("codeid").split("-")[0];
                     $(".scheme-col[scheme='" + scheme + "']").find(".edit-scheme-button").trigger("click");
                 }
-
             });
+
             $(".sort-btn").off("click");
             $(".sort-btn").on("click", messageViewerManager.sortHandler);
 
@@ -168,9 +171,10 @@ var messageViewerManager = {
             // redraw body
             let tbody = "";
             let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-            let iterationStop = messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.events.length ? newDataset.events.length : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
+            let iterationStop = messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventOrder.length ? newDataset.eventOrder.length : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
             for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < iterationStop; i++) {
-                tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
+                let eventKey = newDataset.eventOrder[i];
+                tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
             }
 
             $(messageViewerManager.table.find("tbody").empty()).append(tbody);
@@ -198,7 +202,8 @@ var messageViewerManager = {
         let tbody = "";
         let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
         for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex * halfPage + halfPage; i++) {
-            tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
+            let eventKey = newDataset.eventOrder[i];
+            tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
         }
 
         $(messageViewerManager.table.find("tbody").empty()).append(tbody);
@@ -223,7 +228,7 @@ var messageViewerManager = {
         }
 
         var schemes = newDataset.schemes;
-        var eventCount = newDataset.events.length; //newDataset.eventCount;
+        var eventCount = newDataset.eventOrder.length; //newDataset.eventCount;
         var decoNumber = Object.keys(newDataset.schemes).length;
         var decoColumnWidth = (12/decoNumber>>0);
         var bindEditSchemeButtonListener = this.bindEditSchemeButtonListener;
@@ -233,20 +238,20 @@ var messageViewerManager = {
         Build header
          */
         var decoColumn = $("#header-decoration-column");
-        decoColumn.find(".row").empty();
+        decoColumn.find(".row").remove();
 
         var activeSortIcon = "icon-def'";
         if (!hasDataChanged && data.schemes[this.activeScheme]) {
             if (this.currentSort == this.sortUtils.sortEventsByConfidenceOnly) {
-                activeSortIcon = "icon-def'";
+                activeSortIcon = "icon-conf'";
                 newDataset.sortEventsByConfidenceOnly(activeSchemeId);
             }
             if (this.currentSort == this.sortUtils.sortEventsByScheme) {
-                activeSortIcon = "icon-conf'";
+                activeSortIcon = "icon-cat'";
                 newDataset.sortEventsByScheme(activeSchemeId,true);
             }
             if (this.currentSort == this.sortUtils.restoreDefaultSort) {
-                activeSortIcon = "icon-cat'";
+                activeSortIcon = "icon-def'";
                 newDataset.restoreDefaultSort();
             }
         }
@@ -277,38 +282,13 @@ var messageViewerManager = {
             bindEditSchemeButtonListener(button, newDataset["schemes"][schemeKey]);
         });
 
+        $("#message-viewer").width(1230);
+
         if ($(".scheme-col:first").outerWidth() <= 180 && Object.keys(newDataset.schemes).length > 4) {
             let outerContainer = $("#message-viewer");
             let current = outerContainer.outerWidth();
             outerContainer.outerWidth(current + ((Object.keys(newDataset.schemes).length - 4) * 400));
         }
-
-        /*
-        Object.keys(schemes).forEach(function(schemeKey, i) {
-            if (hasDataChanged) messageViewerManager.codeSchemeOrder.push(schemeKey + "");
-
-            let sortIcon = "<button class='sort-btn btn btn-default btn-xs'><div class='sort-icon " + (schemeKey === messageViewerManager.activeScheme ? activeSortIcon : "icon-def active'") + "></div></button>";
-            let editButton = "<button type='button' class='btn btn-default btn-xs edit-scheme-button'><i class='glyphicon glyphicon-edit'></i></button>";
-            let columnDiv = "<div class='col-md-" + decoColumnWidth + " col-xs-" + decoColumnWidth + " scheme-col' scheme='" + schemeKey + "'><div>" + sortIcon + editButton + "</div><div class='scheme-name-cont'><i class='scheme-name'>" + schemes[schemeKey]["name"] + "</i></div>" +  "</div>";
-
-
-            var appendedElements = $(columnDiv).appendTo(decoColumn.find(".row"));
-
-            if (i==0) {
-                activeSchemeId = schemeKey;
-                messageViewerManager.activeScheme = activeSchemeId;
-                $(appendedElements).find("i.scheme-name").css("text-decoration", "underline");
-            }
-            $(appendedElements).find("i.scheme-name").on("click", event => {
-                activeSchemeId = $(event.target).parents("div.scheme-col").attr("scheme");
-                $("#header-decoration-column").find("i.scheme-name").css("text-decoration", "");
-                $(event.target).css("text-decoration", "underline");
-                messageViewerManager.activeScheme = activeSchemeId;
-                messageViewerManager.changeActiveScheme();
-            });
-            bindEditSchemeButtonListener(appendedElements.find(".edit-scheme-button"), schemes[schemeKey]);
-        });
-*/
 
         /*
         Build rows
@@ -330,9 +310,10 @@ var messageViewerManager = {
         if (hasDataChanged) {
             messageViewerManager.lastLoadedPageIndex=1;
         }
-        let iterationStop = messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.events.length ? newDataset.events.length : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
+        let iterationStop = messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventOrder.length ? newDataset.eventOrder.length : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
         for (let i = (messageViewerManager.lastLoadedPageIndex-1) * halfPage; i < iterationStop; i++) {
-            tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
+            let eventIndex = newDataset.eventOrder[i];
+            tbody += messageViewerManager.buildRow(newDataset.events.get(eventIndex), i, newDataset.events.get(eventIndex).owner);
         }
 
         let tableBodyElement =  messageViewerManager.table.find("tbody");
@@ -351,6 +332,7 @@ var messageViewerManager = {
         if (!hasDataChanged) {
             scrollbarManager.redraw(newDataset, activeSchemeId ? activeSchemeId : Object.keys(newDataset.schemes)[0]);
         } else {
+            // todo take care to clear previous one
             scrollbarManager.init(newDataset.sessions, document.getElementById("scrollbar"), 100);
         }
 
@@ -378,7 +360,7 @@ var messageViewerManager = {
 
             if (!editorOpen && document.activeElement.nodeName === "BODY") {
 
-                if (event.keyCode == 38) { // UP
+                if (event.keyCode === 38) { // UP
                     var prev = activeRow.prev();
 
                     if (prev.length !== 0) {
@@ -392,7 +374,7 @@ var messageViewerManager = {
                     }
                 }
 
-                if (event.keyCode == 40) { // DOWN
+                if (event.keyCode === 40) { // DOWN
                     var next = activeRow.next();
 
                     if (next.length !== 0) {
@@ -406,7 +388,7 @@ var messageViewerManager = {
                     }
                 }
 
-                if (event.keyCode == 13) { // ENTER
+                if (event.keyCode === 13) { // ENTER
 
                     if ($(document.activeElement).is("input")) {
                         return;
@@ -436,25 +418,6 @@ var messageViewerManager = {
 
     },
 
-    recodeEvents : function() {
-        regexMatcher.codeDataset(activeSchemeId);
-        let halfPage = Math.floor(messageViewerManager.rowsInTable/2);
-        let visibleRange = [(messageViewerManager.lastLoadedPageIndex-1) * halfPage, messageViewerManager.lastLoadedPageIndex * halfPage + halfPage];
-
-        for (let i = visibleRange[0]; i < visibleRange[1]; i++) {
-            let eventObj = newDataset.events[i];
-            let code = eventObj.codeForScheme(activeSchemeId);
-            if (code) {
-                console.log("code");
-                $(".message[eventid='" + i + "']").find("p").html(regexMatcher.wrapText(newDataset.events[i].data, regexMatcher.generateOrRegex(code.words), "highlight", code.id));
-                let selector = 'select.' + activeSchemeId;
-                let selectObj = $(".message[eventid='" + eventObj.name + "']").find(selector).val(code["value"]).removeClass("uncoded").addClass("coded");
-
-                this.dropdownChangeHandler(selectObj, false);
-            }
-        }
-    },
-
     changeActiveScheme: function(event) {
 
         // todo handle UI changes here!!!
@@ -474,7 +437,7 @@ var messageViewerManager = {
         headerDecorationColumn.find(".row").prepend(schemeHeaderContainer);
 
 
-
+        // 2. update scrollbar
         var schemeObj = newDataset.schemes[activeSchemeId];
         let thumbPos = scrollbarManager.getThumbPosition();
         scrollbarManager.redraw(newDataset, activeSchemeId);
@@ -507,6 +470,8 @@ var messageViewerManager = {
                                 if ($(td).hasClass("message-text")) {
                                     if (color && color.length !== 0 && color !== "#ffffff") {
                                         $(td).css("box-shadow", "inset 0px 0px 0px 4px " + color);
+                                    } else {
+                                        $(td).css("box-shadow", "");
                                     }
                                 } else {
                                     $(td).css("background-color", color);
@@ -538,7 +503,7 @@ var messageViewerManager = {
     },
 
     undoHandler: function() {
-        let undone = undoManager.undo();
+        let undone = undoManager.undo(messageViewerManager);
         if (undone) {
             console.log("Undone! " + "Stack pt: " + undoManager.pointer + " Stack size: " + undoManager.modelUndoStack.length);
 
@@ -564,7 +529,7 @@ var messageViewerManager = {
     },
 
     redoHandler: function() {
-        let redone = undoManager.redo();
+        let redone = undoManager.redo(messageViewerManager);
         if (redone) {
             console.log("Redone! " + "Stack pt: " + undoManager.pointer + " Stack size: " + undoManager.modelUndoStack.length);
 
@@ -602,7 +567,7 @@ var messageViewerManager = {
         let sessionId = $(row).attr("sessionid");
         let eventId = $(row).attr("eventid");
 
-        var eventObj = newDataset.events[eventId];
+        var eventObj = newDataset.events.get(eventId);
         var codeObj = newDataset.schemes[schemeId].getCodeByValue(value);
 
         if (value.length > 0) {
@@ -672,9 +637,11 @@ var messageViewerManager = {
                 console.log($(element).text());
                 return $(element).text()});
             //schemes[schemeId].deleteWords(words); // todo keep track which message is the origin of the added words... ?
-
-            // uncheck checkbox
         }
+
+        /*
+        Re-sort the dataset and re-draw the table when sorting by confidence/category so items jump to their place!
+         */
 
         if (messageViewerManager.currentSort == messageViewerManager.sortUtils.sortEventsByConfidenceOnly) {
             newDataset.sortEventsByConfidenceOnly(schemeId);
@@ -686,7 +653,7 @@ var messageViewerManager = {
             newDataset.restoreDefaultSort();
         }
 
-        undoManager.markUndoPoint();
+        undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
 
         /*
         redraw body
@@ -694,10 +661,11 @@ var messageViewerManager = {
         let tbody = "";
         let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
 
-        let iterationStop = messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.events.length ? newDataset.events.length : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
+        let iterationStop = messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventOrder.length ? newDataset.eventOrder.length : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
 
         for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < iterationStop; i++) {
-            tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
+            let eventKey = newDataset.eventOrder[i];
+            tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
         }
 
         $(messageViewerManager.table.find("tbody").empty()).append(tbody);
@@ -744,6 +712,161 @@ var messageViewerManager = {
         messageViewerManager.dropdownChangeHandler(selectElement, manual);
     },
 
+    updateRowHtml(messageRow, activeScheme) {
+
+        messageRow = $(messageRow);
+        let eventObj = newDataset.events.get(messageRow.attr("eventid"));
+        if (eventObj) {
+            let deco = eventObj.decorations.get(activeScheme);
+            if (deco && deco.code) { // it's coded
+                let color = deco.code.color;
+                if (!color || color.length === 0) {
+                    color = "#ffffff";
+                }
+                let idCol = messageRow.find(".message-id");
+                let messageCol = messageRow.find(".message-text");
+                let decoCol = messageRow.find(".decorations");
+
+                idCol.css({"background-color": color});
+                if (color !== "#fffffff") {
+                    messageCol.css({"box-shadow": "inset 0px 0px 0px 4px " + color});
+                } else {
+                    messageCol.css({"box-shadow": ""});
+                }
+                decoCol.css({"background-color": color});
+
+                // update dropdown to the right value
+                let select = messageRow.find("select." + activeScheme);
+                select.find("option").attr("selected",false);
+                select.find("#" + deco.code.id).attr("selected", true);
+
+            } else { // not coded anymore
+                let color = "#ffffff";
+                let idCol = messageRow.find(".message-id");
+                let messageCol = messageRow.find(".message-text");
+                let decoCol = messageRow.find(".decorations");
+
+                idCol.css({"background-color": color});
+                messageCol.css({"box-shadow": ""});
+                decoCol.css({"background-color": color});
+
+                // deselect the dropdown
+                let select = messageRow.find("select." + activeScheme);
+                select.find("option").attr("selected",false);
+                select.find("option.unassign").attr("selected",true);
+                select.removeClass("coded");
+                select.addClass("uncoded");
+            }
+        }
+    },
+
+    checkboxHandler(DOMevent) {
+
+        let checkbox = $(DOMevent.target);
+        let messageRow = checkbox.parents(".message");
+        let eventKey = messageRow.attr("eventid");
+        let eventObj = newDataset.events.get(eventKey);
+        let codeObj = eventObj.decorations.get(activeSchemeId);
+
+        // Just unchecked
+        if (!checkbox.prop("checked")) {
+            eventObj.uglify(activeSchemeId);
+            regexMatcher.codeEvent(eventObj, activeSchemeId);
+            checkbox.prop("checked",false);
+
+            // only redraw the current row
+            // leave row in place, as it was assigned a new code which the user doesn't know beforehand
+            // they can then either confirm the automatic assignment via checkbox again
+            // or re-sort to see the message move to its proper place in sorting (make an extra round through the sortings)
+            messageViewerManager.updateRowHtml(messageRow, activeSchemeId);
+
+            // update the activity stack
+            storage.saveActivity({
+                "category": "CODING",
+                "message": "Used checkbox to unassign manual coding",
+                "messageDetails": {"event": eventObj, "code": codeObj},
+                "data": eventObj,
+                "timestamp": new Date()
+            });
+
+        } else {
+            // DON'T ALLOW "confirming" an empty coding!
+            let deco = eventObj.decorations.get(activeSchemeId);
+            if (deco && deco.code) {
+                deco.manual = true;
+                deco.confidence = 0.95;
+
+                checkbox.prop("checked", true);
+
+                // update the activity stack
+                storage.saveActivity({
+                    "category": "CODING",
+                    "message": "Used checkbox to confirm automatic coding",
+                    "messageDetails": {"event": eventObj, "scheme": activeSchemeId},
+                    "data": eventObj,
+                    "timestamp": new Date()
+                });
+            }
+
+
+            /*
+             Re-sort the dataset and re-draw the table when sorting by confidence/category so items jump to their place!
+             */
+            if (messageViewerManager.currentSort !== messageViewerManager.sortUtils.restoreDefaultSort) {
+
+                if (messageViewerManager.currentSort === messageViewerManager.sortUtils.sortEventsByConfidenceOnly) {
+                    newDataset.sortEventsByConfidenceOnly(activeSchemeId);
+                }
+                if (messageViewerManager.currentSort === messageViewerManager.sortUtils.sortEventsByScheme) {
+                    newDataset.sortEventsByScheme(activeSchemeId, true);
+                }
+
+                undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
+
+                /*
+                 redraw body
+                 */
+                let tbody = "";
+                let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
+
+                let iterationStop = messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventOrder.length ? newDataset.eventOrder.length : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
+
+                for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < iterationStop; i++) {
+                    let eventKey = newDataset.eventOrder[i];
+                    tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
+                }
+
+                $(messageViewerManager.table.find("tbody").empty()).append(tbody);
+                // todo adjust scroll offset appropriately!
+
+                /*
+                 refresh scrollbar
+                 */
+                var thumbPos = scrollbarManager.getThumbPosition();
+                scrollbarManager.redraw(newDataset, activeSchemeId);
+                scrollbarManager.redrawThumb(thumbPos);
+
+                /*
+                 get new active row
+                 */
+                let activeRowId = activeRow.attr("id"); // active row element is stale since tbody has been redrawn, so need to get the new copy
+                activeRow = $("#" + activeRowId);
+                var next = UIUtils.nextUnfilledRow(activeRow, true, activeSchemeId);
+                if (next.length !== 0) {
+                    activeRow.removeClass('active');
+                    activeRow = next.addClass('active');
+
+                    if (!UIUtils.isRowVisible(next[0], messageViewerManager.messageContainer[0])) {
+                        UIUtils.scrollRowToTop(next[0], messageViewerManager.messageContainer[0]);
+                    }
+
+                } else {
+                    // todo handle behaviour when there are no unfilled rows... just proceed to next row
+                }
+            }
+        }
+    },
+
     addNewSchemeColumn: function(scheme) {
 
         // TODO: warning message in case of empty codes
@@ -751,7 +874,6 @@ var messageViewerManager = {
 
         var decorationCell = $("#header-decoration-column");
         var decoNumber = Object.keys(newDataset.schemes).length;
-        var newDecoColumnWidth = (12/decoNumber>>0);
 
         // TODO: sort the data to default order first??? or keep it?
 
@@ -761,9 +883,9 @@ var messageViewerManager = {
         Rebuild the table body
          */
         let tbody = "";
-        let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
         for (let i = 0; i < messageViewerManager.rowsInTable; i++) {
-            tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
+            let eventKey = newDataset.eventOrder[i];
+            tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
         }
 
         this.lastLoadedPageIndex = 1; // todo store which page was loaded
@@ -869,7 +991,8 @@ var messageViewerManager = {
 
         let tbody = "";
         for (let i = 0; i < messageViewerManager.rowsInTable; i++) {
-            tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
+            let eventKey = newDataset.eventOrder[i];
+            tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
         }
 
         this.lastLoadedPageIndex = 1; // todo store which page was loaded
@@ -938,7 +1061,7 @@ var messageViewerManager = {
                 var eventId = $(activeRow).attr("eventid");
                 $(activeRow).children("td").each(function(i, td) {
                     eventId = $(td).parent(".message").attr("eventid"); // todo this is unnecessary
-                    newDataset.events[eventId].decorate(codeObj.owner["id"], true, codeObj, 0.95);
+                    newDataset.events.get(eventId).decorate(codeObj.owner["id"], true, codeObj, 0.95);
                     var color = codeObj["color"];
 
                     if ($(td).hasClass("message-text")) {
@@ -958,9 +1081,10 @@ var messageViewerManager = {
                 $(activeRow).find(selector).val(codeObj["value"]).removeClass("uncoded").addClass("coded");
 
                 // check checkbox
-                activeRow.find(".checkbox-manual").attr("checked", "");
+                let decoColumn = activeRow.find(".deco-container[scheme='" + activeSchemeId + "']");
+                decoColumn.find(".checkbox-manual").prop("checked", true);
 
-                undoManager.markUndoPoint();
+                undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
 
                 // get new active row
                 var next = UIUtils.nextUnfilledRow(activeRow, true, activeSchemeId);
@@ -982,7 +1106,7 @@ var messageViewerManager = {
                     "category": "CODING",
                     "message": "Used shortcut from scheme",
                     "messageDetails": {"shortcut": event.keyCode, "scheme": activeSchemeId},
-                    "data": newDataset.events[eventId],
+                    "data": newDataset.events.get(eventId),
                     "timestamp": new Date()
                 });
             }
@@ -994,10 +1118,11 @@ var messageViewerManager = {
         var tbody = "";
 
         const halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-        let stoppingCondition = (index * halfPage + halfPage > newDataset.events.length) ? newDataset.events.length : index * halfPage + halfPage;
+        let stoppingCondition = (index * halfPage + halfPage > newDataset.eventOrder.length) ? newDataset.eventOrder.length : index * halfPage + halfPage;
 
         for (let i = index * halfPage; i < stoppingCondition; i++) {
-            tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
+            let eventKey = newDataset.eventOrder[i];
+            tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
         }
 
        return tbody;
@@ -1017,15 +1142,16 @@ var messageViewerManager = {
 
             let nextPage = messageViewerManager.lastLoadedPageIndex + 1;
 
-            if (nextPage <= Math.floor(newDataset.events.length / Math.floor(messageViewerManager.rowsInTable/2)) - 1) {
+            if (nextPage <= Math.floor(newDataset.eventOrder.length / Math.floor(messageViewerManager.rowsInTable/2)) - 1) {
 
                 messageViewerManager.lastLoadedPageIndex = nextPage;
 
                 let tbody = "";
                 let halfPage = Math.floor(messageViewerManager.rowsInTable/2);
-                let stoppingCondition = nextPage * halfPage + halfPage > newDataset.events.length ? newDataset.events.length : nextPage * halfPage + halfPage;
+                let stoppingCondition = nextPage * halfPage + halfPage > newDataset.eventOrder.length ? newDataset.eventOrder.length : nextPage * halfPage + halfPage;
                 for (let i = nextPage * halfPage; i < stoppingCondition; i++) {
-                    tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
+                    let eventKey = newDataset.eventOrder[i];
+                    tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
                 }
 
                 let tbodyElement = messageViewerManager.table.find("tbody");
@@ -1064,7 +1190,8 @@ var messageViewerManager = {
                 let halfPage = Math.floor(messageViewerManager.rowsInTable/2);
                 let stoppingCondition = prevPage * halfPage + halfPage;
                 for (let i = prevPage * halfPage; i < stoppingCondition; i++) {
-                    tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
+                    let eventKey = newDataset.eventOrder[i];
+                    tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
                 }
 
                 let tbodyElement = messageViewerManager.table.find("tbody");
@@ -1106,10 +1233,6 @@ var messageViewerManager = {
         // need to check if eventObj has a 'stale' decoration
         // need to perform null checks for code! if event isn't coded yet it has a null code.
         if ( activeDecoration !== undefined && activeDecoration.code !== null) {
-            //let scheme = newDataset.schemes[activeDecoration.code.owner];
-            if (typeof activeDecoration.code.owner === "string") {
-
-            }
 
             var parentSchemeCodes = activeDecoration.code.owner instanceof CodeScheme ? activeDecoration.code.owner.codes : newDataset.schemes[activeDecoration.code.owner].codes;
             if (!parentSchemeCodes.has(activeDecoration.code.id)) {
@@ -1125,7 +1248,7 @@ var messageViewerManager = {
 
         let shadowStyle = (rowColor === "#ffffff") ? "" : " style='box-shadow: inset 0px 0px 0px 4px " + rowColor + "'";
 
-        sessionRow += "<tr class='message' id=" + eventObj["name"] + " eventId = '" + eventIndex + "' sessionId = '" + sessionIndex + "'>";
+        sessionRow += "<tr class='message' id=" + eventObj["name"] + " eventid = '" + eventObj["name"] + "' eventindex = '" + eventIndex + "' sessionId = '" + sessionIndex + "'>";
         sessionRow += "<td class='col-md-1 message-id' style='background-color: " + rowColor + "'>" + eventObj["name"] + "</td>";
         sessionRow += "<td class='col-md-3 message-text'" + shadowStyle + "><p>" + eventText + "</p></td>";
         sessionRow += "<td class='col-md-8 decorations' style='background-color: " + rowColor+ "'>";
@@ -1154,16 +1277,16 @@ var messageViewerManager = {
                 // check if current row has an assigned code and if yes, add the words to the data structure
                 // todo FIX THIS - check in data structure
 
-                const code = newDataset.events[eventId].codeForScheme(messageViewerManager.activeScheme);
+                const code = newDataset.events.get(eventId).codeForScheme(messageViewerManager.activeScheme);
                 const isCoded = code!=undefined;
 
                 if (isCoded) {
 
                     let regex = regexMatcher.generateOrRegex(UIUtils.concatArraysUniqueWithSort(code.words, [selection]));
                     code.addWords([selection]);
-                    $(".message[eventid='" + eventId + "']").find("p").html(regexMatcher.wrapText(newDataset.events[eventId].data, regex, "highlight", code.id));
+                    $(".message[eventid='" + eventId + "']").find("p").html(regexMatcher.wrapText(newDataset.events.get(eventId).data, regex, "highlight", code.id));
 
-                    if (selection.length > 0) regexMatcher.wrapElement(newDataset.events[eventId].data, new RegExp(selection, "ig"), code.id);
+                    if (selection.length > 0) regexMatcher.wrapElement(newDataset.events.get(eventId).data, new RegExp(selection, "ig"), code.id);
                     //schemes[messageViewerManager.activeScheme].getCodeByValue(selectElement.val()).words = words;
 
                     // update the activity stack
@@ -1177,7 +1300,7 @@ var messageViewerManager = {
 
                 } else {
                     let regex = regexMatcher.generateOrRegex([selection]);
-                    $(".message[eventid='" + eventId + "']").find("p").html(regexMatcher.wrapText(newDataset.events[eventId].data, regex, "highlight"));
+                    $(".message[eventid='" + eventId + "']").find("p").html(regexMatcher.wrapText(newDataset.events.get(eventId).data, regex, "highlight"));
 
                     if (messageViewerManager.wordBuffer[sessionId][eventId][selection]!= 1) {
                         messageViewerManager.wordBuffer[sessionId][eventId][selection] = 1;

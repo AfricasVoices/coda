@@ -29,9 +29,9 @@ var regexMatcher = {
 
     generateFullTextRegex: function(events) {
 
-        if (events == undefined || !events || events.length === 0) return null;
+        if (events == undefined || !events || events.size === 0) return null;
 
-        let eventTexts = events.map((event => { return event["data"]}));
+        let eventTexts = Array.from(events).map((event => { return event["data"]}));
         eventTexts.sort();
         eventTexts = eventTexts.filter((eventText, index) => {
             return eventTexts.indexOf(eventText) === index;
@@ -44,13 +44,20 @@ var regexMatcher = {
 
     },
 
-    codeEvent: function(eventObj, schemeId) {
+    codeEvent: function(eventObj, schemeId, eventWithCodeRegexes) {
 
         var codes = newDataset.schemes[schemeId].codes;
-        var eventWithCodeRegexes = {};
-        for (let code of codes.entries()) {
-            eventWithCodeRegexes[code[0]] = regexMatcher.generateFullTextRegex(code[1].eventsWithCode);
+
+        if (!eventWithCodeRegexes) {
+            eventWithCodeRegexes = {};
+            for (let code of codes.entries()) {
+                // we only take manually coded events into account when full-text matching
+                // hence we only construct the regex at the beginning of recoding since we won't be overriding manual codings
+                // whereas automated ones might be changed as we go along
+                eventWithCodeRegexes[code[0]] = regexMatcher.generateFullTextRegex(code[1].eventsWithCode.values());
+            }
         }
+
         var confidences = new Map();
         var decoration = eventObj.decorationForName(schemeId);
 
@@ -153,29 +160,30 @@ var regexMatcher = {
     },
 
     codeDataset: function (schemeId) {
-
+        console.time("Coding dataset");
         schemeId = schemeId + "";
         let events = newDataset.events;
         let codes = newDataset.schemes[schemeId].codes;
         var sortUtils = new SortUtils();
         var eventWithCodeRegexes = {};
         for (let code of codes.entries()) {
-            eventWithCodeRegexes[code[0]] = regexMatcher.generateFullTextRegex(code[1].eventsWithCode);
+            eventWithCodeRegexes[code[0]] = regexMatcher.generateFullTextRegex(code[1].eventsWithCode.values());
         }
 
-        for (let i=0; i < events.length; i++) {
-            this.codeEvent(events[i], schemeId);
+        for (let event of events.values()) {
+            this.codeEvent(event, schemeId, eventWithCodeRegexes);
         }
+        console.timeEnd("Coding dataset");
 
-        undoManager.markUndoPoint();
         storage.saveDataset(newDataset);
     },
 
     generateOrRegex: function (wordArray) {
 
+        console.time("Generate or regex");
         if (wordArray.length == 0 || wordArray == null) return null;
         let filtered = wordArray.filter(word => {return word.length > 0});
-
+        console.time("generate or regex");
         return new RegExp('[\\s]*[\#]?\\b(' + filtered.join('|') + ')[\.\,\-\?\)\]*[\\s]*', 'ig');
 
     },

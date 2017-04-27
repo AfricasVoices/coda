@@ -167,6 +167,8 @@ var codeEditorManager =  {
                 var header = headerDecoColumn.find("[scheme='" + tempScheme["id"] + "']");
                 header.children("i").text(tempScheme["name"]);
 
+                undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
+
                 editorContainer.hide();
                 editorContainer.find("tbody").empty();
                 codeEditorManager.bindAddCodeButtonListener();
@@ -250,7 +252,8 @@ var codeEditorManager =  {
 
             let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
             for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex * halfPage + halfPage; i++) {
-                tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
+                let eventKey = newDataset.eventOrder[i];
+                tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
             }
 
             // redraw scrollbar
@@ -269,6 +272,7 @@ var codeEditorManager =  {
 
             header.find("i.scheme-name").trigger("click"); // will make it active column
 
+            undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
 
             editorContainer.hide();
             editorContainer.find("tbody").empty();
@@ -435,7 +439,7 @@ var codeEditorManager =  {
         colorPicker.find("input").attr("value", color);
         colorPicker.colorpicker('setValue', color);
 
-        if (color == "#ffffff") color = "#9e9e9e"; // set the tags to a darker grey color
+        if (color === "#ffffff") color = "#9e9e9e"; // set the tags to a darker grey color
         let selectObj= wordTextarea.find("select");
         selectObj.tagsinput('removeAll');
 
@@ -634,7 +638,7 @@ var codeEditorManager =  {
             schemeId = newScheme.id;
 
             // save for UNDO and in storage
-            undoManager.markUndoPoint();
+            undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
             storage.saveDataset(newDataset);
 
             // update the activity stack
@@ -650,7 +654,7 @@ var codeEditorManager =  {
 
         } else {
             // save for UNDO and in storage
-            undoManager.markUndoPoint();
+            undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
             storage.saveDataset(newDataset);
 
             // update the activity stack

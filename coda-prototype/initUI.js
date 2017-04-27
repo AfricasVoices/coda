@@ -54,9 +54,10 @@ $("body").hide();
  */
 
 storage.getDataset().then(dataset => {
-    dataset = typeof dataset == "string" ? JSON.parse(dataset) : dataset;
-    newDataset = new Dataset().setFields(dataset.sessions, dataset.schemes, dataset.events);
-    undoManager.modelUndoStack = [Dataset.clone(newDataset)];
+    console.time("Data init");
+    dataset = typeof dataset === "string" ? JSON.parse(dataset) : dataset;
+    newDataset = new Dataset().setFields(dataset["sessions"], dataset["schemes"], dataset["events"]);
+    console.timeEnd("Data init");
 
     // update the activity stack
     storage.saveActivity({
@@ -67,9 +68,11 @@ storage.getDataset().then(dataset => {
         "timestamp": new Date()
     });
     initUI(newDataset);
+    undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
 
 }).catch(error => {
     if (error) console.log(error);
+    console.time("Default data init");
     $.getJSON("./data/sessions-numbered-10000.json", function (data) {
 
         // todo ensure ALL IDs are unique
@@ -82,21 +85,20 @@ storage.getDataset().then(dataset => {
             var properDataset = new Dataset();
             Object.keys(data).forEach(function (sessionKey) {
                 var events = [];
-                Object.keys(data[sessionKey]["events"]).forEach(function (eventKey, index) {
-                    //var event = new RawEvent(data[sessionKey]["events"][eventKey]["name"], sessionKey, data[sessionKey]["events"][eventKey]["timestamp"], "", data[sessionKey]["events"][eventKey]["data"]);
-                    var event = new RawEvent(eventCount + "", sessionKey, data[sessionKey]["events"][eventKey]["timestamp"], "", data[sessionKey]["events"][eventKey]["data"]);
-                    properDataset.events.push(event);
+                data[sessionKey]["events"].forEach(function (event) {
+                    var newEventObj = new RawEvent(eventCount + "", sessionKey, event["timestamp"], "", event["data"]);
+                    properDataset.eventOrder.push(newEventObj.name);
+                    properDataset.events.set(newEventObj.name, newEventObj);
                     eventCount += 1;
 
-                    Object.keys(data[sessionKey]["events"][eventKey]["decorations"]).forEach(function (d) {
+                    Object.keys(event["decorations"]).forEach(function (d) {
 
-                        var decorationValue = data[sessionKey]["events"][eventKey]["decorations"][d];
+                        var decorationValue = event["decorations"][d];
 
                         if (!decorations.hasOwnProperty(d)) {
                             // TODO: how to do scheme ids
                             let newSchemeId = UIUtils.randomId(Object.keys(schemes));
                             schemes[newSchemeId] = new CodeScheme(newSchemeId, d, true);
-                            //schemes[newSchemeId] = newDataset.schemes[newSchemeId];
                             decorations[d] = newSchemeId;
                         }
 
@@ -108,10 +110,10 @@ storage.getDataset().then(dataset => {
                             }
 
                             var code = scheme.getCodeByValue(decorationValue);
-                            event.decorate(decorations[d], true, code, 0.95); // has to use decorations[d] as scheme key
+                            newEventObj.decorate(decorations[d], true, code, 0.95); // has to use decorations[d] as scheme key
                         }
                     });
-                    events.push(event);
+                    events.push(newEventObj);
                 });
                 var session = new Session(sessionKey, events);
                 properDataset.sessions.set(sessionKey, session);
@@ -119,13 +121,15 @@ storage.getDataset().then(dataset => {
 
             properDataset.schemes = schemes;
             properDataset.eventCount = eventCount;
+            console.log(properDataset);
             return properDataset;
 
         }(data);
 
+        console.timeEnd("Default data init");
+
         //dataset = data;
         //newDataset = buildDataset;
-        undoManager.modelUndoStack = [Dataset.clone(newDataset)];
         // update the activity stack
         storage.saveActivity({
             "category": "DATASET",
@@ -135,6 +139,11 @@ storage.getDataset().then(dataset => {
             "timestamp": new Date()
         });
         initUI(newDataset);
+        undoManager.modelUndoStack = [];
+        undoManager.schemaUndoStack = [];
+        undoManager.pointer = 0;
+        undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
+
     });
 });
 
@@ -182,7 +191,7 @@ function initUI(dataset) {
     $("#export-dataset").click(() => {
 
         let eventJSON = {"data": [], "fields" : ["id", "timestamp", "owner", "data", "schemeId", "schemeName", "deco_codeValue", "deco_codeId", "deco_confidence", "deco_manual", "deco_timestamp", "deco_author"]};
-        for (let event of newDataset.events) {
+        for (let event of newDataset.events.values()) {
             for (let schemeKey of Object.keys(newDataset.schemes)) {
                 let newEventData = [];
                 newEventData.push(event.name);
@@ -216,7 +225,7 @@ function initUI(dataset) {
                 eventJSON["data"].push(newEventData);
             }
 
-            if (Object.keys(newDataset.schemes).length == 0) {
+            if (Object.keys(newDataset.schemes).length === 0) {
                 let newEventData = [];
                 newEventData.push(event.name);
                 newEventData.push(event.timestamp);
@@ -382,13 +391,16 @@ function initUI(dataset) {
 
                         }
 
-                        if (isEventNew) dataset.events.push(newEvent);
+                        if (isEventNew) {
+                            dataset.eventOrder.push(newEvent.name);
+                            dataset.events.set(newEvent.name, newEvent);
+                        }
 
                     }
 
                 }
 
-                if (dataset && dataset.events.length !== 0) {
+                if (dataset && dataset.events.size !== 0) {
                     if (Object.keys(dataset.schemes).length === 0) {
                         let defaultScheme = new CodeScheme("1", "default", false);
                         defaultScheme.codes.set(defaultScheme.id + "-" + "01", new Code(defaultScheme,defaultScheme.id + "-" + "01","Test", "#ffffff", UIUtils.ascii("t"), false));
@@ -399,8 +411,10 @@ function initUI(dataset) {
                     messageViewerManager.buildTable(newDataset, messageViewerManager.rowsInTable, true);
                     $("body").show();
 
-                    undoManager.modelUndoStack = [Dataset.clone(newDataset)];
                     undoManager.pointer = 0;
+                    undoManager.schemaUndoStack  = [];
+                    undoManager.modelUndoStack = [];
+                    undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
                     storage.saveDataset(dataset);
 
                     // update the activity stack
@@ -514,7 +528,7 @@ function initUI(dataset) {
                         }
 
                         let newShortcut = codeRow["code_shortcut"];
-                        if (codeRow["code_shortcut"].length == 1 && Number.isNaN(parseInt(codeRow["code_shortcut"]))) {
+                        if (codeRow["code_shortcut"].length === 1 && Number.isNaN(parseInt(codeRow["code_shortcut"]))) {
                             newShortcut = UIUtils.ascii(codeRow["code_shortcut"]);
                         }
 
@@ -522,7 +536,7 @@ function initUI(dataset) {
 
                         if (code_words) {
 
-                            if (codeRow["code_words"].length != 0) {
+                            if (codeRow["code_words"].length !== 0) {
                                 let words = codeRow["code_words"].split(",");
                                 if (words.length > 0) {
                                     newCode.addWords(words);
@@ -535,7 +549,7 @@ function initUI(dataset) {
                     }
                 }
 
-                if (newScheme == null || newScheme.codes.size == 0 || newDataset.schemes[newScheme["id"]] != undefined) {
+                if (newScheme == null || newScheme.codes.size === 0 || newDataset.schemes[newScheme["id"]] != undefined) {
 
                     let isDuplicate = newDataset.schemes[newScheme["id"]] != undefined;
                     let errorText = (isDuplicate) ? "Can't import duplicate coding scheme (ID: '" + newScheme["id"] + "'). To update an existing coding scheme access it via code editor." : "Something is wrong with the data format. Change a few things up, refresh and try again.";
@@ -673,7 +687,7 @@ function initUI(dataset) {
                         }
 
                         let newShortcut = codeRow["code_shortcut"];
-                        if (codeRow["code_shortcut"].length == 1 && Number.isNaN(parseInt(codeRow["code_shortcut"]))) {
+                        if (codeRow["code_shortcut"].length === 1 && Number.isNaN(parseInt(codeRow["code_shortcut"]))) {
                             // initialize shortcuts
                             newShortcut = UIUtils.ascii(codeRow["code_shortcut"]);
                         }
@@ -682,7 +696,7 @@ function initUI(dataset) {
 
                         if (code_words) {
 
-                            if (codeRow["code_words"].length != 0) {
+                            if (codeRow["code_words"].length !== 0) {
                                 let words = codeRow["code_words"].split(",");
                                 if (words.length > 0) {
                                     newCode.addWords(words);
@@ -741,7 +755,7 @@ function initUI(dataset) {
     });
 
     $("#undo").on("click", () => {
-       messageViewerManager.undoHandler();
+        messageViewerManager.undoHandler();
     });
 
     $("#redo").on("click", () => {
