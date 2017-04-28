@@ -1047,7 +1047,7 @@ class StorageManager {
 
     saveActivity(logEvent: {"category": string, "message": string, "messageDetails": Object, "data": any, "timestamp": Date}) : void {
         // save user activity in storage for instrumentation
-        if (logEvent.category.length != 0 && logEvent.message.length != 0 && logEvent.data.length != 0 && logEvent.timestamp instanceof Date) {
+        if (logEvent.category.length != 0 && (logEvent.message.length > 0 || logEvent.data.length > 0) && logEvent.timestamp instanceof Date) {
             activity.push(logEvent);
             console.log("INSTRUMENTATION: " + logEvent.category + ":"  + logEvent.message + ", stack size: " + activity.length);
 
@@ -1110,10 +1110,8 @@ class UndoManager {
 
     markUndoPoint(codeSchemeOrder: Array<string>) {
         if (codeSchemeOrder.length === 0) {
-            console.log("0");
+            console.log("Code scheme order is empty!!");
         }
-        console.log("Before: dataset stack length:" + this.modelUndoStack.length);
-        console.log("Before: pointer:" + this.pointer);
 
         while (this.modelUndoStack.length - 1 > 0 && this.pointer < (this.modelUndoStack.length - 1)) {
             // We we're at the top of the stack
@@ -1121,15 +1119,9 @@ class UndoManager {
             this.schemaUndoStack.pop();
         }
 
-        console.log("After while: dataset stack length:" + this.modelUndoStack.length);
-        console.log("After while: pointer:" + this.pointer);
-
         this.modelUndoStack.push([Dataset.clone(newDataset), codeSchemeOrder.slice(0)]);
         this.schemaUndoStack.push(schema);
         this.pointer++;
-
-        console.log("After push: dataset stack length:" + this.modelUndoStack.length);
-        console.log("After push: pointer:" + this.pointer);
 
         if (this.modelUndoStack.length > UndoManager.MAX_UNDO_LEVELS) {
             // AUTOSAVE...
@@ -1138,14 +1130,14 @@ class UndoManager {
             this.schemaUndoStack.splice(0, 1);
             this.pointer--; // because the undo stack is shorter by one!
 
-            console.log("After splice: dataset stack length:" + this.modelUndoStack.length);
-            console.log("After splice: pointer:" + this.pointer);
+        } else if (this.modelUndoStack.length % 2 === 0) {
+            // save every second change to storage todo: do we need this kind of throttling
+            storage.saveDataset(newDataset);
         }
     }
 
     canUndo() : boolean { return this.pointer != 0; }
     canRedo() : boolean { return this.pointer != this.modelUndoStack.length-1 && this.modelUndoStack.length != 0; }
-
 
     undo(messageViewerManager: {"codeSchemeOrder"}) : boolean {
         if (!this.canUndo()) return false;

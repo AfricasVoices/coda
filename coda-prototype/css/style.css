@@ -179,9 +179,8 @@ div[class*=col-], #message-panel {
   padding: 10px 10px 0px 10px;
 }
 
-tr.active.message > td {
-  /* background-color: #b6b5b5 !important; */
-
+.table>tbody>tr.active>td.message-text {
+  background-color: transparent !important;
 }
 
 tr.active {

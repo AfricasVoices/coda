@@ -173,6 +173,15 @@ var scrollbarManager = {
                 scrollbarManager.scrolling(layer);
                 $(this).drawLayers();
 
+                // save activity
+                storage.saveActivity({
+                    "category": "SCROLLBAR",
+                    "message": "Dragged scrollthumb",
+                    "messageDetails": {"dy": layer.dy},
+                    "data": "",
+                    "timestamp": new Date()
+                });
+
             },
 
             dragcancel: function(layer) {
@@ -198,6 +207,14 @@ var scrollbarManager = {
                 scrollbarManager.scrolling(layer);
                 $(this).drawLayers();
 
+                // save activity
+                storage.saveActivity({
+                    "category": "SCROLLBAR",
+                    "message": "Dragged scrollthumb",
+                    "messageDetails": {"dy": layer.dy},
+                    "data": "",
+                    "timestamp": new Date()
+                });
 
             },
             cursors: {
@@ -290,8 +307,6 @@ var scrollbarManager = {
         if ((pagesToLoad * halfPage + halfPage) >= newDataset.eventOrder.length) {
             pagesToLoad = pagesToLoad-2;
         }
-
-        messageViewerManager.lastLoadedPageIndex = []; // todo what is this?
 
         var page1 = messageViewerManager.createPageHTML(pagesToLoad);
         var page2 = messageViewerManager.createPageHTML(pagesToLoad+1);

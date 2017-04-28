@@ -73,7 +73,7 @@ storage.getDataset().then(dataset => {
         "category": "DATASET",
         "message": "Resuming coding dataset",
         "messageDetails": "", // todo add identifier
-        "data": "Last edit:",
+        "data": {"events": newDataset["events"].size, "schemes": Object.keys(newDataset["schemes"]).length, "sessions": newDataset["sessions"].size},
         "timestamp": new Date()
     });
     initUI(newDataset);
@@ -143,8 +143,8 @@ storage.getDataset().then(dataset => {
         storage.saveActivity({
             "category": "DATASET",
             "message": "Loaded default dataset",
-            "messageDetails": "sessions-numbered-1000.txt",
-            "data": "",
+            "messageDetails": "",
+            "data": "sessions-numbered-1000.txt",
             "timestamp": new Date()
         });
         initUI(newDataset);
@@ -792,8 +792,8 @@ function initUI(dataset) {
         storage.saveActivity({
             "category": "DATASET",
             "message": "Saved dataset via button",
-            "messageDetails": "",
-            "data": "",
+            "messageDetails": "", // todo add identifier
+            "data": {"events": dataset["events"].size, "schemes": Object.keys(dataset["schemes"]).length, "sessions": dataset["sessions"].size} ,
             "timestamp": new Date()
         });
     });

@@ -436,12 +436,6 @@ var messageViewerManager = {
 
     changeActiveScheme: function(event) {
 
-        // todo handle UI changes here!!!
-        // todo change to event handler
-        //$("#header-decoration-column").find("i").not(".glyphicon").css("text-decoration", "");
-        //$(this).css("text-decoration", "underline");
-        //activeSchemeId = $(this).parents("div.scheme-col").attr("scheme");
-
         let schemeHeaderContainer = $(event.target).parents("div.scheme-col"); // coding scheme header - container for buttons and name of particular scheme
         let headerDecorationColumn = $("#header-decoration-column"); // container for all the coding scheme headers
         activeSchemeId = schemeHeaderContainer.attr("scheme");
@@ -537,7 +531,7 @@ var messageViewerManager = {
             storage.saveActivity({
                 "category": "DATASET",
                 "message": "Undone action",
-                "messageDetails": "",
+                "messageDetails": "button",
                 "data": "",
                 "timestamp": new Date()
             });
@@ -563,7 +557,7 @@ var messageViewerManager = {
             storage.saveActivity({
                 "category": "DATASET",
                 "message": "Redone action",
-                "messageDetails":"",
+                "messageDetails":"button",
                 "data": "",
                 "timestamp": new Date()
             });
@@ -582,6 +576,7 @@ var messageViewerManager = {
         let row = selectElement.parents(".message");
         let sessionId = $(row).attr("sessionid");
         let eventId = $(row).attr("eventid");
+        var checkbox = row.find(".deco-container[scheme='" + schemeId + "']").find(".checkbox-manual");
 
         var eventObj = newDataset.events.get(eventId);
         var codeObj = newDataset.schemes[schemeId].getCodeByValue(value);
@@ -621,6 +616,8 @@ var messageViewerManager = {
                 });
             }
 
+            // check checkbox
+            checkbox.prop("checked", true);
 
             // if words in buffer, add to scheme dataset
             if (messageViewerManager.wordBuffer.hasOwnProperty(sessionId)
@@ -642,11 +639,19 @@ var messageViewerManager = {
             selectElement.removeClass("coded");
             selectElement.addClass("uncoded");
 
+            // recolor
             if (activeSchemeId === schemeId) {
                 row.children("td").each(function (i, td) {
-                    $(td).css("background-color", "#ffffff");
+                    if ($(td).hasClass("message-text")) {
+                        $(td).css("box-shadow", "");
+                    } else {
+                        $(td).css("background-color", "#ffffff");
+                    }
                 });
             }
+
+            // uncheck checkbox
+            checkbox.prop("checked", false);
 
             // remove words from dataset, get words from message text
             let words = $(row).find("td.message-text span.highlight").map(function(index, element) {
@@ -657,66 +662,75 @@ var messageViewerManager = {
 
         /*
         Re-sort the dataset and re-draw the table when sorting by confidence/category so items jump to their place!
+        Not re-sorting in case of "default" sort because that's not affected by coding
+
+        IMPORTANT - not re-sorting if event was 'uncoded' since then an automated coding will be assigned and item will jump
+        and effectively 'hide' to a place that the user can't predict
          */
 
-        if (messageViewerManager.currentSort == messageViewerManager.sortUtils.sortEventsByConfidenceOnly) {
-            newDataset.sortEventsByConfidenceOnly(schemeId);
-        }
-        if (messageViewerManager.currentSort == messageViewerManager.sortUtils.sortEventsByScheme) {
-            newDataset.sortEventsByScheme(schemeId, true);
-        }
-        if (messageViewerManager.currentSort == messageViewerManager.sortUtils.restoreDefaultSort) {
-            newDataset.restoreDefaultSort();
+        if (messageViewerManager.currentSort !== messageViewerManager.sortUtils.restoreDefaultSort && value.length > 0) {
+
+            if (messageViewerManager.currentSort === messageViewerManager.sortUtils.sortEventsByConfidenceOnly) {
+                newDataset.sortEventsByConfidenceOnly(schemeId);
+            }
+            if (messageViewerManager.currentSort === messageViewerManager.sortUtils.sortEventsByScheme) {
+                newDataset.sortEventsByScheme(schemeId, true);
+            }
+
+            /*
+             redraw body
+             */
+            let tbody = "";
+            let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
+
+            let iterationStop = messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventOrder.length ? newDataset.eventOrder.length : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
+
+            for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < iterationStop; i++) {
+                let eventKey = newDataset.eventOrder[i];
+                tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
+            }
+
+            $(messageViewerManager.table.find("tbody").empty()).append(tbody);
+            // todo adjust scroll offset appropriately!
+
+            /*
+             refresh scrollbar
+             */
+            var thumbPos = scrollbarManager.getThumbPosition();
+            scrollbarManager.redraw(newDataset, activeSchemeId);
+            scrollbarManager.redrawThumb(thumbPos);
+
+            /*
+             get new active row
+             */
+            let activeRowId = activeRow.attr("id"); // active row element is stale since tbody has been redrawn, so need to get the new copy
+            activeRow = $("#" + activeRowId);
+            var next = UIUtils.nextUnfilledRow(activeRow, true, activeSchemeId);
+            if (next.length !== 0) {
+                activeRow.removeClass('active');
+                activeRow = next.addClass('active');
+
+                if (!UIUtils.isRowVisible(next[0], messageViewerManager.messageContainer[0])) {
+                    UIUtils.scrollRowToTop(next[0], messageViewerManager.messageContainer[0]);
+                }
+
+            } else {
+                // handle behaviour when there are no unfilled rows... just proceed to next row
+                activeRow.removeClass('active');
+                activeRow = activeRow.next().addClass('active');
+                if (!UIUtils.isRowVisible(next[0], messageViewerManager.messageContainer[0])) {
+                    UIUtils.scrollRowToTop(next[0], messageViewerManager.messageContainer[0]);
+                }
+            }
         }
 
         undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
-
-        /*
-        redraw body
-         */
-        let tbody = "";
-        let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-
-        let iterationStop = messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventOrder.length ? newDataset.eventOrder.length : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
-
-        for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < iterationStop; i++) {
-            let eventKey = newDataset.eventOrder[i];
-            tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
-        }
-
-        $(messageViewerManager.table.find("tbody").empty()).append(tbody);
-        // todo adjust scroll offset appropriately!
-
-        /*
-        refresh scrollbar
-         */
-        var thumbPos = scrollbarManager.getThumbPosition();
-        scrollbarManager.redraw(newDataset, activeSchemeId);
-        scrollbarManager.redrawThumb(thumbPos);
-
-        /*
-        get new active row
-         */
-        let activeRowId = activeRow.attr("id"); // active row element is stale since tbody has been redrawn, so need to get the new copy
-        activeRow = $("#" + activeRowId);
-        var next = UIUtils.nextUnfilledRow(activeRow, true, activeSchemeId);
-        if (next.length !== 0) {
-            activeRow.removeClass('active');
-            activeRow = next.addClass('active');
-
-            if (!UIUtils.isRowVisible(next[0], messageViewerManager.messageContainer[0])) {
-                UIUtils.scrollRowToTop(next[0], messageViewerManager.messageContainer[0]);
-            }
-
-        } else {
-            // todo handle behaviour when there are no unfilled rows... just proceed to next row
-        }
 
         // update the activity stack
         storage.saveActivity({
             "category": "CODING",
             "message": "Used dropdown to assign code from scheme",
-            "messageDetails": {"code": codeObj.id, "scheme": schemeId},
+            "messageDetails": {"code": codeObj ? codeObj.id : "uncoded", "scheme": schemeId},
             "data": eventObj,
             "timestamp": new Date()
         });
@@ -877,7 +891,12 @@ var messageViewerManager = {
                     }
 
                 } else {
-                    // todo handle behaviour when there are no unfilled rows... just proceed to next row
+                    // handle behaviour when there are no unfilled rows... just proceed to next row
+                    activeRow.removeClass('active');
+                    activeRow = activeRow.next().addClass('active');
+                    if (!UIUtils.isRowVisible(next[0], messageViewerManager.messageContainer[0])) {
+                        UIUtils.scrollRowToTop(next[0], messageViewerManager.messageContainer[0]);
+                    }
                 }
             }
         }
@@ -1083,7 +1102,10 @@ var messageViewerManager = {
                     if ($(td).hasClass("message-text")) {
                         if (color && color.length !== 0 && color !== "#ffffff") {
                             $(td).css("box-shadow", "inset 0px 0px 0px 4px " + color);
+                        } else {
+                            $(td).css("box-shadow", "");
                         }
+
                     } else {
                         $(td).css("background-color", color);
                     }
@@ -1100,13 +1122,12 @@ var messageViewerManager = {
                 let decoColumn = activeRow.find(".deco-container[scheme='" + activeSchemeId + "']");
                 decoColumn.find(".checkbox-manual").prop("checked", true);
 
-                undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
+                //undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
 
                 // get new active row
                 var next = UIUtils.nextUnfilledRow(activeRow, true, activeSchemeId);
-                if (next.length !== 0) {
+                if (next.length !== 0 && next !== activeRow) {
                     activeRow.removeClass('active');
-                    //activeRow = activeRow.next().addClass('active');
                     activeRow = next.addClass('active');
 
                     if (!UIUtils.isRowVisible(next[0], messageViewerManager.messageContainer[0])) {
@@ -1114,7 +1135,12 @@ var messageViewerManager = {
                     }
 
                 } else {
-                    // todo handle behaviour when there are no unfilled rows... just proceed to next row
+                    // handle behaviour when there are no unfilled rows... just proceed to next row
+                    activeRow.removeClass('active');
+                    activeRow = activeRow.next().addClass('active');
+                    if (!UIUtils.isRowVisible(next[0], messageViewerManager.messageContainer[0])) {
+                        UIUtils.scrollRowToTop(next[0], messageViewerManager.messageContainer[0]);
+                    }
                 }
 
                 // update the activity stack
@@ -1189,6 +1215,7 @@ var messageViewerManager = {
                 scrollbarManager.redrawThumb(thumbPos);
 
                 console.timeEnd("infinite scroll DOWN");
+
             } else if ($(".message").length <= 40 && nextPage === Math.floor(newDataset.eventOrder.length / Math.floor(messageViewerManager.rowsInTable/2))) {
                 var halfPage = Math.floor(messageViewerManager.rowsInTable/2);
                 var tbody = "";
