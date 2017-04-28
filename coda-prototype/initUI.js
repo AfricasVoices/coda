@@ -787,6 +787,65 @@ function initUI(dataset) {
             });
         });
 
+
+        // update the activity stack
+        storage.saveActivity({
+            "category": "DATASET",
+            "message": "Saved dataset via button",
+            "messageDetails": "",
+            "data": "",
+            "timestamp": new Date()
+        });
+    });
+
+    $("#code-now-button").on("click", () => {
+
+        // code and re-sort dataset
+        regexMatcher.codeDataset(activeSchemeId);
+
+        if (messageViewerManager.currentSort === messageViewerManager.sortUtils.sortEventsByConfidenceOnly) {
+            newDataset.sortEventsByConfidenceOnly(tempScheme["id"]);
+        }
+        if (messageViewerManager.currentSort === messageViewerManager.sortUtils.sortEventsByScheme) {
+            newDataset.sortEventsByScheme(tempScheme["id"], true);
+        }
+        if (messageViewerManager.currentSort === messageViewerManager.sortUtils.restoreDefaultSort) {
+            newDataset.restoreDefaultSort();
+        }
+
+        // update the activity stack
+        storage.saveActivity({
+            "category": "CODING",
+            "message": "Automated coding",
+            "messageDetails": "button",
+            "data": "",
+            "timestamp": new Date()
+        });
+
+        // redraw rows
+        var tbody = "";
+
+        let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
+        let stoppingCondition = (messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventOrder.length) ? newDataset.eventOrder.length : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
+
+        for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < stoppingCondition; i++) {
+            let eventKey = newDataset.eventOrder[i];
+            tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
+        }
+
+        // redraw scrollbar
+        const thumbPosition = scrollbarManager.getThumbPosition();
+        scrollbarManager.redraw(newDataset, activeSchemeId);
+        scrollbarManager.redrawThumb(thumbPosition);
+
+        var messagesTbody = messageViewerManager.messageContainer.find("tbody");
+        var previousScrollTop = messageViewerManager.messageContainer.scrollTop();
+        var previousActiveRow = activeRow.attr("id");
+
+        messagesTbody.empty();
+        messagesTbody.append(tbody);
+        messageViewerManager.messageContainer.scrollTop(previousScrollTop);
+        activeRow = $("#" + previousActiveRow).addClass("active");
     });
 
     console.time("body.show()");

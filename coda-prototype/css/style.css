@@ -38,6 +38,30 @@ SOFTWARE.
   word-wrap: break-word;
 }
 
+.dropdown-toggle > b{
+  font-weight: 500;
+}
+
+#save-all-button {
+  margin-left: 7px;
+  margin-right: 2px;
+}
+
+#code-now-button{
+  margin-left: 2px;
+  margin-right: 7px;
+}
+
+#undo-redo {
+  margin-left: 7px;
+  margin-right: 15px;
+}
+
+.navbar-brand {
+  font-weight: 900;
+  padding: 14px 15px;
+}
+
 thead {
   border-top: none;
   border-bottom: none;

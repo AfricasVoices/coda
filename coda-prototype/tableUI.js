@@ -1189,6 +1189,26 @@ var messageViewerManager = {
                 scrollbarManager.redrawThumb(thumbPos);
 
                 console.timeEnd("infinite scroll DOWN");
+            } else if ($(".message").length <= 40 && nextPage === Math.floor(newDataset.eventOrder.length / Math.floor(messageViewerManager.rowsInTable/2))) {
+                var halfPage = Math.floor(messageViewerManager.rowsInTable/2);
+                var tbody = "";
+                for (let i = 0; i < (newDataset.eventOrder.length - (nextPage * halfPage)); i++) {
+                    let eventKey = newDataset.eventOrder[(nextPage-1) * halfPage + halfPage + i];
+                    if (eventKey) tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
+                }
+
+                let tbodyElement = messageViewerManager.table.find("tbody");
+                let lastMessage = $(".message").last();
+                let lastMessagePosition = lastMessage.position().top;
+                tbodyElement.append(tbody);
+
+                messageViewerManager.isProgramaticallyScrolling = true;
+                messageViewerManager.messageContainer.scrollTop($("#message-panel").scrollTop() + (-1 * (lastMessagePosition - lastMessage.position().top)));
+                messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
+                messageViewerManager.isProgramaticallyScrolling = false;
+
+                let thumbPos = scrollbarManager.getThumbPosition();
+                scrollbarManager.redrawThumb(thumbPos);
             }
 
         } else if (currentY < messageViewerManager.lastTableY && UIUtils.isScrolledToTop(messageViewerManager.messageContainer)){
