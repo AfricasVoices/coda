@@ -672,6 +672,26 @@ class CodeScheme {
         return newScheme;
     }
 
+    duplicate(schemes : Array<string>) : CodeScheme {
+
+        var digit = 0;
+        let originalId = this.id + "";
+        let newId = originalId + digit;
+        while (schemes.indexOf(newId) !== -1) {
+            digit++;
+            newId = originalId + digit;
+        }
+
+        let duplicateScheme = new CodeScheme(newId, this.name, this.isNew);
+        this.codes.forEach(code => {
+            let newCodeId = duplicateScheme.id + "-" + code.id;
+            let newCode = new Code(duplicateScheme, newCodeId, code.value, code.color, code.shortcut, code.isEdited);
+            duplicateScheme.codes.set(newCode.id, newCode);
+        });
+
+        return duplicateScheme;
+    }
+
     copyCodesFrom(otherScheme : CodeScheme) {
 
         this.name = otherScheme.name;

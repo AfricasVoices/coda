@@ -645,8 +645,44 @@ function initUI(dataset) {
         });
     });
 
+    /*
+    TOOLTIPS
+     */
     $("#scheme-download").tooltip();
     $("#scheme-upload").tooltip();
+    $("#scheme-duplicate").tooltip();
+    $("#delete-scheme-button").tooltip();
+
+
+    /*
+    SCHEME DUPLICATION
+     */
+    $("#scheme-duplicate").on("click", () => {
+
+        let newScheme = tempScheme.duplicate(Object.keys(newDataset.schemes));
+        newDataset.schemes[newScheme.id] = newScheme;
+        messageViewerManager.codeSchemeOrder.push(newScheme.id);
+        messageViewerManager.addNewSchemeColumn(newScheme, newScheme.name);
+
+        let headerDecoColumn = $("#header-decoration-column");
+        let header = headerDecoColumn.find("[scheme='" + newScheme["id"] + "']");
+        header.children("i").text(newScheme["name"]);
+
+        undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
+
+        let editorContainer = codeEditorManager.editorContainer;
+        editorContainer.hide();
+        editorContainer.find("tbody").empty();
+        codeEditorManager.bindAddCodeButtonListener();
+        editorContainer.find("#scheme-name-input").val("");
+        scrollbarManager.redraw(newDataset, newScheme.id);
+        scrollbarManager.redrawThumb(0);
+        $(scrollbarManager.scrollbarEl).drawLayers();
+        editorOpen = false;
+        tempScheme = {};
+
+    });
+
 
     /*
     SCHEME UPLOAD - via editor

@@ -381,7 +381,7 @@ var codeEditorManager =  {
 
         var newId = id;
         if (id.length === 0) {
-            newId = tempScheme["id"] + "-" + UIUtils.randomId();
+            newId = tempScheme["id"] + "-" + UIUtils.randomId(); // todo: check for duplicates
             codeObject = new Code(tempScheme, newId, code, color, shortcut, false);
             tempScheme.codes.set(newId, codeObject); // todo: fix owner when saving to parent scheme - what does this mean
         }
