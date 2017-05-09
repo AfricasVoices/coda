@@ -34,6 +34,7 @@ var storage;
 var undoManager;
 var newDataset;
 var activity = [];
+const VALID_NAME_FORMAT = /(^[a-zA-Z0-9]+)([/\-_][a-zA-Z0-9]+)*$/;
 (function initMap() {
     let mapToJSON = function () {
         let keys = this.keys();
@@ -545,6 +546,12 @@ class CodeScheme {
         }
         this.isNew = isNew;
     }
+    static validateName(name) {
+        if (name.length < 50) {
+            return VALID_NAME_FORMAT.test(name);
+        }
+        return false;
+    }
     toJSON() {
         let obj = Object.create(null);
         obj.id = this.id;
@@ -709,6 +716,18 @@ class Code {
             return words.indexOf(word) === index;
         });
         this._isEdited = true;
+    }
+    static validateName(name) {
+        if (name.length < 50) {
+            return VALID_NAME_FORMAT.test(name);
+        }
+        return false;
+    }
+    static validateShortcut(shortcut) {
+        if (shortcut.length == 1) {
+            return /^[a-z0-9]$/.test(shortcut);
+        }
+        return false;
     }
     addWords(words) {
         let newWords = this._words.concat(words);
