@@ -21,8 +21,13 @@
  */
 
 /*
- handler for the UI interactions from the Chrome extension
- */
+POPUP.TS/JS
+Handles the interactions with the extension via the toolbar popup.
+
+- Opens Coda, either directly or by first clearing the storage if expired
+- Wipes the entire extension cache
+
+*/
 
 /// <reference path="typings/chrome/chrome.d.ts" />
 document.addEventListener('DOMContentLoaded', function () {
@@ -34,6 +39,8 @@ document.addEventListener('DOMContentLoaded', function () {
         // if yes, clear storage
 
         function isExpired(a : Date,b : Date) : boolean {
+            // http://stackoverflow.com/a/15289883
+
             var _MS_PER_DAY = 1000 * 60 * 60 * 24;
             // a and b are javascript Date objects
             function dateDiffInDays(a, b) {

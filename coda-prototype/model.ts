@@ -21,6 +21,16 @@ SOFTWARE.
 */
 
 /*
+MODEL.TS/JS
+Defines datastructures used for:
+- the coding,
+- the instrumentation,
+- undo-redo system and
+- autosave.
+ */
+
+
+/*
 globals
  */
 
@@ -49,7 +59,8 @@ var activity = [];
 class Dataset {
     sessions: Map<string, Session> = new Map();
     schemes = {};
-    events: Array<RawEvent> = [];
+    events: Map<string, RawEvent> = new Map();
+    eventOrder: Array<string> = [];
 
     static clone(old : Dataset) {
         let newSchemes = {};
@@ -58,24 +69,24 @@ class Dataset {
            newSchemes[scheme] = CodeScheme.clone(old.schemes[scheme]);
         });
 
-        let newEvents : Array<RawEvent> = [];
-        for (let event of old.events) {
+        let newEvents : Map<string, RawEvent> = new Map();
+        for (let event of old.events.values()) {
             let newEvent : RawEvent = new RawEvent(event.name, event.owner, event.timestamp, event.number, event.data);
             for (let [schemeId, deco] of event.decorations.entries()) {
                 let code = deco.code ? newSchemes[schemeId].codes.get(deco.code.id) : null;
                 newEvent.decorate(schemeId, deco.manual, code, deco.confidence, deco.timestamp);
             }
-            newEvents.push(newEvent);
+            newEvents.set(newEvent.name, newEvent);
             if (!sess.hasOwnProperty(event.owner)) {
                 sess[event.owner] = new Session(event.owner, [newEvent]);
             } else {
-                sess[event.owner].events.push(newEvent);
+                sess[event.owner].events.set(newEvent.name, newEvent);
             }
         }
-        return new Dataset().setFields(sess, newSchemes, newEvents);
+        return new Dataset().setFields(sess, newSchemes, newEvents, old.eventOrder);
     }
 
-    setFields(sessions: Object, schemes: Object, events: Array<any>) : Dataset {  // todo check any?
+    setFields(sessions: Object, schemes: Object, events: Map<string,RawEvent>, order? : Array<string>) : Dataset {  // todo check any?
         Object.keys(sessions).forEach(sessionKey => {
             let session = sessions[sessionKey];
             this.sessions.set(sessionKey, new Session(session.id, session.events));
@@ -89,8 +100,14 @@ class Dataset {
            }
         });
 
-        var schm = this.schemes;
-        this.events = events.map(event => {
+        if (order) {
+            this.eventOrder = order;
+        }
+
+        function fixEventObject(event, data: Dataset) : RawEvent {
+            /*
+             Ensure decoration references are correct
+             */
             if (event.decorations instanceof Map) {
                 for (let [key, deco] of event.decorations.entries()) {
                     let code = deco.code;
@@ -116,10 +133,59 @@ class Dataset {
                 });
             }
 
-            if (event instanceof RawEvent) return event;
-            return new RawEvent(event.name, event.owner, event.timestamp, event.number, event.data, event.decorations);
-        });
+            /*
+             Create/adjust event objects
+             */
+            if (event instanceof RawEvent) {
+                let owner = event.owner;
+                let session = data.sessions.get(owner);
+                if (session.events.has(event.name)) {
+                    session.events.set(event.name, event);
+                }
+                return event;
 
+            } else {
+                let newEvent = new RawEvent(event.name, event.owner, event.timestamp, event.number, event.data, event.decorations);
+                let owner = event.owner;
+                let session = data.sessions.get(owner);
+                if (session.events.has(event.name)) {
+                    session.events.set(event.name, event);
+                }
+                return newEvent;
+            }
+        }
+
+        var schm = this.schemes;
+        let newEventsObj: Map<string,RawEvent> = new Map();
+
+        if (!order) {
+            if (events instanceof Map) {
+                console.log("instance map");
+                for (let [key, event] of events.entries()) {
+                    let fixedEvent = fixEventObject(event, this);
+                    newEventsObj.set(key, fixedEvent);
+                    this.eventOrder.push(fixedEvent.name);
+                }
+            } else {
+                console.log("instance obj");
+
+                Object.keys(events).forEach(eventKey => {
+                    let fixedEvent = fixEventObject(events[eventKey], this);
+                    newEventsObj.set(eventKey, fixedEvent);
+                    this.eventOrder.push(fixedEvent.name);
+                });
+            }
+        } else {
+            order.forEach(eventKey => {
+                if (events instanceof Map) {
+                    newEventsObj.set(eventKey, fixEventObject(events.get(eventKey), this));
+                } else {
+                    newEventsObj.set(eventKey, fixEventObject(events[eventKey], this));
+                }
+            });
+        }
+
+        this.events = newEventsObj;
         return this;
     }
 
@@ -128,30 +194,32 @@ class Dataset {
     Once initialized, they aren't changed regardless of sorting and can be used to restore the default on-load ordering.
     */
 
-    restoreDefaultSort() : Array<RawEvent> {
+    restoreDefaultSort() : Array<string> {
 
-        this.events.sort((e1,e2) => {
+        this.eventOrder.sort((e1,e2) => {
 
-           let name1 = parseInt(e1.name,10);
-           let name2 = parseInt(e2.name,10);
+           let name1 = parseInt(this.events.get(e1).name,10);
+           let name2 = parseInt(this.events.get(e2).name,10);
 
            return name1-name2;
 
         });
 
-        return this.events;
+        return this.eventOrder;
 
     }
 
-    sortEventsByScheme(schemeId: string, isToDoList: boolean): Array<RawEvent> {
+    sortEventsByScheme(schemeId: string, isToDoList: boolean): Array<string> {
 
         schemeId = schemeId + ""; // force it to string todo: here or make sure decorationForName processes it ok?
 
         if ((this.schemes.hasOwnProperty && this.schemes.hasOwnProperty(schemeId)) || this.schemes[schemeId] != undefined) {
             let codes = Array.from(this.schemes[schemeId].codes.values()).map((code:Code) => {return code.value;});
 
-            this.events.sort((e1, e2) => {
+            this.eventOrder.sort((eventKey1, eventKey2) => {
 
+                var e1 = this.events.get(eventKey1);
+                var e2 = this.events.get(eventKey2);
                 const deco1 = e1.decorationForName(schemeId);
                 const deco2 = e2.decorationForName(schemeId);
                 const hasCode1 =  deco1 ? e1.decorationForName(schemeId).code != null : false;
@@ -209,18 +277,20 @@ class Dataset {
             });
 
         }
-        return this.events;
+        return this.eventOrder;
     }
 
-    sortEventsByConfidenceOnly(schemeId: string) : Array<RawEvent> {
+    sortEventsByConfidenceOnly(schemeId: string) : Array<string> {
 
         schemeId = schemeId + ""; // force it to string todo: here or make sure decorationForName processes it ok?
 
         if ((this.schemes.hasOwnProperty && this.schemes.hasOwnProperty(schemeId)) || this.schemes[schemeId] != undefined) {
 
-            this.events.sort((e1, e2) => {
+            this.eventOrder.sort((eventKey1, eventKey2) => {
                 let returnResult = 0;
 
+                var e1 = this.events.get(eventKey1);
+                var e2 = this.events.get(eventKey2);
                 let deco1 = e1.decorationForName(schemeId);
                 let deco2 = e2.decorationForName(schemeId);
 
@@ -283,16 +353,16 @@ class Dataset {
 
             });
         }
-        return this.events;
+        return this.eventOrder;
     }
 
-    deleteScheme(schemeId : string): Array<RawEvent> {
-        for (let event of this.events) {
-            event.uglify(schemeId);
+    deleteScheme(schemeId : string): Array<string> {
+        for (let event of this.events.values()) {
+            event.uglify(schemeId); // todo optimise, because there is no need to call 'remove event' from code if scheme is being deleted anyway
         }
         delete this.schemes[schemeId];
 
-        return this.events;
+        return this.eventOrder;
     }
 
     toJSON() {
@@ -336,15 +406,7 @@ class RawEvent {
                 });
                 this.decorations = decors;
                 this.codes = codes;
-            } /*else if (typeof decorations == 'Map') {
-                this.decorations = decorations;
-                let codes = new Map<string, Code>();
-                Object.keys(decorations).forEach(deco => {
-                    let d = decorations[deco];
-                    codes.set(d.owner.id, d.code);
-                });
-                this.codes = codes;
-            }*/
+            }
         }
     }
 
@@ -486,12 +548,19 @@ class EventDecoration {
 
 class Session {
   id : string;
-  events : Array<RawEvent>;
+  events : Map<string, RawEvent>;
   decorations : Map<string, SessionDecoration>;
 
-  constructor(id : string, events : Array<RawEvent>) {
+  constructor(id : string, events : Array<RawEvent|string>) {
       this.id = id;
-      this.events = events;
+      this.events = new Map();
+      events.forEach(eventObj => {
+          if (typeof eventObj === "string") {
+              this.events.set(eventObj, null);
+          } else if (eventObj instanceof RawEvent) {
+              this.events.set(eventObj.name, eventObj);
+          }
+      });
       this.decorations = new Map<string, SessionDecoration>();
   }
 
@@ -507,7 +576,7 @@ class Session {
 
     let names : Set<string> = new Set<string>();
 
-    for (let e of this.events) {
+    for (let e of this.events.values()) {
       for (let key in e.decorations) {
           names.add(key);
       }
@@ -518,13 +587,14 @@ class Session {
   toJSON() {
       let obj = Object.create(null);
       obj.id = this.id;
-      obj.events = this.events.map(event => event.name); //todo point to event id;
+      obj.events = Array.from(this.events.values()).map(event => event.name);
       obj.decorations = this.decorations;
+      return obj;
   }
 
   getAllEventNames() : Set<string>{
     let eventNames : Set<string> = new Set<string>();
-    for (let e of this.events) {
+    for (let e of this.events.values()) {
       eventNames.add(e.name);
     }
     return eventNames;
@@ -684,7 +754,7 @@ class Code {
     private _shortcut : string;
     private _words : Array<string>;
     private _isEdited : boolean;
-    private _eventsWithCode: Array<RawEvent>;
+    private _eventsWithCode: Map<string,RawEvent>;
 
     get owner(): CodeScheme {
         return this._owner;
@@ -714,7 +784,7 @@ class Code {
         return this._isEdited;
     }
 
-    get eventsWithCode(): Array<RawEvent> {
+    get eventsWithCode(): Map<string, RawEvent> {
         return this._eventsWithCode;
     }
 
@@ -726,7 +796,7 @@ class Code {
         this._shortcut = shortcut;
         this._words = [];
         this._isEdited = isEdited;
-        this._eventsWithCode = [];
+        this._eventsWithCode = new Map();
     }
 
     toJSON() : {owner: string, id:string, value:string, color:string, shortcut:string, words:Array<String>} {
@@ -819,20 +889,11 @@ class Code {
 
     addEvent(event: RawEvent): void {
         // compare reference to event
-        if (event && this._eventsWithCode.indexOf(event) == -1) this._eventsWithCode.push(event);
+        if (event && !this._eventsWithCode.has(event.name)) this._eventsWithCode.set(event.name, event);
     }
 
     removeEvent(event: RawEvent): void {
-        let index = this._eventsWithCode.indexOf(event);
-        if (index == -1) return;
-        this._eventsWithCode.splice(index,1);
-    }
-
-    getEventsWithText(text: string) {
-        return this._eventsWithCode.filter(event => {
-            let decoration = event.decorationForName(this._owner.id);
-            if (decoration == undefined) return false;
-            return !decoration.manual && (event.data + "") === text});
+        this._eventsWithCode.delete(event.name);
     }
 }
 
@@ -925,8 +986,9 @@ class StorageManager {
                     reject();
 
                 }
+
                 if (!dataset.hasOwnProperty("schemes") || !dataset.hasOwnProperty("sessions") ||
-                    !dataset.hasOwnProperty("events") || dataset["events"].length == 0) {
+                    !dataset.hasOwnProperty("events") || Object.keys(dataset["events"]).length == 0) {
                     reject(new Error("Error reading from storage: dataset format is corrupt."));
                 }
 
@@ -971,8 +1033,8 @@ class StorageManager {
                 let data = JSON.parse(store["dataset"]);
                 let datasetString = "dataset (schemes: "
                     + Object.keys(data["schemes"]).length +
-                    ", events: " + data["events"].length +
-                    ", sessions: " + data["sessions"].length + ")";
+                    ", events: " + Object.keys(data["events"]).length +
+                    ", sessions: " + Object.keys(data["sessions"]).length + ")";
 
                 console.log("In storage: Last edit (" + new Date(JSON.parse(store["lastEdit"])) + "), " + datasetString);
                 chrome.storage.local.getBytesInUse((bytesUnUse: number) => {
@@ -985,7 +1047,7 @@ class StorageManager {
 
     saveActivity(logEvent: {"category": string, "message": string, "messageDetails": Object, "data": any, "timestamp": Date}) : void {
         // save user activity in storage for instrumentation
-        if (logEvent.category.length != 0 && logEvent.message.length != 0 && logEvent.data.length != 0 && logEvent.timestamp instanceof Date) {
+        if (logEvent.category.length != 0 && (logEvent.message.length > 0 || logEvent.data.length > 0) && logEvent.timestamp instanceof Date) {
             activity.push(logEvent);
             console.log("INSTRUMENTATION: " + logEvent.category + ":"  + logEvent.message + ", stack size: " + activity.length);
 
@@ -1043,44 +1105,58 @@ class UndoManager {
 
     static MAX_UNDO_LEVELS = 8;
     pointer : number = 0;
-    modelUndoStack : Array<Dataset>  = [];
+    modelUndoStack : Array<[Dataset, Array<string>]>  = []; // IS INITIALIZED TO INITIAL DATASET VERSION!
     schemaUndoStack : Array<Schema> = [];
 
-    markUndoPoint() {
+    markUndoPoint(codeSchemeOrder: Array<string>) {
+        if (codeSchemeOrder.length === 0) {
+            console.log("Code scheme order is empty!!");
+        }
+
         while (this.modelUndoStack.length - 1 > 0 && this.pointer < (this.modelUndoStack.length - 1)) {
             // We we're at the top of the stack
             this.modelUndoStack.pop();
             this.schemaUndoStack.pop();
         }
 
-        this.modelUndoStack.push(Dataset.clone(newDataset));
+        this.modelUndoStack.push([Dataset.clone(newDataset), codeSchemeOrder.slice(0)]);
         this.schemaUndoStack.push(schema);
         this.pointer++;
 
         if (this.modelUndoStack.length > UndoManager.MAX_UNDO_LEVELS) {
+            // AUTOSAVE...
             storage.saveDataset(newDataset);
             this.modelUndoStack.splice(0, 1);
             this.schemaUndoStack.splice(0, 1);
+            this.pointer--; // because the undo stack is shorter by one!
+
+        } else if (this.modelUndoStack.length % 2 === 0) {
+            // save every second change to storage todo: do we need this kind of throttling
+            storage.saveDataset(newDataset);
         }
     }
 
     canUndo() : boolean { return this.pointer != 0; }
-    canRedo() : boolean { return this.pointer
-        != this.modelUndoStack.length - 1 && this.modelUndoStack.length != 0; }
+    canRedo() : boolean { return this.pointer != this.modelUndoStack.length-1 && this.modelUndoStack.length != 0; }
 
-
-    undo() : boolean {
+    undo(messageViewerManager: {"codeSchemeOrder"}) : boolean {
         if (!this.canUndo()) return false;
         this.pointer--;
-        newDataset = Dataset.clone(this.modelUndoStack[this.pointer]);
+        newDataset = Dataset.clone(this.modelUndoStack[this.pointer][0]);
+        if (this.modelUndoStack[this.pointer][1] && this.modelUndoStack[this.pointer][1].length !== 0) {
+            messageViewerManager.codeSchemeOrder = this.modelUndoStack[this.pointer][1].slice(0);
+        }
         schema = this.schemaUndoStack[this.pointer];
         return true;
     }
 
-    redo() : boolean {
+    redo(messageViewerManager: {"codeSchemeOrder"}) : boolean {
         if (!this.canRedo()) return false;
         this.pointer++;
-        newDataset = Dataset.clone(this.modelUndoStack[this.pointer]);
+        newDataset = Dataset.clone(this.modelUndoStack[this.pointer][0]);
+        if (this.modelUndoStack[this.pointer][1] && this.modelUndoStack[this.pointer][1].length !== 0) {
+            messageViewerManager.codeSchemeOrder = this.modelUndoStack[this.pointer][1].slice(0);
+        }
         schema = this.schemaUndoStack[this.pointer];
         return true;
     }

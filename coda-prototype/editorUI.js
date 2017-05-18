@@ -20,6 +20,24 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+/*
+
+EDITORUI.JS
+Responsible for drawing and initialising the code editor
+Handles events related to, and happening within, the editor:
+
+- adding a new scheme (with the UI changes handled by tableUI as it's a part of table UI)
+- scheme name
+- adding and deleting codes
+- assigning shortcuts
+- assigning colors
+- assigning words
+- initiates uploading new coding schemes
+- initiates exporting the current coding scheme
+- deleting the coding scheme (with the UI changes handled by tableUI as it's a part of table UI)
+
+ */
+
 var codeEditorManager =  {
 
     editorContainer: {},
@@ -167,6 +185,8 @@ var codeEditorManager =  {
                 var header = headerDecoColumn.find("[scheme='" + tempScheme["id"] + "']");
                 header.children("i").text(tempScheme["name"]);
 
+                undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
+
                 editorContainer.hide();
                 editorContainer.find("tbody").empty();
                 codeEditorManager.bindAddCodeButtonListener();
@@ -250,7 +270,8 @@ var codeEditorManager =  {
 
             let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
             for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex * halfPage + halfPage; i++) {
-                tbody += messageViewerManager.buildRow(newDataset.events[i], i, newDataset.events[i].owner);
+                let eventKey = newDataset.eventOrder[i];
+                tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
             }
 
             // redraw scrollbar
@@ -269,6 +290,7 @@ var codeEditorManager =  {
 
             header.find("i.scheme-name").trigger("click"); // will make it active column
 
+            undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
 
             editorContainer.hide();
             editorContainer.find("tbody").empty();
@@ -389,16 +411,6 @@ var codeEditorManager =  {
            $(td).css({"background-color": color});
         });
 
-        /*
-        if (code.length != 0 && color.length != 0) {
-            //$("#color-pick").colorpicker('setValue', color);
-            codeEditorManager.updateCodePanel(color, words);
-        } else {
-            //$("#color-pick").colorpicker('setValue', "#ffffff");
-            codeEditorManager.updateCodePanel("#ffffff", words);
-        }
-        */
-
         row.on("click", function() {
             state.activeEditorRow.removeClass("active");
             state.activeEditorRow = $(this);
@@ -407,10 +419,7 @@ var codeEditorManager =  {
             var code = tempScheme.codes.get($(this).attr("id"));
 
             if (code) {
-                /*
-                let textAreaParent = $("#word-textarea").parent();
-                textAreaParent.empty().append("<div id='word-textarea'></div>");
-                */
+
                 codeEditorManager.updateCodePanel(code);
             }
         });
@@ -435,7 +444,7 @@ var codeEditorManager =  {
         colorPicker.find("input").attr("value", color);
         colorPicker.colorpicker('setValue', color);
 
-        if (color == "#ffffff") color = "#9e9e9e"; // set the tags to a darker grey color
+        if (color === "#ffffff") color = "#9e9e9e"; // set the tags to a darker grey color
         let selectObj= wordTextarea.find("select");
         selectObj.tagsinput('removeAll');
 
@@ -451,7 +460,7 @@ var codeEditorManager =  {
         $(selectObj).on('itemAdded', function(event) {
             // event.item: contains the item
             // event.cancel: set to true to prevent the item getting added
-            let color = (codeObj["color"] == "#ffffff" ? "#9e9e9e" : codeObj["color"]);
+            let color = (codeObj["color"] === "#ffffff" ? "#9e9e9e" : codeObj["color"]);
             wordTextarea.find(".tag").css({'background-color': color});
             codeObj.addWords(event.item);
             regexField.val(regexMatcher.generateOrRegex(codeObj["words"]));
@@ -634,7 +643,7 @@ var codeEditorManager =  {
             schemeId = newScheme.id;
 
             // save for UNDO and in storage
-            undoManager.markUndoPoint();
+            undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
             storage.saveDataset(newDataset);
 
             // update the activity stack
@@ -650,7 +659,7 @@ var codeEditorManager =  {
 
         } else {
             // save for UNDO and in storage
-            undoManager.markUndoPoint();
+            undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
             storage.saveDataset(newDataset);
 
             // update the activity stack

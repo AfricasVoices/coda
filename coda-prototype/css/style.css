@@ -28,6 +28,40 @@ SOFTWARE.
   width: 100%;
 }
 
+#scrollbar-col {
+  max-width: 120px !important;
+  padding-right: 0px;
+}
+
+#message-table {
+  table-layout: fixed;
+  word-wrap: break-word;
+}
+
+.dropdown-toggle > b{
+  font-weight: 500;
+}
+
+#save-all-button {
+  margin-left: 7px;
+  margin-right: 2px;
+}
+
+#code-now-button{
+  margin-left: 2px;
+  margin-right: 7px;
+}
+
+#undo-redo {
+  margin-left: 7px;
+  margin-right: 15px;
+}
+
+.navbar-brand {
+  font-weight: 900;
+  padding: 14px 15px;
+}
+
 thead {
   border-top: none;
   border-bottom: none;
@@ -145,9 +179,8 @@ div[class*=col-], #message-panel {
   padding: 10px 10px 0px 10px;
 }
 
-tr.active.message > td {
-  /* background-color: #b6b5b5 !important; */
-
+.table>tbody>tr.active>td.message-text {
+  background-color: transparent !important;
 }
 
 tr.active {

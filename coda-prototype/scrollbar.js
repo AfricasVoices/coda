@@ -20,9 +20,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-// scrollbar as high as the table is
+/*
+
+SCROLLBAR.JS
+Handles the initialisation, drawing of, and the interaction with the coloured scrollbar.
+
+ */
 
 var scrollbarManager = {
+    // scrollbar as high as the table is
 
     scrollbarEl : {},
     subsamplingNum: 0,
@@ -41,6 +47,8 @@ var scrollbarManager = {
         // check for active column
         // check if any code has colour set
 
+        $(scrollbarEl).empty();
+
         var scrollContext = scrollbarEl.getContext('2d');
         var scrollContext2 = document.getElementById("scrollthumb").getContext('2d');
         $("body").show(); // todo this is nasty
@@ -56,7 +64,7 @@ var scrollbarManager = {
 
         $("body").hide();
 
-        this.subsamplingNum = Math.floor(newDataset.events.length/(scrollbarEl.height-4));
+        this.subsamplingNum = Math.floor(newDataset.eventOrder.length/(scrollbarEl.height-4));
 
 
         $("#scrollbar").drawRect({
@@ -89,15 +97,17 @@ var scrollbarManager = {
             colors = this.subsample(dataset, activeSchemeId);
         } else {
             let color;
-            for (event of newDataset.events) {
-                if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code) {
-                   color = this.adjustSaturation(event.decorations.get(activeSchemeId));
-                } else {
-                    color = "#ffffff";
+            dataset.eventOrder.forEach(eventKey => {
+                let event = dataset.events.get(eventKey);
+                if (event) {
+                    if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code) {
+                        color = this.adjustSaturation(event.decorations.get(activeSchemeId));
+                    } else {
+                        color = "#ffffff";
+                    }
+                    colors.push(color);
                 }
-
-                colors.push(color);
-            }
+            });
         }
 
         $(this.scrollbarEl).removeLayerGroup('scrollbarlines');
@@ -163,6 +173,15 @@ var scrollbarManager = {
                 scrollbarManager.scrolling(layer);
                 $(this).drawLayers();
 
+                // save activity
+                storage.saveActivity({
+                    "category": "SCROLLBAR",
+                    "message": "Dragged scrollthumb",
+                    "messageDetails": {"dy": layer.dy},
+                    "data": "",
+                    "timestamp": new Date()
+                });
+
             },
 
             dragcancel: function(layer) {
@@ -188,6 +207,14 @@ var scrollbarManager = {
                 scrollbarManager.scrolling(layer);
                 $(this).drawLayers();
 
+                // save activity
+                storage.saveActivity({
+                    "category": "SCROLLBAR",
+                    "message": "Dragged scrollthumb",
+                    "messageDetails": {"dy": layer.dy},
+                    "data": "",
+                    "timestamp": new Date()
+                });
 
             },
             cursors: {
@@ -214,23 +241,25 @@ var scrollbarManager = {
         // CHECK IF IT FITS INTO SCROLLBAR PX OF SUBSAMPLING NEEDED!
 
         var colors = [];
-
-        for (event of newDataset.events) {
-            if (colors.length == this.subsamplingNum) {
-                sampleColours.push(colors[UIUtils.randomInteger(0, colors.length-1)]);
-                colors = [];
-            } else {
-                let color = "#ffffff";
-                if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code) {
-                    let code = event.decorations.get(activeSchemeId).code;
-                    let codeHasColor = code.color &&  code.color.length != 0;
-                    if (codeHasColor) colors.push(this.adjustSaturation(event.decorations.get(activeSchemeId)));
-                    else colors.push("#ffffff");
+        dataset.eventOrder.forEach(eventKey => {
+            let event = dataset.events.get(eventKey);
+            if (event) {
+                if (colors.length === this.subsamplingNum) {
+                    sampleColours.push(colors[UIUtils.randomInteger(0, colors.length-1)]);
+                    colors = [];
                 } else {
-                    colors.push("#ffffff");
+                    if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code) {
+                        let code = event.decorations.get(activeSchemeId).code;
+                        let codeHasColor = code.color &&  code.color.length !== 0;
+                        if (codeHasColor) colors.push(this.adjustSaturation(event.decorations.get(activeSchemeId)));
+                        else colors.push("#ffffff");
+                    } else {
+                        colors.push("#ffffff");
+                    }
                 }
             }
-        }
+
+        });
 
         return sampleColours;
     },
@@ -251,7 +280,7 @@ var scrollbarManager = {
             }
         }
 
-        if (color == "" || color == null) return "#ffffff";
+        if (color === "" || color == null) return "#ffffff";
 
         let hslColor = UIUtils.rgb2hsl(UIUtils.hex2rgb(color));
         let hsl = hslColor.split("(")[1].split(")")[0].split(",");
@@ -270,16 +299,14 @@ var scrollbarManager = {
         var rowsPerPixel = scrollbarManager.subsamplingNum;
 
         // todo need to take scaling into account
-        let percentage = scrollthumbLayer.y + scrollbarManager.thumbWidth == 6 ? 0 : Math.round(((thumbMid - 10) / (scrollbarManager.scrollbarEl.height-20) * 100 )) / 100; // force it to 0 if top is 6px displaced, 2px for border, 4px for scrollthumb
-        let eventIndexToLoad = scrollthumbLayer.y > 2 ? Math.floor(newDataset.events.length * percentage) : 0;
+        let percentage = scrollthumbLayer.y + scrollbarManager.thumbWidth === 6 ? 0 : Math.round(((thumbMid - 10) / (scrollbarManager.scrollbarEl.height-20) * 100 )) / 100; // force it to 0 if top is 6px displaced, 2px for border, 4px for scrollthumb
+        let eventIndexToLoad = scrollthumbLayer.y > 2 ? Math.floor(newDataset.eventOrder.length * percentage) : 0;
         const halfPage = Math.floor(messageViewerManager.rowsInTable/2);
         let pagesToLoad = Math.floor(eventIndexToLoad / halfPage);
 
-        if ((pagesToLoad * halfPage + halfPage) >= newDataset.events.length) {
+        if ((pagesToLoad * halfPage + halfPage) >= newDataset.eventOrder.length) {
             pagesToLoad = pagesToLoad-2;
         }
-
-        messageViewerManager.lastLoadedPageIndex = []; // todo what is this?
 
         var page1 = messageViewerManager.createPageHTML(pagesToLoad);
         var page2 = messageViewerManager.createPageHTML(pagesToLoad+1);

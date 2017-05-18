@@ -20,6 +20,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+/*
+REGEX.JS
+
+Handles automated coding by creating and matching regexes.
+
+ */
+
 RegExp.escape = function(text) {
     text = text + "";
     return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
@@ -29,9 +36,9 @@ var regexMatcher = {
 
     generateFullTextRegex: function(events) {
 
-        if (events == undefined || !events || events.length == 0) return null;
+        if (events == undefined || !events || events.size === 0) return null;
 
-        let eventTexts = events.map((event => { return event["data"]}));
+        let eventTexts = Array.from(events).map((event => { return event["data"]}));
         eventTexts.sort();
         eventTexts = eventTexts.filter((eventText, index) => {
             return eventTexts.indexOf(eventText) === index;
@@ -44,118 +51,146 @@ var regexMatcher = {
 
     },
 
-    codeDataset: function (schemeId) {
+    codeEvent: function(eventObj, schemeId, eventWithCodeRegexes) {
 
+        var codes = newDataset.schemes[schemeId].codes;
+
+        if (!eventWithCodeRegexes) {
+            eventWithCodeRegexes = {};
+            for (let code of codes.entries()) {
+                // we only take manually coded events into account when full-text matching
+                // hence we only construct the regex at the beginning of recoding since we won't be overriding manual codings
+                // whereas automated ones might be changed as we go along
+                eventWithCodeRegexes[code[0]] = regexMatcher.generateFullTextRegex(code[1].eventsWithCode.values());
+            }
+        }
+
+        var confidences = new Map();
+        var decoration = eventObj.decorationForName(schemeId);
+
+        if (decoration && decoration.code && !codes.has(decoration.code.id)) {
+            // decoration is stale because the code doesn't exist anymore
+            eventObj.uglify(schemeId);
+        }
+
+
+        /*
+         loop over codes and pick the assignment with the highest confidence
+         */
+        for (let code of codes.entries()) {
+
+            var fullTextRegex = eventWithCodeRegexes[code[0]]; // regex from full message texts
+
+            if (fullTextRegex) {
+                let fullTextMatch = fullTextRegex.exec(eventObj.data + "");
+                if (fullTextMatch) {
+
+                    confidences.set(code[0], {"conf":0.95});
+                    confidences.get(code[0]).isKeywordMatch = false;
+                    confidences.get(code[0]).isFullTextMatch = true;
+                    continue;
+                }
+            }
+
+            // if code has no words assigned
+            if (code[1].words.length === 0) continue;
+
+            // generate an OR regex of all words assigned
+            let regex = this.generateOrRegex(code[1].words);
+            if (regex === null) continue;
+
+            let matchCount = new Map();
+            let matches;
+
+            while (matches = regex.exec(eventObj.data + "")) {
+
+                if (matchCount.has(matches[1])) {
+                    let matchPosArr = matchCount.get(matches[1]);
+                    matchPosArr.push(matches.index);
+                } else {
+                    matchCount.set(matches[1], [matches.index]);
+                }
+            }
+
+            confidences.set(code[0], {
+                "conf":regexMatcher.confidenceMatchLen(eventObj.data, matchCount),
+                "isKeywordMatch":  matchCount.size !== 0,
+                "isFullTextMatch": false
+            });
+            /*
+            confidences.get(code[0]).isKeywordMatch = matchCount.size !== 0;
+            confidences.get(code[0]).isFullTextMatch = false;
+            */
+        }
+
+        var maxConfEntry = null;
+        for (let entry of confidences.entries()) {
+            if (!maxConfEntry) maxConfEntry = entry;
+            if (entry[1].conf > maxConfEntry[1].conf) maxConfEntry = entry;
+        }
+
+        if (decoration) {
+            let manual = (decoration.manual && decoration.manual != undefined) ? decoration.manual : false;
+
+            if (!maxConfEntry && !manual) {
+                // automated assignment that doesn't have the highest confidence
+                if (decoration.code) {
+                    eventObj.uglify(schemeId);
+                }
+                return;
+            }
+
+            if (maxConfEntry && maxConfEntry[1].conf === 0 && !manual && decoration.code) {
+                // no coding matches anymore
+                eventObj.uglify(schemeId);
+                return;
+            }
+
+            if (maxConfEntry && !manual && maxConfEntry[1].conf !== decoration.confidence) {
+                // override the current automatic code assignment
+                if (decoration.code) {
+                    eventObj.uglify(schemeId);
+                    eventObj.decorate(schemeId, false, codes.get(maxConfEntry[0]), maxConfEntry[1].conf);
+                } else {
+                    decoration.confidence = maxConfEntry[1].conf;
+                    decoration.code = codes.get(maxConfEntry[0]);
+                    decoration.manual = false;
+                }
+            }
+        } else {
+            if (!maxConfEntry) return;
+
+            if (maxConfEntry[1].conf > 0) {
+                eventObj.decorate(schemeId, false, codes.get(maxConfEntry[0]), maxConfEntry[1].conf);
+            }
+        }
+    },
+
+    codeDataset: function (schemeId) {
+        console.time("Coding dataset");
         schemeId = schemeId + "";
         let events = newDataset.events;
         let codes = newDataset.schemes[schemeId].codes;
         var sortUtils = new SortUtils();
         var eventWithCodeRegexes = {};
         for (let code of codes.entries()) {
-            eventWithCodeRegexes[code[0]] = regexMatcher.generateFullTextRegex(code[1].eventsWithCode);
+            eventWithCodeRegexes[code[0]] = regexMatcher.generateFullTextRegex(code[1].eventsWithCode.values());
         }
 
-        for (let i = 0; i < events.length; i++) {
-
-            var event = events[i];
-            var confidences = new Map();
-            var decoration = event.decorationForName(schemeId);
-
-            if (decoration && decoration.code && !codes.has(decoration.code.id)) {
-                event.uglify(schemeId);
-            }
-
-            for (let code of codes.entries()) {
-
-                var fullTextRegex = eventWithCodeRegexes[code[0]];
-
-                if (fullTextRegex) {
-                    let fullTextMatch = fullTextRegex.exec(event.data + "");
-                    if (fullTextMatch) {
-
-                        confidences.set(code[0], {"conf":0.95});
-                        confidences.get(code[0]).isKeywordMatch = false;
-                        confidences.get(code[0]).isFullTextMatch = true;
-                        //this.codeEvent(events[i], code[1]);
-                        continue;
-                    }
-                }
-
-                if (code[1].words.length == 0) continue;
-                let regex = this.generateOrRegex(code[1].words);
-                if (regex == null) continue;
-
-                let matchCount = new Map();
-                let matches;
-
-                while (matches = regex.exec(event.data + "")) {
-
-                    if (matchCount.has(matches[1])) {
-                        let matchPosArr = matchCount.get(matches[1]);
-                        matchPosArr.push(matches.index);
-                    } else {
-                        matchCount.set(matches[1], [matches.index]);
-                    }
-                }
-
-                confidences.set(code[0], {"conf":regexMatcher.confidenceMatchLen(event.data, matchCount)});
-                confidences.get(code[0]).isKeywordMatch = matchCount.size !== 0;
-                confidences.get(code[0]).isFullTextMatch = false;
-            }
-
-            var maxConfEntry = null;
-            for (let entry of confidences.entries()) {
-                if (!maxConfEntry) maxConfEntry = entry;
-                if (entry[1].conf > maxConfEntry[1].conf) maxConfEntry = entry;
-            }
-
-
-            if (decoration) {
-                let manual = (decoration.manual && decoration.manual != undefined) ? decoration.manual : false;
-
-                if (!maxConfEntry && !manual) {
-                    if (decoration.code) {
-                        event.uglify(schemeId);
-                    }
-
-                    continue;
-                }
-
-
-                if (maxConfEntry && maxConfEntry[1].conf === 0 && !manual && decoration.code) {
-                    // no coding matches anymore
-                    event.uglify(schemeId);
-                    continue;
-                }
-
-                if (maxConfEntry && !manual && maxConfEntry[1].conf !== decoration.confidence) {
-                    if (decoration.code) {
-                        event.uglify(schemeId);
-                        event.decorate(schemeId, false, codes.get(maxConfEntry[0]), maxConfEntry[1].conf);
-                    } else {
-                        decoration.confidence = maxConfEntry[1].conf;
-                        decoration.code = codes.get(maxConfEntry[0]);
-                        decoration.manual = false;
-                    }
-                }
-            } else {
-                if (!maxConfEntry) continue;
-
-                if (maxConfEntry[1].conf > 0) {
-                    event.decorate(schemeId, false, codes.get(maxConfEntry[0]), maxConfEntry[1].conf);
-                }
-            }
+        for (let event of events.values()) {
+            this.codeEvent(event, schemeId, eventWithCodeRegexes);
         }
+        console.timeEnd("Coding dataset");
 
-        undoManager.markUndoPoint();
         storage.saveDataset(newDataset);
     },
 
     generateOrRegex: function (wordArray) {
 
+        console.time("Generate or regex");
         if (wordArray.length == 0 || wordArray == null) return null;
         let filtered = wordArray.filter(word => {return word.length > 0});
-
+        console.time("generate or regex");
         return new RegExp('[\\s]*[\#]?\\b(' + filtered.join('|') + ')[\.\,\-\?\)\]*[\\s]*', 'ig');
 
     },
@@ -171,56 +206,6 @@ var regexMatcher = {
             let codeIdString = (codeId == 'undefined') ? "" : " codeid='" + codeId + "'";
             return "<span class='" + wrapClass + "'" + codeIdString + ">" + match + "</span>";
         });
-
-    },
-
-    codeEvent: function (eventObj, code, matchCount) {
-        // support for a customised way of calculating confidence and assigning codes...
-
-        var eventDeco = eventObj.decorationForName(code.owner.id + "") == undefined ? null : eventObj.decorationForName(code.owner.id + "");
-        if (matchCount != undefined && matchCount.size == 0) return eventObj;
-
-        if (eventDeco) {
-            if (eventDeco["code"] && eventDeco["code"] != code) { // todo do we want more thorough checking???
-                // conflict of coding
-
-                if (!eventDeco.manual) {
-                    // handle conflicting automatic codes
-
-                    eventObj.uglify(activeSchemeId);
-                    if (matchCount == undefined) {
-                        // override automatic coding because this is a duplicate of an already coded text
-                        eventObj.decorate(code.owner.id + "", false, code, 0.95);
-                    } else {
-                        // option - remove code! keep highlights + colors of the codes!
-                        // todo keep word buffers! per event!
-                    }
-                }
-
-            } else {
-                //todo when does this ever happen?
-                if (eventDeco.manual == undefined || !eventDeco.manual) {
-                    eventDeco.code = code;
-                    eventDeco.manual = false;
-                    if (matchCount == undefined) {
-                        eventDeco.confidence = 0.95; // todo not sure if this is necessary
-                    } else {
-                        eventDeco.confidence = regexMatcher.confidenceMatchLen(eventObj.data, matchCount);
-                    }
-                }
-            }
-        }
-        else {
-
-            if (matchCount == undefined) {
-                // was called because the text is a duplicate of some other already coded text
-                eventObj.decorate(code.owner.id +"", false, code, 0.95);
-            }
-            else {
-                eventObj.decorate(code.owner.id + "", false, code, regexMatcher.confidenceMatchLen(eventObj.data, matchCount));
-            }
-
-        }
 
     },
 
@@ -282,7 +267,6 @@ var regexMatcher = {
             prevMatchOffset = matches.index + matches[0].length;
 
         }
-
         return matchCount;
     }
 }

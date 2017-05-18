@@ -20,6 +20,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+
+/*
+INITUI.JS
+Loads the initial data - either from storage or the default dataset.
+Handles data I/O
+Handles interaction via navbar menus and buttons - undo/redo, export, load...
+ */
+
+
 //UI globals
 var editorOpen;
 var UIUtils = UIUtils;
@@ -54,27 +63,29 @@ $("body").hide();
  */
 
 storage.getDataset().then(dataset => {
-    dataset = typeof dataset == "string" ? JSON.parse(dataset) : dataset;
-    newDataset = new Dataset().setFields(dataset.sessions, dataset.schemes, dataset.events);
-    undoManager.modelUndoStack = [Dataset.clone(newDataset)];
+    console.time("Data init");
+    dataset = typeof dataset === "string" ? JSON.parse(dataset) : dataset;
+    newDataset = new Dataset().setFields(dataset["sessions"], dataset["schemes"], dataset["events"]);
+    console.timeEnd("Data init");
 
     // update the activity stack
     storage.saveActivity({
         "category": "DATASET",
         "message": "Resuming coding dataset",
         "messageDetails": "", // todo add identifier
-        "data": "Last edit:",
+        "data": {"events": newDataset["events"].size, "schemes": Object.keys(newDataset["schemes"]).length, "sessions": newDataset["sessions"].size},
         "timestamp": new Date()
     });
     initUI(newDataset);
+    undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
 
 }).catch(error => {
     if (error) console.log(error);
+    console.time("Default data init");
     $.getJSON("./data/sessions-numbered-10000.json", function (data) {
 
         // todo ensure ALL IDs are unique
 
-        //var buildDataset = function (data) {
         newDataset = function(data) {
             var decorations = {};
             var eventCount = 0;
@@ -83,21 +94,20 @@ storage.getDataset().then(dataset => {
             var properDataset = new Dataset();
             Object.keys(data).forEach(function (sessionKey) {
                 var events = [];
-                Object.keys(data[sessionKey]["events"]).forEach(function (eventKey, index) {
-                    //var event = new RawEvent(data[sessionKey]["events"][eventKey]["name"], sessionKey, data[sessionKey]["events"][eventKey]["timestamp"], "", data[sessionKey]["events"][eventKey]["data"]);
-                    var event = new RawEvent(eventCount + "", sessionKey, data[sessionKey]["events"][eventKey]["timestamp"], "", data[sessionKey]["events"][eventKey]["data"]);
-                    properDataset.events.push(event);
+                data[sessionKey]["events"].forEach(function (event) {
+                    var newEventObj = new RawEvent(eventCount + "", sessionKey, event["timestamp"], "", event["data"]);
+                    properDataset.eventOrder.push(newEventObj.name);
+                    properDataset.events.set(newEventObj.name, newEventObj);
                     eventCount += 1;
 
-                    Object.keys(data[sessionKey]["events"][eventKey]["decorations"]).forEach(function (d) {
+                    Object.keys(event["decorations"]).forEach(function (d) {
 
-                        var decorationValue = data[sessionKey]["events"][eventKey]["decorations"][d];
+                        var decorationValue = event["decorations"][d];
 
                         if (!decorations.hasOwnProperty(d)) {
                             // TODO: how to do scheme ids
                             let newSchemeId = UIUtils.randomId(Object.keys(schemes));
                             schemes[newSchemeId] = new CodeScheme(newSchemeId, d, true);
-                            //schemes[newSchemeId] = newDataset.schemes[newSchemeId];
                             decorations[d] = newSchemeId;
                         }
 
@@ -109,10 +119,10 @@ storage.getDataset().then(dataset => {
                             }
 
                             var code = scheme.getCodeByValue(decorationValue);
-                            event.decorate(decorations[d], true, code, 0.95); // has to use decorations[d] as scheme key
+                            newEventObj.decorate(decorations[d], true, code, 0.95); // has to use decorations[d] as scheme key
                         }
                     });
-                    events.push(event);
+                    events.push(newEventObj);
                 });
                 var session = new Session(sessionKey, events);
                 properDataset.sessions.set(sessionKey, session);
@@ -120,22 +130,29 @@ storage.getDataset().then(dataset => {
 
             properDataset.schemes = schemes;
             properDataset.eventCount = eventCount;
+            console.log(properDataset);
             return properDataset;
 
         }(data);
 
+        console.timeEnd("Default data init");
+
         //dataset = data;
         //newDataset = buildDataset;
-        undoManager.modelUndoStack = [Dataset.clone(newDataset)];
         // update the activity stack
         storage.saveActivity({
             "category": "DATASET",
             "message": "Loaded default dataset",
-            "messageDetails": "sessions-numbered-1000.txt",
-            "data": "",
+            "messageDetails": "",
+            "data": "sessions-numbered-1000.txt",
             "timestamp": new Date()
         });
         initUI(newDataset);
+        undoManager.modelUndoStack = [];
+        undoManager.schemaUndoStack = [];
+        undoManager.pointer = 0;
+        undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
+
     });
 });
 
@@ -183,7 +200,7 @@ function initUI(dataset) {
     $("#export-dataset").click(() => {
 
         let eventJSON = {"data": [], "fields" : ["id", "timestamp", "owner", "data", "schemeId", "schemeName", "deco_codeValue", "deco_codeId", "deco_confidence", "deco_manual", "deco_timestamp", "deco_author"]};
-        for (let event of newDataset.events) {
+        for (let event of newDataset.events.values()) {
             for (let schemeKey of Object.keys(newDataset.schemes)) {
                 let newEventData = [];
                 newEventData.push(event.name);
@@ -217,7 +234,7 @@ function initUI(dataset) {
                 eventJSON["data"].push(newEventData);
             }
 
-            if (Object.keys(newDataset.schemes).length == 0) {
+            if (Object.keys(newDataset.schemes).length === 0) {
                 let newEventData = [];
                 newEventData.push(event.name);
                 newEventData.push(event.timestamp);
@@ -332,6 +349,11 @@ function initUI(dataset) {
                         if (!dataset.sessions.has(eventRow["owner"])) {
                             let newSession = new Session(eventRow["owner"], [newEvent]);
                             dataset.sessions.set(eventRow["owner"], newSession);
+                        } else {
+                            let session = dataset.sessions.get(eventRow["owner"]);
+                            if (session.events.has(newEvent["name"])) {
+                                session.events.set(newEvent["name"], newEvent);
+                            }
                         }
 
                         if (schemeId & schemeName && deco_codevalue && deco_codeId && deco_manual) {
@@ -349,9 +371,9 @@ function initUI(dataset) {
                                 }
 
                                 let manual;
-                                if (eventRow["deco_manual"].toLocaleLowerCase() == "true") {
+                                if (eventRow["deco_manual"].toLocaleLowerCase() === "true") {
                                     manual = true;
-                                } else if (eventRow["deco_manual"].toLocaleLowerCase() == "false") {
+                                } else if (eventRow["deco_manual"].toLocaleLowerCase() === "false") {
                                     manual = false;
                                 } else {
                                     manual = true
@@ -359,7 +381,7 @@ function initUI(dataset) {
 
                                 let confidence;
                                 if (deco_confidence) {
-                                    if (eventRow["deco_confidence"].length == 0) {
+                                    if (eventRow["deco_confidence"].length === 0) {
                                         confidence = 0.95;
                                     } else {
                                         let float = parseFloat(eventRow["deco_confidence"]);
@@ -378,14 +400,17 @@ function initUI(dataset) {
 
                         }
 
-                        if (isEventNew) dataset.events.push(newEvent);
+                        if (isEventNew) {
+                            dataset.eventOrder.push(newEvent.name);
+                            dataset.events.set(newEvent.name, newEvent);
+                        }
 
                     }
 
                 }
 
-                if (dataset && dataset.events.length != 0) {
-                    if (Object.keys(dataset.schemes).length == 0) {
+                if (dataset && dataset.events.size !== 0) {
+                    if (Object.keys(dataset.schemes).length === 0) {
                         let defaultScheme = new CodeScheme("1", "default", false);
                         defaultScheme.codes.set(defaultScheme.id + "-" + "01", new Code(defaultScheme,defaultScheme.id + "-" + "01","Test", "#ffffff", UIUtils.ascii("t"), false));
                         dataset.schemes[defaultScheme["id"]] = defaultScheme;
@@ -395,8 +420,10 @@ function initUI(dataset) {
                     messageViewerManager.buildTable(newDataset, messageViewerManager.rowsInTable, true);
                     $("body").show();
 
-                    undoManager.modelUndoStack = [Dataset.clone(newDataset)];
                     undoManager.pointer = 0;
+                    undoManager.schemaUndoStack  = [];
+                    undoManager.modelUndoStack = [];
+                    undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
                     storage.saveDataset(dataset);
 
                     // update the activity stack
@@ -510,7 +537,7 @@ function initUI(dataset) {
                         }
 
                         let newShortcut = codeRow["code_shortcut"];
-                        if (codeRow["code_shortcut"].length == 1 && Number.isNaN(parseInt(codeRow["code_shortcut"]))) {
+                        if (codeRow["code_shortcut"].length === 1 && Number.isNaN(parseInt(codeRow["code_shortcut"]))) {
                             newShortcut = UIUtils.ascii(codeRow["code_shortcut"]);
                         }
 
@@ -518,7 +545,7 @@ function initUI(dataset) {
 
                         if (code_words) {
 
-                            if (codeRow["code_words"].length != 0) {
+                            if (codeRow["code_words"].length !== 0) {
                                 let words = codeRow["code_words"].split(",");
                                 if (words.length > 0) {
                                     newCode.addWords(words);
@@ -531,7 +558,7 @@ function initUI(dataset) {
                     }
                 }
 
-                if (newScheme == null || newScheme.codes.size == 0 || newDataset.schemes[newScheme["id"]] != undefined) {
+                if (newScheme == null || newScheme.codes.size === 0 || newDataset.schemes[newScheme["id"]] != undefined) {
 
                     let isDuplicate = newDataset.schemes[newScheme["id"]] != undefined;
                     let errorText = (isDuplicate) ? "Can't import duplicate coding scheme (ID: '" + newScheme["id"] + "'). To update an existing coding scheme access it via code editor." : "Something is wrong with the data format. Change a few things up, refresh and try again.";
@@ -669,7 +696,7 @@ function initUI(dataset) {
                         }
 
                         let newShortcut = codeRow["code_shortcut"];
-                        if (codeRow["code_shortcut"].length == 1 && Number.isNaN(parseInt(codeRow["code_shortcut"]))) {
+                        if (codeRow["code_shortcut"].length === 1 && Number.isNaN(parseInt(codeRow["code_shortcut"]))) {
                             // initialize shortcuts
                             newShortcut = UIUtils.ascii(codeRow["code_shortcut"]);
                         }
@@ -678,7 +705,7 @@ function initUI(dataset) {
 
                         if (code_words) {
 
-                            if (codeRow["code_words"].length != 0) {
+                            if (codeRow["code_words"].length !== 0) {
                                 let words = codeRow["code_words"].split(",");
                                 if (words.length > 0) {
                                     newCode.addWords(words);
@@ -737,11 +764,88 @@ function initUI(dataset) {
     });
 
     $("#undo").on("click", () => {
-       messageViewerManager.undoHandler();
+        messageViewerManager.undoHandler();
     });
 
     $("#redo").on("click", () => {
         messageViewerManager.redoHandler();
+    });
+
+    $("#save-all-button").on("click", () => {
+        storage.saveDataset(newDataset);
+
+        let successAlert = $("#alert");
+        successAlert.addClass("alert-success");
+        successAlert.append("<strong>Saved!</strong> Successfully stored the current dataset.");
+        successAlert.show();
+        $(".tableFloatingHeaderOriginal").hide();
+        successAlert.fadeTo(2000, 500).slideUp(350, () => {
+            successAlert.slideUp(350, () => {
+                successAlert.removeClass("alert-danger");
+                successAlert.empty();
+                $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
+            });
+        });
+
+
+        // update the activity stack
+        storage.saveActivity({
+            "category": "DATASET",
+            "message": "Saved dataset via button",
+            "messageDetails": "", // todo add identifier
+            "data": {"events": dataset["events"].size, "schemes": Object.keys(dataset["schemes"]).length, "sessions": dataset["sessions"].size} ,
+            "timestamp": new Date()
+        });
+    });
+
+    $("#code-now-button").on("click", () => {
+
+        // code and re-sort dataset
+        regexMatcher.codeDataset(activeSchemeId);
+
+        if (messageViewerManager.currentSort === messageViewerManager.sortUtils.sortEventsByConfidenceOnly) {
+            newDataset.sortEventsByConfidenceOnly(tempScheme["id"]);
+        }
+        if (messageViewerManager.currentSort === messageViewerManager.sortUtils.sortEventsByScheme) {
+            newDataset.sortEventsByScheme(tempScheme["id"], true);
+        }
+        if (messageViewerManager.currentSort === messageViewerManager.sortUtils.restoreDefaultSort) {
+            newDataset.restoreDefaultSort();
+        }
+
+        // update the activity stack
+        storage.saveActivity({
+            "category": "CODING",
+            "message": "Automated coding",
+            "messageDetails": "button",
+            "data": "",
+            "timestamp": new Date()
+        });
+
+        // redraw rows
+        var tbody = "";
+
+        let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
+        let stoppingCondition = (messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventOrder.length) ? newDataset.eventOrder.length : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
+
+        for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < stoppingCondition; i++) {
+            let eventKey = newDataset.eventOrder[i];
+            tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
+        }
+
+        // redraw scrollbar
+        const thumbPosition = scrollbarManager.getThumbPosition();
+        scrollbarManager.redraw(newDataset, activeSchemeId);
+        scrollbarManager.redrawThumb(thumbPosition);
+
+        var messagesTbody = messageViewerManager.messageContainer.find("tbody");
+        var previousScrollTop = messageViewerManager.messageContainer.scrollTop();
+        var previousActiveRow = activeRow.attr("id");
+
+        messagesTbody.empty();
+        messagesTbody.append(tbody);
+        messageViewerManager.messageContainer.scrollTop(previousScrollTop);
+        activeRow = $("#" + previousActiveRow).addClass("active");
     });
 
     console.time("body.show()");

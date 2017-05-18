@@ -62,12 +62,12 @@ SOFTWARE.
               <span class="icon-bar"></span>
               <span class="icon-bar"></span>
             </button>
-            <a class="navbar-brand" href="#">Coding assistant</a>
+            <a class="navbar-brand" href="#">Coda</a>
           </div>
           <div id="navbar" class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
               <li class="dropdown">
-                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Dataset<span class="caret"></span></a>
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><b>Dataset</b><span class="caret"></span></a>
                 <ul class="dropdown-menu">
                   <li><a class="btn-file" href="#">Load new dataset from...<input id="dataset-file" type="file"/></a></li>
                   <li><a class="btn-file">Load new code scheme from...<input id="scheme-file" type="file"/></a></li>
@@ -84,19 +84,27 @@ SOFTWARE.
                 <div class="btn-toolbar" role="toolbar">
                   <div class="btn-group" role="group" aria-label="save">
                     <button id="save-all-button" type="button" class="navbar-btn btn btn-success">
+                      <i class="fa fa-floppy-o" aria-hidden="true"></i>
                       Save
                     </button>
                   </div>
-                  <!-- Navigate between recent active messages -->
-                  <div class="btn-group" role="group" aria-label="message navigation">
-                    <button type="button" class="btn btn-default btn-sm navbar-btn">
-                      <i class="fa fa-undo" id="undo" aria-hidden="true"></i>
+                  <div class="btn-group" role="group">
+                    <button id="code-now-button" type="button" class="navbar-btn btn btn-primary">
+                      <i class="fa fa-refresh" aria-hidden="true"></i>
+                      Auto-code now!
                     </button>
-                    <button type="button" class="btn btn-default btn-sm navbar-btn">
-                      <i class="fa fa-repeat" id="redo" aria-hidden="true"></i>
+                  </div>
+                  <!-- Undo + redo buttons -->
+                  <div class="btn-group" role="group" aria-label="undo redo" id="undo-redo">
+                    <button type="button" id="undo" class="btn btn-default navbar-btn">
+                      <i class="fa fa-undo" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" id="redo" class="btn btn-default navbar-btn">
+                      <i class="fa fa-repeat" aria-hidden="true"></i>
                     </button>
                   </div>
                   <!-- Navigate between recent active messages -->
+                  <!--
                   <div class="btn-group" role="group" aria-label="message navigation">
                     <button type="button" class="btn btn-default btn-xs navbar-btn">
                       <i class="glyphicon glyphicon-chevron-left" id="back" aria-hidden="true"></i>
@@ -104,7 +112,7 @@ SOFTWARE.
                     <button type="button" class="btn btn-default btn-xs navbar-btn">
                       <i class="glyphicon glyphicon-chevron-right" id="forward" aria-hidden="true"></i>
                     </button>
-                  </div>
+                  </div>-->
                 </div>
               </li>
               <li>
