@@ -132,35 +132,36 @@ var regexMatcher = {
         if (decoration) {
             let manual = (decoration.manual && decoration.manual != undefined) ? decoration.manual : false;
 
-            if (!maxConfEntry && !manual) {
-                // automated assignment that doesn't have the highest confidence
+            if (maxConfEntry && !manual) {
                 if (decoration.code) {
-                    eventObj.uglify(schemeId);
-                }
-                return;
-            }
 
-            if (maxConfEntry && maxConfEntry[1].conf === 0 && !manual && decoration.code) {
-                // no coding matches anymore
-                eventObj.uglify(schemeId);
-                return;
-            }
+                    if (maxConfEntry[1].conf === 0) {
+                        // no coding matches anymore, max confidence entry has confidence of 0!
+                        eventObj.uglify(schemeId);
+                    }
 
-            if (maxConfEntry && !manual && maxConfEntry[1].conf !== decoration.confidence) {
-                // override the current automatic code assignment
-                if (decoration.code) {
-                    eventObj.uglify(schemeId);
-                    eventObj.decorate(schemeId, false, codes.get(maxConfEntry[0]), maxConfEntry[1].conf);
-                } else {
+                    else if (codes.get(maxConfEntry[0]) !== decoration.code) {
+                        // override the current automatic code assignment
+                        eventObj.uglify(schemeId);
+                        eventObj.decorate(schemeId, false, codes.get(maxConfEntry[0]), maxConfEntry[1].conf);
+                    } else {
+                        // same code assignment, just different confidence
+                        decoration.confidence = maxConfEntry[1].conf;
+                    }
+
+                } else if (maxConfEntry[1].conf !== 0){
+                    // doesnt have a code yet, and there's an assignment higher than 0
                     decoration.confidence = maxConfEntry[1].conf;
                     decoration.code = codes.get(maxConfEntry[0]);
                     decoration.manual = false;
                 }
             }
+
         } else {
             if (!maxConfEntry) return;
 
             if (maxConfEntry[1].conf > 0) {
+                // has no decoration at the moment
                 eventObj.decorate(schemeId, false, codes.get(maxConfEntry[0]), maxConfEntry[1].conf);
             }
         }
