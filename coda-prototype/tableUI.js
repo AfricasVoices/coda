@@ -792,6 +792,8 @@ var messageViewerManager = {
 
     checkboxHandler(DOMevent) {
 
+        // TODO USE THIS AS NEW ACTIVE ROW!!!!!!!!!!!!!!! OMG
+
         let checkbox = $(DOMevent.target);
         let messageRow = checkbox.parents(".message");
         let eventKey = messageRow.attr("eventid");
@@ -1313,8 +1315,8 @@ var messageViewerManager = {
 
         sessionRow += "<tr class='message' id=" + eventObj["name"] + " eventid = '" + eventObj["name"] + "' eventindex = '" + eventIndex + "' sessionId = '" + sessionIndex + "'>";
         sessionRow += "<td class='col-md-1 message-id' style='background-color: " + rowColor + "'>" + eventObj["name"] + "</td>";
-        sessionRow += "<td class='col-md-3 message-text'" + shadowStyle + "><p>" + eventText + "</p></td>";
-        sessionRow += "<td class='col-md-8 decorations' style='background-color: " + rowColor+ "'>";
+        sessionRow += "<td class='col-md-4 message-text'" + shadowStyle + "><p>" + eventText + "</p></td>";
+        sessionRow += "<td class='col-md-7 decorations' style='background-color: " + rowColor+ "'>";
 
         sessionRow += UIUtils.decoRowColumn(Object.keys(newDataset.schemes).length, newDataset.schemes, eventObj);
         sessionRow += "</td>";

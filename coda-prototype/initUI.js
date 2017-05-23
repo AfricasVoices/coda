@@ -165,6 +165,8 @@ function initUI(dataset) {
     $("#success-codescheme-alert").hide();
     $("#success-dataset-alert").hide();
     $("#fail-upload").hide();
+    $("#alert").hide();
+
     messageViewerManager.init(messagePanel, dataset);
     console.timeEnd("total messageview init");
 
@@ -183,6 +185,17 @@ function initUI(dataset) {
     codeEditorManager.init($("#code-editor"));
     console.timeEnd("editor init");
 
+
+    $("[data-hide]").on("click", () => {
+        let alert = $("#alert");
+        alert[0].childNodes.forEach(node => {
+           if (node.nodeName === "#text") {
+               node.remove();
+           }
+        });
+        alert.hide();
+        $(".tableFloatingHeaderOriginal").show();
+    });
 
     $("#export-instrumentation").on("click", () => {
         storage.getActivity().then(activity => {
@@ -272,35 +285,49 @@ function initUI(dataset) {
 
         $(event.target).parents(".dropdown").removeClass("open");
 
+        // hide alert
+        let alert = $("#alert");
+        alert[0].childNodes.forEach(node => {
+            if (node.nodeName === "#text") {
+                node.remove();
+            }
+        });
+        alert.hide();
+        $(".tableFloatingHeaderOriginal").show();
+
+
         let files = $("#dataset-file")[0].files;
         let len = files.length;
 
         if (len) {
             var fileName = files[0].name;
+            var fileType = files[0].type;
             console.log("Filename: " + fileName);
-            console.log("Type: " + files[0].type);
+            console.log("Type: " + fileType);
             console.log("Size: " + files[0].size + " bytes");
-
 
             let read = new FileReader();
             read.readAsText(files[0]);
             read.onloadend = function(){
-                let csvResult = read.result;
-                let parse = Papa.parse(csvResult, {header: true});
+                let readResult = read.result;
+
+                let parse = Papa.parse(readResult, {header: true});
                 if (parse.errors.length > 0) {
                     let failAlert = $("#alert");
                     failAlert.addClass("alert-danger");
-                    failAlert.append("<strong>Oh snap!</strong> Something is wrong with the data format. Change a few things up, refresh and try again.");
+                    let errorMessage = document.createTextNode("Something is wrong with the data format. Change a few things up, refresh and try again.");
+                    $("#alert").append(errorMessage);
                     $(".tableFloatingHeaderOriginal").hide();
                     failAlert.show();
-                    failAlert.fadeTo(4000, 500).slideUp(500, () => {
-                        failAlert.slideUp(500, () => {
-                            failAlert.removeClass("alert-danger");
-                            failAlert.empty();
-                            $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
-                        });
-                    });
-                    return; // todo: alert error
+
+                    var errors = parse.errors;
+                    if (errors.length > 100) { // only report first 30 wrong lines
+                        errors = parse.errors.slice(0,100);
+                    }
+
+                    console.log("ERROR: CANNOT PARSE CSV");
+                    console.log(JSON.stringify(errors));
+                    return;
                 }
 
                 let parsedObjs = parse.data;
@@ -439,7 +466,7 @@ function initUI(dataset) {
 
                     // success message
                     let successAlert = $("#alert");
-                    successAlert.addClass("alert-success");
+                    successAlert.removeClass("alert-danger").addClass("alert-success");
                     successAlert.append("<strong>Success!</strong> New dataset was imported.");
                     successAlert.show();
                     $(".tableFloatingHeaderOriginal").hide();
@@ -447,6 +474,7 @@ function initUI(dataset) {
                         successAlert.slideUp(500, () => {
                             successAlert.removeClass("alert-success");
                             successAlert.empty();
+                            successAlert.append($('<a href="#" class="close" data-hide="alert" aria-label="close">&times;</a>'));
                             $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
                         });
                     });
@@ -461,27 +489,36 @@ function initUI(dataset) {
                         "timestamp": new Date()});
 
                     let failAlert = $("#alert");
-                    failAlert.addClass("alert-danger");
-                    failAlert.append("<strong>Oh snap!</strong> Something is wrong with the data format. Change a few things up, refresh and try again.");
+                    failAlert.removeClass("alert-success").addClass("alert-danger");
+                    let errorMessage = document.createTextNode("Something is wrong with the data format. Change a few things up, refresh and try again.");
+                    failAlert.append(errorMessage);
                     $(".tableFloatingHeaderOriginal").hide();
                     failAlert.show();
-                    failAlert.fadeTo(4000, 500).slideUp(500, () => {
-                        failAlert.slideUp(500, () => {
-                            failAlert.removeClass("alert-danger");
-                            failAlert.empty();
-                            $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
-                        });
-                    });
+
+                    console.log("ERROR: Dataset object is empty or has no events.");
+                    console.log(dataset);
+
                 }
             }
         }
 
+       $("#dataset-file")[0].value = ""; // need to reset so the 'onchange' listener will catch reloading the same file
 
     });
 
     $("#scheme-file").on("change", event => {
 
         $(event.target).parents(".dropdown").removeClass("open");
+
+        // hide alert
+        let alert = $("#alert");
+        alert[0].childNodes.forEach(node => {
+            if (node.nodeName === "#text") {
+                node.remove();
+            }
+        });
+        alert.hide();
+        $(".tableFloatingHeaderOriginal").show();
 
         let files = $("#scheme-file")[0].files;
         let len = files.length;
@@ -501,18 +538,22 @@ function initUI(dataset) {
                 let parse = Papa.parse(csvResult, {header: true});
                 if (parse.errors.length > 0) {
                     let failAlert = $("#alert");
-                    failAlert.addClass("alert-danger");
-                    failAlert.append("<strong>Oh snap!</strong> Something is wrong with the data format. Change a few things up, refresh and try again.");
+                    failAlert.removeClass("alert-sucess").addClass("alert-danger");
+                    let errorMessage = document.createTextNode("Something is wrong with the scheme data format. Change a few things up, refresh and try again.");
+                    failAlert.append(errorMessage);
                     $(".tableFloatingHeaderOriginal").hide();
                     failAlert.show();
-                    failAlert.fadeTo(4000, 500).slideUp(500, () => {
-                        failAlert.slideUp(500, () => {
-                            failAlert.removeClass("alert-danger");
-                            failAlert.empty();
-                            $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
-                        });
-                    });
-                    return; // todo: alert error
+
+
+                    var errors = parse.errors;
+                    if (errors.length > 100) { // only report first 30 wrong lines
+                        errors = parse.errors.slice(0,100);
+                    }
+
+                    console.log("ERROR: CANNOT PARSE CSV");
+                    console.log(JSON.stringify(errors));
+
+                    return;
                 }
 
                 let parsedObjs = parse.data;
@@ -565,16 +606,21 @@ function initUI(dataset) {
 
                     let failAlert = $("#alert");
                     failAlert.addClass("alert-danger");
-                    failAlert.append("<strong>Oh snap!</strong> " + errorText);
+                    failAlert.append(errorText);
                     $(".tableFloatingHeaderOriginal").hide();
                     failAlert.show();
-                    failAlert.fadeTo(5000, 500).slideUp(500, () => {
-                        failAlert.slideUp(500, () => {
-                            failAlert.removeClass("alert-danger");
-                            failAlert.empty();
-                            $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
-                        });
-                    });
+
+                    let err;
+                    if (isDuplicate) {
+                        err = "can't import duplicate scheme";
+                    }
+                    else if (newScheme == null) {
+                        err = "scheme object is null.";
+                    } else {
+                        err = "scheme contains no codes.";
+                    }
+                    console.log("ERROR: Can't create scheme object - %s" %err);
+
                 } else {
                     // todo: what is the behaviour when scheme id is a duplicate - overwrite??
                     // update the activity stack
@@ -591,14 +637,15 @@ function initUI(dataset) {
                     messageViewerManager.addNewSchemeColumn(newScheme);
 
                     let successAlert = $("#alert");
-                    successAlert.addClass("alert-success");
+                    successAlert.removeClass("alert-danger").addClass("alert-success");
                     successAlert.append("<strong>Success!</strong> New coding scheme was imported.");
                     successAlert.show();
                     $(".tableFloatingHeaderOriginal").hide();
                     successAlert.fadeTo(2000, 500).slideUp(500, () => {
                         successAlert.slideUp(500, () => {
-                            successAlert.removeClass("alert-danger");
+                            successAlert.removeClass("alert-success");
                             successAlert.empty();
+                            successAlert.append($('<a href="#" class="close" data-hide="alert" aria-label="close">&times;</a>'));
                             $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
                         });
                     });
@@ -652,7 +699,7 @@ function initUI(dataset) {
     $("#scheme-upload").tooltip();
     $("#scheme-duplicate").tooltip();
     $("#delete-scheme-button").tooltip();
-
+    $("#scheme-name-help-block").find("sup").tooltip();
 
     /*
     SCHEME DUPLICATION
@@ -705,6 +752,8 @@ function initUI(dataset) {
                 let csvResult = read.result;
                 let parse = Papa.parse(csvResult, {header: true});
                 if (parse.errors.length > 0) {
+                    console.log("ERROR: Cannot parse scheme file");
+                    console.log(JSON.stringify(parse.errors));
                     return; // todo: alert error
                 }
 
@@ -797,6 +846,7 @@ function initUI(dataset) {
                 });
             }
         }
+        $("#scheme-upload-file")[0].value = ""; // need to reset so same file can be reloaded ie caught by 'onchange' listener
     });
 
     $("#undo").on("click", () => {
@@ -811,14 +861,15 @@ function initUI(dataset) {
         storage.saveDataset(newDataset);
 
         let successAlert = $("#alert");
-        successAlert.addClass("alert-success");
+        successAlert.removeClass("alert-danger").addClass("alert-success");
         successAlert.append("<strong>Saved!</strong> Successfully stored the current dataset.");
         successAlert.show();
         $(".tableFloatingHeaderOriginal").hide();
-        successAlert.fadeTo(2000, 500).slideUp(350, () => {
-            successAlert.slideUp(350, () => {
-                successAlert.removeClass("alert-danger");
+        successAlert.fadeTo(2000, 500).slideUp(500, () => {
+            successAlert.slideUp(500, () => {
+                successAlert.removeClass("alert-success");
                 successAlert.empty();
+                successAlert.append($('<a href="#" class="close" data-hide="alert" aria-label="close">&times;</a>'));
                 $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
             });
         });

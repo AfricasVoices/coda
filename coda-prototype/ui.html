@@ -124,7 +124,9 @@ SOFTWARE.
 
       <!-- Main container -->
       <div class="container-fluid" id="message-viewer">
-        <div id="alert" class="alert" role="alert" style="display:none"></div>
+        <div id="alert" class="alert alert-dismissable" role="alert" style="display:none">
+          <a href="#" class="close" data-hide="alert" aria-label="close">&times;</a>
+        </div>
         <div class="row">
           <div class="col-md-1 col-xs-1" id="scrollbar-col">
             <canvas id="scrollbar"></canvas>
@@ -136,8 +138,8 @@ SOFTWARE.
                 <thead>
                 <tr>
                   <th class="col-md-1 col-xs-1">ID</th>
-                  <th class="col-md-3 col-xs-3">Data</th>
-                  <th class="col-md-8 col-xs-8" id="header-decoration-column">
+                  <th class="col-md-4 col-xs-4">Data</th>
+                  <th class="col-md-7 col-xs-7" id="header-decoration-column">
                     <!--<div class="row">
                     </div>-->
                   </th>
