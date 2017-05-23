@@ -796,13 +796,16 @@ var messageViewerManager = {
 
     checkboxHandler(DOMevent) {
 
-        // TODO USE THIS AS NEW ACTIVE ROW!!!!!!!!!!!!!!! OMG
-
         let checkbox = $(DOMevent.target);
         let messageRow = checkbox.parents(".message");
         let eventKey = messageRow.attr("eventid");
         let eventObj = newDataset.events.get(eventKey);
         let codeObj = eventObj.decorations.get(activeSchemeId);
+
+        // make this row active
+        activeRow.removeClass("active");
+        activeRow = messageRow;
+        activeRow.addClass("active");
 
         // Just unchecked
         if (!checkbox.prop("checked")) {
