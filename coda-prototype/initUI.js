@@ -695,7 +695,12 @@ function initUI(dataset) {
     /*
     TOOLTIPS
      */
+    $("#save-all-button").tooltip();
+    $("#code-now-button").tooltip();
+    $("#undo").tooltip();
+    $("#redo").tooltip();
     $("#scheme-download").tooltip();
+    $("#add-scheme").tooltip();
     $("#scheme-upload").tooltip();
     $("#scheme-duplicate").tooltip();
     $("#delete-scheme-button").tooltip();

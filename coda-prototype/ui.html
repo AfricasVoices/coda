@@ -83,23 +83,23 @@ SOFTWARE.
               <li>
                 <div class="btn-toolbar" role="toolbar">
                   <div class="btn-group" role="group" aria-label="save">
-                    <button id="save-all-button" type="button" class="navbar-btn btn btn-success">
+                    <button id="save-all-button" type="button" class="navbar-btn btn btn-success" data-toggle="tooltip" data-placement="bottom" title="Save changes within Coda" data-container="body">
                       <i class="fa fa-floppy-o" aria-hidden="true"></i>
                       Save
                     </button>
                   </div>
                   <div class="btn-group" role="group">
-                    <button id="code-now-button" type="button" class="navbar-btn btn btn-primary">
+                    <button id="code-now-button" type="button" class="navbar-btn btn btn-primary" data-toggle="tooltip" data-placement="bottom" title="Click to automatically assign codes" data-container="body">
                       <i class="fa fa-refresh" aria-hidden="true"></i>
                       Auto-code now!
                     </button>
                   </div>
                   <!-- Undo + redo buttons -->
                   <div class="btn-group" role="group" aria-label="undo redo" id="undo-redo">
-                    <button type="button" id="undo" class="btn btn-default navbar-btn">
+                    <button type="button" id="undo" class="btn btn-default navbar-btn" data-toggle="tooltip" data-placement="bottom" title="Undo recent change" data-container="body">
                       <i class="fa fa-undo" aria-hidden="true"></i>
                     </button>
-                    <button type="button" id="redo" class="btn btn-default navbar-btn">
+                    <button type="button" id="redo" class="btn btn-default navbar-btn" data-toggle="tooltip" data-placement="bottom" title="Redo recent change" data-container="body">
                       <i class="fa fa-repeat" aria-hidden="true"></i>
                     </button>
                   </div>
@@ -151,7 +151,7 @@ SOFTWARE.
             </div>
           </div>
           <div class="col-md-1 col-xs-1" id="button-col">
-            <button id="add-scheme" type="button" class="btn btn-default" data-target=".panel">
+            <button id="add-scheme" type="button" class="btn btn-default" data-target=".panel" data-toggle="tooltip" data-placement="top" title="Add new scheme" data-container="body">
               <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
             </button>
           </div>

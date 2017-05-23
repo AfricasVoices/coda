@@ -69,15 +69,18 @@ var codeEditorManager =  {
 
         var logColorChange = debounce((code, color) => {
             if (code) {
-                console.log(new Date() + " color");
-                // update the activity stack
-                storage.saveActivity({
-                    "category": "SCHEME",
-                    "message": "Changed color for code in scheme",
-                    "messageDetails": {"scheme": code.owner.id, "code": code.id, "color": color.toHex()},
-                    "data": tempScheme.toJSON(),
-                    "timestamp": new Date()
-                });
+                if (tempScheme && tempScheme instanceof CodeScheme) { // otherwise the editor was already closed in the meantime
+
+                    console.log(new Date() + " color");
+                    // update the activity stack
+                    storage.saveActivity({
+                        "category": "SCHEME",
+                        "message": "Changed color for code in scheme",
+                        "messageDetails": {"scheme": code.owner.id, "code": code.id, "color": color.toHex()},
+                        "data": tempScheme.toJSON(),
+                        "timestamp": new Date()
+                    });
+                }
             }
         }, 1000, false);
 
