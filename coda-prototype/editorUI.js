@@ -69,15 +69,18 @@ var codeEditorManager =  {
 
         var logColorChange = debounce((code, color) => {
             if (code) {
-                console.log(new Date() + " color");
-                // update the activity stack
-                storage.saveActivity({
-                    "category": "SCHEME",
-                    "message": "Changed color for code in scheme",
-                    "messageDetails": {"scheme": code.owner.id, "code": code.id, "color": color.toHex()},
-                    "data": tempScheme.toJSON(),
-                    "timestamp": new Date()
-                });
+                if (tempScheme && tempScheme instanceof CodeScheme) { // otherwise the editor was already closed in the meantime
+
+                    console.log(new Date() + " color");
+                    // update the activity stack
+                    storage.saveActivity({
+                        "category": "SCHEME",
+                        "message": "Changed color for code in scheme",
+                        "messageDetails": {"scheme": code.owner.id, "code": code.id, "color": color.toHex()},
+                        "data": tempScheme.toJSON(),
+                        "timestamp": new Date()
+                    });
+                }
             }
         }, 1000, false);
 
@@ -86,7 +89,7 @@ var codeEditorManager =  {
 
             if (!$.isEmptyObject(state.activeEditorRow)) {
                 $(state.activeEditorRow).css("background-color", event.color.toHex());
-                var code = tempScheme.codes.get($(state.activeEditorRow).attr("id"));
+                var code = tempScheme.codes.get($(state.activeEditorRow).attr("codeid"));
                 if (code) {
                     code.color = event.color.toHex();
                 }
@@ -121,14 +124,9 @@ var codeEditorManager =  {
 
         var nameInput = $("#scheme-name-input");
 
-        nameInput.on("click", function() {
-            $(this).prop("readonly", false);
-        });
-
         nameInput.on("keydown", function(event) {
 
             if (event.keyCode === 13) {
-                $(this).prop("readonly", true);
                 $(this).attr("value", $(this).val());
                 tempScheme.name = $(this).attr("value");
                 $(this).blur();
@@ -155,7 +153,7 @@ var codeEditorManager =  {
             $("#color-pick").colorpicker('setValue', "#ffffff");
 
             saveSchemeButton.off("click");
-            saveSchemeButton.one("click", function() {
+            saveSchemeButton.on("click", function() {
 
                 tempScheme["name"] = editorContainer.find("#scheme-name-input").val();
                 tempScheme.codes.forEach(function(codeObj) {
@@ -176,6 +174,75 @@ var codeEditorManager =  {
                 });
 
                 // todo prevent saving when there is an empty code
+
+
+                let validation = CodeScheme.validateScheme(tempScheme);
+                var hasError = false;
+
+                if (!validation.name) {
+                    // turn on error on scheme name field
+                    let schemeNameCol = $("#scheme-name-col");
+                    schemeNameCol.addClass("has-error");
+                    schemeNameCol.find(".input-group")
+                        .addClass("has-feedback")
+                        .addClass("has-error");
+                    hasError = true;
+                    console.log("Error: Invalid input values given for scheme.");
+
+                } else {
+                    let schemeNameCol = $("#scheme-name-col");
+                    schemeNameCol.removeClass("has-error");
+                    schemeNameCol.find(".input-group")
+                        .removeClass("has-feedback")
+                        .removeClass("has-error");
+                }
+
+                // turn on error on the right shortcut field(s)
+                $("#code-table").find(".code-row").each((index, codeRow) => {
+                    let codeId = $(codeRow).attr("codeid");
+                    if (validation.invalidShortcuts.indexOf(codeId) > -1) {
+                        $(codeRow).find(".feedback-input-field.shortcut")
+                            .addClass("has-error")
+                            .addClass("has-feedback");
+
+                        hasError = true;
+                        console.log("Error: Invalid shortcut input values given for scheme.");
+
+                    } else {
+                        $(codeRow).find(".feedback-input-field.shortcut")
+                            .removeClass("hass-error")
+                            .removeClass("has-feedback");
+                    }
+                });
+
+                // turn on error on the right code value field(s)
+                $("#code-table").find(".code-row").each((index, codeRow) => {
+                    let codeId = $(codeRow).attr("codeid");
+                    if (validation.invalidValues.indexOf(codeId) > -1) {
+                        $(codeRow).find(".feedback-input-field.code")
+                            .addClass("has-error")
+                            .addClass("has-feedback");
+
+                        hasError = true;
+                        console.log("Error: Invalid code name input values given for scheme.");
+
+                    } else {
+                        $(codeRow).find(".feedback-input-field.code")
+                            .removeClass("has-error")
+                            .removeClass("has-feedback");
+                    }
+                });
+
+                if (hasError) {
+                    return;
+                }
+
+                // remove error message for scheme name
+                let schemeNameCol = $("#scheme-name-col");
+                schemeNameCol.removeClass("has-error");
+                schemeNameCol.find(".input-group")
+                    .removeClass("has-feedback")
+                    .removeClass("has-error");
 
                 newDataset.schemes[newId] = tempScheme;
                 messageViewerManager.codeSchemeOrder.push(newId + "");
@@ -198,7 +265,6 @@ var codeEditorManager =  {
                 tempScheme = {};
             });
 
-            $("#scheme-name-input").prop("readonly", false);
             $(editorContainer).show();
             editorOpen = true;
             $("#scheme-name-input").focus();
@@ -212,11 +278,11 @@ var codeEditorManager =  {
         var saveSchemeButton = this.saveSchemeButton;
         var headerDecoColumn = $("#header-decoration-column");
 
-        saveSchemeButton.off("click"); // only have one listener at a time
-        saveSchemeButton.one("click", function () {
+        saveSchemeButton.off("click");
+        saveSchemeButton.on("click", function () {
 
-            tempScheme.codes.forEach(function(codeObj,codeIndex) {
-                var row = editorContainer.find("tr[id='" + codeObj["id"] + "']");
+            tempScheme.codes.forEach(function(codeObj) {
+                var row = editorContainer.find("tr[codeid='" + codeObj["id"] + "']");
 
                 if (row.length > 0) {
                     //todo codeobject should just have all this saved already
@@ -234,6 +300,71 @@ var codeEditorManager =  {
             });
 
             tempScheme["name"] = editorContainer.find("#scheme-name-input").val(); //todo codeobject should just have all this saved already
+
+            /*
+            Validate entered values
+             */
+            let validation = CodeScheme.validateScheme(tempScheme);
+            var hasError = false;
+            if (!validation.name) {
+                // turn on error on scheme name field
+                let schemeNameCol = $("#scheme-name-col");
+                schemeNameCol.addClass("has-error");
+                schemeNameCol.find(".input-group")
+                    .addClass("has-feedback")
+                    .addClass("has-error");
+                hasError = true;
+            } else {
+                let schemeNameCol = $("#scheme-name-col");
+                schemeNameCol.removeClass("has-error");
+                schemeNameCol.find(".input-group")
+                    .removeClass("has-feedback")
+                    .removeClass("has-error");
+            }
+
+            // turn on error on the right shortcut field(s)
+            $("#code-table").find(".code-row").each((index, codeRow) => {
+                let codeId = $(codeRow).attr("codeid");
+                if (validation.invalidShortcuts.indexOf(codeId) > -1) {
+                    $(codeRow).find(".feedback-input-field.shortcut")
+                        .addClass("has-error")
+                        .addClass("has-feedback");
+                    hasError = true;
+
+                } else {
+                    $(codeRow).find(".feedback-input-field.shortcut")
+                        .removeClass("hass-error")
+                        .removeClass("has-feedback");
+                }
+            });
+
+
+            // turn on error on the right code value field(s)
+            $("#code-table").find(".code-row").each((index, codeRow) => {
+                let codeId = $(codeRow).attr("codeid");
+                if (validation.invalidValues.indexOf(codeId) > -1) {
+                    $(codeRow).find(".feedback-input-field.code")
+                        .addClass("has-error")
+                        .addClass("has-feedback");
+                    hasError = true;
+                } else {
+                    $(codeRow).find(".feedback-input-field.code")
+                        .removeClass("has-error")
+                        .removeClass("has-feedback");
+                }
+            });
+
+
+            if (hasError) {
+                return;
+            }
+
+            // if no error, remove the error message around scheme name
+            let schemeNameCol = $("#scheme-name-col");
+            schemeNameCol.removeClass("has-error");
+            schemeNameCol.find(".input-group")
+                .removeClass("has-feedback")
+                .removeClass("has-error");
 
             // update header in message view
             var header = headerDecoColumn.find("[scheme='" + tempScheme["id"] + "']");
@@ -312,6 +443,14 @@ var codeEditorManager =  {
             editorContainer.find("tbody").empty();
             codeEditorManager.bindAddCodeButtonListener();
             $("#scheme-name-input").attr("value", "").val("");
+
+            // clear potential error message for scheme name (rows will be deleted anyway)
+            let schemeNameCol = $("#scheme-name-col");
+            schemeNameCol.removeClass("has-error");
+            schemeNameCol.find(".input-group")
+                .removeClass("has-feedback")
+                .removeClass("has-error");
+
             editorOpen = false;
             state.activeEditorRow = {};
 
@@ -330,6 +469,14 @@ var codeEditorManager =  {
             editorContainer.find("tbody").empty();
             codeEditorManager.bindAddCodeButtonListener();
             $("#scheme-name-input").attr("value", "").val("");
+
+            // clear potential error message for scheme name (rows will be deleted anyway)
+            let schemeNameCol = $("#scheme-name-col");
+            schemeNameCol.removeClass("has-error");
+            schemeNameCol.find(".input-group")
+                .removeClass("has-feedback")
+                .removeClass("has-error");
+
             editorOpen = false;
             state.activeEditorRow = {};
 
@@ -381,27 +528,45 @@ var codeEditorManager =  {
 
         var newId = id;
         if (id.length === 0) {
-            newId = tempScheme["id"] + "-" + UIUtils.randomId();
+            newId = tempScheme["id"] + "-" + UIUtils.randomId(); // todo: check for duplicates
             codeObject = new Code(tempScheme, newId, code, color, shortcut, false);
             tempScheme.codes.set(newId, codeObject); // todo: fix owner when saving to parent scheme - what does this mean
         }
 
         $(".code-row").each(function(i,row) {$(row).removeClass("active")});
 
-        var row = $("<tr class='row active code-row' id='" + newId + "'></tr>").insertBefore($(".add-code-row"));
+        var row = $("<tr class='row active code-row' codeid='" + newId + "'></tr>").insertBefore($(".add-code-row"));
         state.activeEditorRow = row;
 
         var codeCell = $("<td class='col-md-6' style='background-color:" + color + "'></td>").appendTo(row);
         var shortcutCell = $("<td class='col-md-5' style='background-color:" + color + "'></td>").appendTo(row);
         var buttonCell = $("<td class='col-md-1' style='background-color:" + color + "'></td>").appendTo(row);
 
-        var codeInput = $("<input type='text' class='form-control code-input' placeholder='enter code...' value='" + code + "'>")
-            .appendTo(codeCell);
+
+        var codeInputWithFeedback =
+            $("<div class='feedback-input-field code'>" +
+            "<i class='glyphicon glyphicon-exclamation-sign'></i>" +
+            "<input type='text' class='form-control code-input' placeholder='enter code...' value='" + code + "'/>" +
+            "<small class='help-block' result='INVALID'>Invalid code name format<sup data-toggle='tooltip' data-placement='top'" +
+                "data-container='body' data-original-title='Valid characters: a-zA-Z0-9 and -/ or whitespace in between, max length 50'>?</sup></small>" +
+            "</div>")
+                .appendTo(codeCell);
+
+        codeInputWithFeedback.find("sup").tooltip();
+        codeInputWithFeedback.find("input").focus();
 
         shortcut = ("" + shortcut).length > 0 ? String.fromCharCode(shortcut) : "";
-        var shortcutInput = $("<input type='text' class='form-control shortcut-input' placeholder='type shortcut key...' value='" +
-            shortcut + "'>")
-            .appendTo(shortcutCell);
+
+        var shortcutInputWithFeedback =
+            $("<div class='feedback-input-field shortcut'>" +
+                "<i class='glyphicon glyphicon-exclamation-sign'></i>" +
+                "<input type='text' class='form-control shortcut-input' placeholder='type shortcut key...' maxlength='1' value='" + shortcut + "'/>" +
+                "<small class='help-block' result='INVALID'>Invalid shortcut character<sup data-toggle='tooltip' data-placement='top'" +
+                "data-container='body' data-original-title='Valid characters: a-zA-Z0-9'>?</sup></small>" +
+                "</div>")
+                .appendTo(shortcutCell);
+
+        shortcutInputWithFeedback.find("sup").tooltip();
 
         var button = $("<button type='button' class='btn btn-danger delete-code'>" +
             "<i class='glyphicon glyphicon-remove'></i>" +
@@ -416,15 +581,13 @@ var codeEditorManager =  {
             state.activeEditorRow = $(this);
             state.activeEditorRow.addClass("active");
 
-            var code = tempScheme.codes.get($(this).attr("id"));
+            var code = tempScheme.codes.get($(this).attr("codeid"));
 
             if (code) {
-
                 codeEditorManager.updateCodePanel(code);
             }
         });
 
-        codeInput.focus();
         bindInputListeners(row);
 
         return codeObject;
@@ -501,16 +664,15 @@ var codeEditorManager =  {
             if (event.keyCode === 13) {
                 // save and move to shortcut field
 
-                var index = $(this).parents("tr").attr("id");
-                var codeObj = tempScheme.codes.get(index); //todo fetch by id
+                var codeId = $(this).parents("tr").attr("codeid");
+                var codeObj = tempScheme.codes.get(codeId);
 
                 if (codeObj) {
                     codeObj["value"] = ($(this).val());
                 }
 
-                $(this).prop("readonly", true);
                 $(this).attr("value", $(this).val());
-                $(this).parents("tr").find(".shortcut-input").prop("readonly", false).focus();
+                $(this).parents("tr").find(".shortcut-input").focus();
 
             }
         });
@@ -518,69 +680,45 @@ var codeEditorManager =  {
         shortcutInput.on("keydown", function(event){
             if (event.keyCode === 13) {
                 $(this).attr("value", $(this).val());
-                $(this).prop("readonly", true);
-
-                //tempScheme.codes.get();
 
                 var nextRow = $(this).parents("tr").next();
 
                 if (nextRow.length > 0 && nextRow.attr("class") !== "row add-code-row") {
-                    nextRow.find(".code-input")
-                        .prop("readonly", false)
-                        .focus();
+                    nextRow.find(".code-input").focus();
 
                 } else {
                     //codeEditorManager.addCodeInputRow("", "", "#ffffff", parseInt($("tbody > .code-row:last").attr("id")) + 1);
 
                     nextRow = $(this).parents("tr").next();
-                    nextRow.find(".code-input")
-                        .prop("readonly", false)
-                        .focus();
+                    nextRow.find(".code-input").focus();
                 }
             }
         });
 
         codeInput.on("focusout", function(){
 
-            var index = $(this).parents("tr").attr("id");
-            var codeObj = tempScheme.codes.get(index); // todo fetch by id
+            var codeId = $(this).parents("tr").attr("codeid");
+            var codeObj = tempScheme.codes.get(codeId);
 
             if (codeObj) {
                 codeObj["value"] = ($(this).val());
-            } else {
-                if ($(this).val().length > 0) {
-                    var newCodeId = tempScheme["id"] + "-" + UIUtils.randomId(newDataset.schemes[tempScheme["id"]].codes);
-                    //tempScheme.codes[index] = new Code(tempScheme, newCodeId, $(this).val(), "#ffffff", "", false);
-                }
             }
-
-            $(this).prop("readonly", true);
-
-
         });
 
         shortcutInput.on("focusout", function(){
 
-            var index = $(this).parents("tr").attr("id");
-            var codeObj = tempScheme.codes.get(index); //todo fetch by id
+            var codeId = $(this).parents("tr").attr("codeid");
+            var codeObj = tempScheme.codes.get(codeId);
 
-            if (codeObj && $(this).val().length > 0) {
-                codeObj["shortcut"] = UIUtils.ascii($(this).val());
+            if (codeObj) {
+                let ascii = UIUtils.ascii($(this).val());
+
+                if ($(this).val().length === 0 || isNaN(ascii) ) {
+                    codeObj["shortcut"] = "";
+                } else {
+                    codeObj["shortcut"] = ascii;
+                }
             }
-
-            $(this).prop("readonly", true);
-
-
-        });
-
-        shortcutInput.on("click", function(){
-
-            $(this).prop("readonly", false);
-
-        });
-
-        codeInput.on("click", function() {
-            $(this).prop("readonly", false);
 
         });
 
@@ -589,7 +727,7 @@ var codeEditorManager =  {
             // TODO: unbind shortcuts
             // TODO: remove code from dropdowns
             // TODO: stop relying on Map keys as indices...
-            let id = $(this).parents("tr").attr("id");
+            let id = $(this).parents("tr").attr("codeid");
             let next = $(inputRow).next(".code-row");
             let prev = $(inputRow).prev(".code-row");
             $(inputRow).remove();
@@ -598,12 +736,12 @@ var codeEditorManager =  {
             if (next.length != 0) {
                 $(next).addClass("active");
                 state.activeEditorRow = $(next);
-                codeEditorManager.updateCodePanel(tempScheme.codes.get($(next).attr("id")));
+                codeEditorManager.updateCodePanel(tempScheme.codes.get($(next).attr("codeid")));
 
             } else if (prev.length != 0){
                 $(prev).addClass("active");
                 state.activeEditorRow = $(prev);
-                codeEditorManager.updateCodePanel(tempScheme.codes.get($(prev).attr("id")));
+                codeEditorManager.updateCodePanel(tempScheme.codes.get($(prev).attr("codeid")));
 
             } else {
                 // todo important - what happens when all codes are deleted from list

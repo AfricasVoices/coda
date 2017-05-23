@@ -279,11 +279,15 @@ var messageViewerManager = {
         let decoColumnToAppend = UIUtils.decoHeaderColumn(Object.keys(newDataset.schemes).length, newDataset.schemes, activeSortIcon);
         let appendedElement = $(decoColumnToAppend).appendTo(decoColumn);
 
+        // init tooltips
+        $(".sort-btn").tooltip();
+        $(".edit-scheme-button").tooltip();
+
+
         let firstCol = $(".scheme-col:first");
         let firstSchemeKey = firstCol.attr("scheme");
         activeSchemeId = firstSchemeKey;
         messageViewerManager.activeScheme = activeSchemeId;
-        //$(firstCol).find("i.scheme-name").css("text-decoration", "underline");
         $(firstCol).find("i.scheme-name").addClass("active-scheme");
 
         $(appendedElement).find("i.scheme-name").on("click", event => {
@@ -798,6 +802,11 @@ var messageViewerManager = {
         let eventObj = newDataset.events.get(eventKey);
         let codeObj = eventObj.decorations.get(activeSchemeId);
 
+        // make this row active
+        activeRow.removeClass("active");
+        activeRow = messageRow;
+        activeRow.addClass("active");
+
         // Just unchecked
         if (!checkbox.prop("checked")) {
             eventObj.uglify(activeSchemeId);
@@ -941,6 +950,10 @@ var messageViewerManager = {
         let newHeader = UIUtils.decoHeaderColumn(Object.keys(newDataset.schemes).length, newDataset.schemes, "icon-def", false);
         let appendedElement = $(newHeader).appendTo(decorationCell);
 
+        // init tooltips
+        $(".sort-btn").tooltip();
+        $(".edit-scheme-button").tooltip();
+
         $(appendedElement).find("i.scheme-name").on("click", event => {
             messageViewerManager.changeActiveScheme(event);
         });
@@ -990,6 +1003,10 @@ var messageViewerManager = {
         let newHeader = UIUtils.decoHeaderColumn(Object.keys(newDataset.schemes).length, newDataset.schemes, "icon-def", false);
         let decorationParent = $("#header-decoration-column").empty();
         let appendedElement = $(newHeader).appendTo(decorationParent);
+
+        // init tooltips
+        $(".sort-btn").tooltip();
+        $(".edit-scheme-button").tooltip();
 
         // set up all listeners for header again
         $(appendedElement).find("i.scheme-name").on("click", event => {
@@ -1313,8 +1330,8 @@ var messageViewerManager = {
 
         sessionRow += "<tr class='message' id=" + eventObj["name"] + " eventid = '" + eventObj["name"] + "' eventindex = '" + eventIndex + "' sessionId = '" + sessionIndex + "'>";
         sessionRow += "<td class='col-md-1 message-id' style='background-color: " + rowColor + "'>" + eventObj["name"] + "</td>";
-        sessionRow += "<td class='col-md-3 message-text'" + shadowStyle + "><p>" + eventText + "</p></td>";
-        sessionRow += "<td class='col-md-8 decorations' style='background-color: " + rowColor+ "'>";
+        sessionRow += "<td class='col-md-4 message-text'" + shadowStyle + "><p>" + eventText + "</p></td>";
+        sessionRow += "<td class='col-md-7 decorations' style='background-color: " + rowColor+ "'>";
 
         sessionRow += UIUtils.decoRowColumn(Object.keys(newDataset.schemes).length, newDataset.schemes, eventObj);
         sessionRow += "</td>";

@@ -38,6 +38,7 @@ var storage : StorageManager;
 var undoManager : UndoManager;
 var newDataset;
 var activity = [];
+const VALID_NAME_FORMAT = /(^[a-zA-Z0-9]+([" "]?[a-zA-Z0-9])*)([/\-_][a-zA-Z0-9]+([" "]?[a-zA-Z0-9])*)*$/;
 
 
 (function initMap() {
@@ -648,6 +649,40 @@ class CodeScheme {
         this.isNew = isNew;
     }
 
+    static validateName(name : string) : boolean {
+        if (name && typeof name == "string" && name.length < 50) {
+            return VALID_NAME_FORMAT.test(name);
+        }
+        return false;
+
+    }
+
+    static validateScheme(scheme : CodeScheme) : {"name", "invalidValues", "invalidShortcuts"}{
+        let isNameValid = CodeScheme.validateName(scheme.name);
+        let invalidValues = [];
+        let invalidShortcuts = [];
+        let allCodesValid = true;
+
+        for (let code of scheme.codes.values()) {
+            let parsedShortcut = parseInt(code.shortcut);
+            var shortcutChar : string;
+
+            if (code.shortcut.length === 0 || isNaN(parsedShortcut)) {
+                shortcutChar = "";
+            } else {
+                shortcutChar = String.fromCharCode(parseInt(code.shortcut));
+            }
+
+            if (!Code.validateShortcut(shortcutChar)) {
+                invalidShortcuts.push(code.id);
+            }
+            if (!Code.validateValue(code.value)) {
+                invalidValues.push(code.id);
+            }
+        }
+        return {"name": isNameValid, "invalidValues": invalidValues, "invalidShortcuts": invalidShortcuts};
+    }
+
     toJSON() {
         let obj = Object.create(null);
         obj.id = this.id;
@@ -670,6 +705,26 @@ class CodeScheme {
         });
 
         return newScheme;
+    }
+
+    duplicate(schemes : Array<string>) : CodeScheme {
+
+        var digit = 0;
+        let originalId = this.id + "";
+        let newId = originalId + digit;
+        while (schemes.indexOf(newId) !== -1) {
+            digit++;
+            newId = originalId + digit;
+        }
+
+        let duplicateScheme = new CodeScheme(newId, this.name, this.isNew);
+        this.codes.forEach(code => {
+            let newCodeId = duplicateScheme.id + "-" + code.id;
+            let newCode = new Code(duplicateScheme, newCodeId, code.value, code.color, code.shortcut, code.isEdited);
+            duplicateScheme.codes.set(newCode.id, newCode);
+        });
+
+        return duplicateScheme;
     }
 
     copyCodesFrom(otherScheme : CodeScheme) {
@@ -847,6 +902,25 @@ class Code {
 
         this._isEdited = true;
     }
+
+    static validateValue(name : string) : boolean {
+        if (name && typeof name == "string" && name.length < 50) {
+            return VALID_NAME_FORMAT.test(name);
+        }
+        return false;
+    }
+
+    static validateShortcut(shortcut : string) : boolean {
+        // allow empty shortcut, but not an invalid character
+        if (!shortcut || shortcut.length == 0) {
+            return true;
+        } else if (typeof shortcut == "string" && shortcut.length == 1) {
+            return /^[a-z0-9]$/.test(shortcut);
+        }
+
+        return false;
+    }
+
 
     addWords(words: Array<string>): Code {
 

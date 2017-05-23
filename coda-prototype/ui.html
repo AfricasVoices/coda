@@ -83,23 +83,23 @@ SOFTWARE.
               <li>
                 <div class="btn-toolbar" role="toolbar">
                   <div class="btn-group" role="group" aria-label="save">
-                    <button id="save-all-button" type="button" class="navbar-btn btn btn-success">
+                    <button id="save-all-button" type="button" class="navbar-btn btn btn-success" data-toggle="tooltip" data-placement="bottom" title="Save changes within Coda" data-container="body">
                       <i class="fa fa-floppy-o" aria-hidden="true"></i>
                       Save
                     </button>
                   </div>
                   <div class="btn-group" role="group">
-                    <button id="code-now-button" type="button" class="navbar-btn btn btn-primary">
+                    <button id="code-now-button" type="button" class="navbar-btn btn btn-primary" data-toggle="tooltip" data-placement="bottom" title="Click to automatically assign codes" data-container="body">
                       <i class="fa fa-refresh" aria-hidden="true"></i>
                       Auto-code now!
                     </button>
                   </div>
                   <!-- Undo + redo buttons -->
                   <div class="btn-group" role="group" aria-label="undo redo" id="undo-redo">
-                    <button type="button" id="undo" class="btn btn-default navbar-btn">
+                    <button type="button" id="undo" class="btn btn-default navbar-btn" data-toggle="tooltip" data-placement="bottom" title="Undo recent change" data-container="body">
                       <i class="fa fa-undo" aria-hidden="true"></i>
                     </button>
-                    <button type="button" id="redo" class="btn btn-default navbar-btn">
+                    <button type="button" id="redo" class="btn btn-default navbar-btn" data-toggle="tooltip" data-placement="bottom" title="Redo recent change" data-container="body">
                       <i class="fa fa-repeat" aria-hidden="true"></i>
                     </button>
                   </div>
@@ -124,7 +124,9 @@ SOFTWARE.
 
       <!-- Main container -->
       <div class="container-fluid" id="message-viewer">
-        <div id="alert" class="alert" role="alert" style="display:none"></div>
+        <div id="alert" class="alert alert-dismissable" role="alert" style="display:none">
+          <a href="#" class="close" data-hide="alert" aria-label="close">&times;</a>
+        </div>
         <div class="row">
           <div class="col-md-1 col-xs-1" id="scrollbar-col">
             <canvas id="scrollbar"></canvas>
@@ -136,8 +138,8 @@ SOFTWARE.
                 <thead>
                 <tr>
                   <th class="col-md-1 col-xs-1">ID</th>
-                  <th class="col-md-3 col-xs-3">Data</th>
-                  <th class="col-md-8 col-xs-8" id="header-decoration-column">
+                  <th class="col-md-4 col-xs-4">Data</th>
+                  <th class="col-md-7 col-xs-7" id="header-decoration-column">
                     <!--<div class="row">
                     </div>-->
                   </th>
@@ -149,7 +151,7 @@ SOFTWARE.
             </div>
           </div>
           <div class="col-md-1 col-xs-1" id="button-col">
-            <button id="add-scheme" type="button" class="btn btn-default" data-target=".panel">
+            <button id="add-scheme" type="button" class="btn btn-default" data-target=".panel" data-toggle="tooltip" data-placement="top" title="Add new scheme" data-container="body">
               <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
             </button>
           </div>
@@ -163,18 +165,23 @@ SOFTWARE.
           <div class="panel-heading clearfix">
             <div class="panel-title">
               <div class="row">
-                <div class="col-md-11 col-xs-11">
-
-                  <div class="input-group">
-                    <label class="input-group-btn">
-                      <span id="scheme-upload" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Upload new scheme version" data-container="body">
-                        <span class="glyphicon glyphicon-upload"></span>
+                <div class="col-md-1 col-xs-1">
+                  <div class="btn-group">
+                    <label id="scheme-upload" class="btn btn-default btn-file" data-toggle="tooltip" data-placement="bottom" title="Upload new scheme version" data-container="body">
+                        <i class="fa fa-upload"></i>
                         <input id="scheme-upload-file" type="file" style="display:none;"/>
-                      </span>
-                    </label>
-                    <span class="input-group-addon" id="scheme-name-addon">Code Scheme Name</span>
-                    <input id="scheme-name-input" type="text" class="form-control" placeholder="code scheme name..." aria-describedby="scheme-name-input">
+                      </label>
                   </div>
+                </div>
+                <div class="col-md-10 col-xs-10" id="scheme-name-col">
+                  <div class="input-group">
+                    <span class="input-group-addon" id="scheme-name-addon">Scheme Name</span>
+                    <input type='text' id='scheme-name-input' class='form-control' placeholder='type scheme name...' maxlength='50' value=''/>
+                    <i class='glyphicon glyphicon-exclamation-sign'></i>
+                  </div>
+                  <small class='help-block' id="scheme-name-help-block" result='INVALID'>Invalid scheme name format
+                    <sup data-toggle='tooltip' data-placement='top' data-container='body' data-original-title='Valid characters: a-zA-Z0-9 and -/ or whitespace in between, max length 50'>?</sup>
+                  </small>
                 </div>
 
                 <div class="col-md-1 col-xs-1">
@@ -240,7 +247,8 @@ SOFTWARE.
             <div class="col-md-12 col-xs-12">
               <div class="btn-group" id="scheme-save-btn-group">
                 <button type="button" id="scheme-download" class="btn btn-default" data-toggle="tooltip" data-placement="top" title="Download scheme" data-container="body">
-                  <span class="glyphicon glyphicon-download-alt"></span>
+                  <!--<span class="glyphicon glyphicon-download-alt"></span>-->
+                  <i class="fa fa-download" aria-hidden="true"></i>
                 </button>
                 <button type="button" id="scheme-save-button" class="btn btn-success">Save</button>
               </div>
@@ -248,7 +256,7 @@ SOFTWARE.
                 <button type="button" id="cancel-button" class="btn btn-danger">Cancel</button>
               </div>
                 <div class="btn-group" id="delete-scheme-btn-group">
-                  <button type="button" id="delete-scheme-button" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete entire scheme" data-container="body">
+                  <button type="button" id="delete-scheme-button" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="Delete scheme" data-container="body">
                     <span class="glyphicon glyphicon-trash"></span>
                   </button>
                 </div>
