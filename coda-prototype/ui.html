@@ -171,16 +171,15 @@ SOFTWARE.
                       </label>
                   </div>
                 </div>
-                <div class="col-md-10 col-xs-10">
+                <div class="col-md-10 col-xs-10" id="scheme-name-col">
                   <div class="input-group">
-                    <label class="input-group-btn">
-                      <button id="scheme-duplicate" type="button" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Duplicate scheme" data-container="body">
-                        <span class="glyphicon glyphicon-duplicate" aria-hidden="true"></span>
-                      </button>
-                    </label>
                     <span class="input-group-addon" id="scheme-name-addon">Scheme Name</span>
-                    <input id="scheme-name-input" type="text" class="form-control" placeholder="code scheme name..." aria-describedby="scheme-name-input">
+                    <input type='text' id='scheme-name-input' class='form-control' placeholder='type scheme name...' maxlength='50' value=''/>
+                    <i class='glyphicon glyphicon-exclamation-sign'></i>
                   </div>
+                  <small class='help-block' id="scheme-name-help-block" result='INVALID'>Invalid scheme name format
+                    <sup data-toggle='tooltip' data-placement='top' data-container='body' data-original-title='Valid characters: a-zA-Z0-9 and -/ or whitespace in between, max length 50'>?</sup>
+                  </small>
                 </div>
 
                 <div class="col-md-1 col-xs-1">

@@ -76,6 +76,77 @@ body {
   height: 80vh; /* TODO: will be calculated */
 }
 
+.feedback-input-field {
+  position: relative;
+}
+
+.input-group .glyphicon {
+  position: absolute;
+  padding: 10px;
+  pointer-events: none;
+  right: 0px;
+  display: none;
+}
+
+.input-group.has-feedback .glyphicon {
+  display: inline;
+  z-index:8;
+}
+
+.input-group.has-feedback.has-error .glyphicon {
+  color: #a94442;
+}
+
+.feedback-input-field .glyphicon {
+  position: absolute;
+  padding: 10px;
+  pointer-events: none;
+  right: 0px;
+  display: none;
+}
+
+.feedback-input-field input {
+  padding-right: 30px;
+}
+
+.feedback-input-field .help-block {
+  display: none;
+}
+
+.feedback-input-field.has-feedback .glyphicon {
+  display: inline;
+  z-index:8;
+  color: #a94442;
+}
+
+#scheme-name-help-block {
+  margin-bottom: 0px;
+  margin-left:122px;
+  color: #a94442;
+}
+
+#scheme-name-col small {
+  display:none;
+}
+
+#scheme-name-col.has-error small {
+  display:inline;
+}
+
+.feedback-input-field.has-feedback.has-error .help-block {
+  /* sets text to same color as the field border */
+  color: #a94442;
+  display: inline;
+  margin-bottom: 0px;
+  padding: 0 5px 0 5px;
+  background-color: white;
+}
+
+.feedback-input-field.has-feedback.has-error .glyphicon {
+  /* sets icon to same color as the field border */
+  color: #a94442;
+}
+
 div[class*=col-], #message-panel {
   height: 100%;
 }
