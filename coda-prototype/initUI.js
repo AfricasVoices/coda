@@ -23,6 +23,7 @@ SOFTWARE.
 
 /*
 INITUI.JS
+Checks UUID
 Loads the initial data - either from storage or the default dataset.
 Handles data I/O
 Handles interaction via navbar menus and buttons - undo/redo, export, load...
@@ -30,6 +31,7 @@ Handles interaction via navbar menus and buttons - undo/redo, export, load...
 
 
 //UI globals
+var UUID;
 var editorOpen;
 var UIUtils = UIUtils;
 var codeEditorPanel = $("#code-editor-panel");
@@ -62,6 +64,231 @@ $("body").hide();
 
  */
 
+function initDataset(storageObj) {
+    storage.getDataset()
+        .then(dataset => {
+            console.time("Data init");
+            dataset = typeof dataset === "string" ? JSON.parse(dataset) : dataset;
+            newDataset = Dataset.restoreFromTypelessDataset(dataset);//new Dataset().setFields(dataset["sessions"], dataset["schemes"], dataset["events"]);
+            console.log("LOG - Dataset restored is valid: " + JSON.stringify(Dataset.validate(newDataset)));
+            console.timeEnd("Data init");
+
+            // update the activity stack
+            storage.saveActivity({
+                "category": "DATASET",
+                "message": "Resuming coding dataset",
+                "messageDetails": "", // todo add identifier
+                "data": {"events": newDataset["events"].size, "schemes": Object.keys(newDataset["schemes"]).length, "sessions": newDataset["sessions"].size},
+                "timestamp": new Date()
+            });
+            initUI(newDataset);
+            undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
+        })
+        .catch(error => {
+            if (error) console.log(error);
+            console.time("Default data init");
+            $.getJSON("./data/sessions-numbered-10000.json", function (data) {
+
+                // todo ensure ALL IDs are unique
+
+                newDataset = function (data) {
+                    var decorations = {};
+                    var eventCount = 0;
+                    var schemes = {};
+
+                    var properDataset = new Dataset();
+                    Object.keys(data).forEach(function (sessionKey) {
+                        var events = [];
+                        data[sessionKey]["events"].forEach(function (event) {
+                            var newEventObj = new RawEvent(eventCount + "", sessionKey, event["timestamp"], "", event["data"]);
+                            properDataset.eventOrder.push(newEventObj.name);
+                            properDataset.events.set(newEventObj.name, newEventObj);
+                            eventCount += 1;
+
+                            Object.keys(event["decorations"]).forEach(function (d) {
+
+                                var decorationValue = event["decorations"][d];
+
+                                if (!decorations.hasOwnProperty(d)) {
+                                    // TODO: how to do scheme ids
+                                    let newSchemeId = UIUtils.randomId(Object.keys(schemes));
+                                    schemes[newSchemeId] = new CodeScheme(newSchemeId, d, true);
+                                    decorations[d] = newSchemeId;
+                                }
+
+                                if (decorationValue.length > 0) {
+                                    var scheme = schemes[decorations[d]];
+                                    if (!schemes[decorations[d]].getCodeValues().has(decorationValue)) {
+                                        var newCodeId = decorations[d] + "-" + UIUtils.randomId(Array.from(scheme.codes.keys()));
+                                        scheme.codes.set(newCodeId, new Code(scheme, newCodeId, decorationValue, "#ffffff", "", false));
+                                    }
+
+                                    var code = scheme.getCodeByValue(decorationValue);
+                                    newEventObj.decorate(decorations[d], true, UUID, code, 0.95); // has to use decorations[d] as scheme key
+                                }
+                            });
+                            events.push(newEventObj);
+                        });
+                        var session = new Session(sessionKey, events);
+                        properDataset.sessions.set(sessionKey, session);
+                    });
+
+                    properDataset.schemes = schemes;
+                    properDataset.eventCount = eventCount;
+                    console.log(properDataset);
+                    return properDataset;
+
+                }(data);
+
+                console.timeEnd("Default data init");
+
+                //dataset = data;
+                //newDataset = buildDataset;
+                // update the activity stack
+                storage.saveActivity({
+                    "category": "DATASET",
+                    "message": "Loaded default dataset",
+                    "messageDetails": "",
+                    "data": "sessions-numbered-1000.txt",
+                    "timestamp": new Date()
+                });
+                initUI(newDataset);
+                undoManager.modelUndoStack = [];
+                undoManager.schemaUndoStack = [];
+                undoManager.pointer = 0;
+                undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
+
+            });
+        });
+}
+
+storage
+    .getUUID().then(id => {
+        if(id && id.length === 36) {
+            // stored id is in valid format
+            UUID = id;
+            return initDataset(storage);
+        } else {
+            // create and save UUID
+            UUID = uuid.v4();
+            return storage.saveUUID(UUID)
+                .then(id => {
+                    return initDataset(storage);
+                })
+                .catch(err => {
+                    // set UUID object anyway, try to save again at first logging action
+                    console.log(err);
+                    UUID = uuid.v4();
+                    return initDataset(storage);
+                });
+        }
+    }).catch(err => {
+        // will catch errors at getting UUID
+        // set UUID object anyway, try to save again at first logging action
+        console.log(err);
+        UUID = uuid.v4();
+        return storage.saveUUID(UUID)
+            .then(id => {
+                return initDataset(storage);
+            })
+            .catch(err => {
+                console.log(err);
+                return initDataset(storage);
+            });
+    })/*.then(dataset => {
+        console.time("Data init");
+        dataset = typeof dataset === "string" ? JSON.parse(dataset) : dataset;
+        newDataset = Dataset.restoreFromTypelessDataset(dataset);//new Dataset().setFields(dataset["sessions"], dataset["schemes"], dataset["events"]);
+        console.log("LOG - Dataset restored is valid: " + JSON.stringify(Dataset.validate(newDataset)));
+        console.timeEnd("Data init");
+
+        // update the activity stack
+        storage.saveActivity({
+            "category": "DATASET",
+            "message": "Resuming coding dataset",
+            "messageDetails": "", // todo add identifier
+            "data": {"events": newDataset["events"].size, "schemes": Object.keys(newDataset["schemes"]).length, "sessions": newDataset["sessions"].size},
+            "timestamp": new Date()
+        });
+        initUI(newDataset);
+        undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
+    }).catch(error => {
+        if (error) console.log(error);
+        console.time("Default data init");
+        $.getJSON("./data/sessions-numbered-10000.json", function (data) {
+
+            // todo ensure ALL IDs are unique
+
+            newDataset = function (data) {
+                var decorations = {};
+                var eventCount = 0;
+                var schemes = {};
+
+                var properDataset = new Dataset();
+                Object.keys(data).forEach(function (sessionKey) {
+                    var events = [];
+                    data[sessionKey]["events"].forEach(function (event) {
+                        var newEventObj = new RawEvent(eventCount + "", sessionKey, event["timestamp"], "", event["data"]);
+                        properDataset.eventOrder.push(newEventObj.name);
+                        properDataset.events.set(newEventObj.name, newEventObj);
+                        eventCount += 1;
+
+                        Object.keys(event["decorations"]).forEach(function (d) {
+
+                            var decorationValue = event["decorations"][d];
+
+                            if (!decorations.hasOwnProperty(d)) {
+                                // TODO: how to do scheme ids
+                                let newSchemeId = UIUtils.randomId(Object.keys(schemes));
+                                schemes[newSchemeId] = new CodeScheme(newSchemeId, d, true);
+                                decorations[d] = newSchemeId;
+                            }
+
+                            if (decorationValue.length > 0) {
+                                var scheme = schemes[decorations[d]];
+                                if (!schemes[decorations[d]].getCodeValues().has(decorationValue)) {
+                                    var newCodeId = decorations[d] + "-" + UIUtils.randomId(Array.from(scheme.codes.keys()));
+                                    scheme.codes.set(newCodeId, new Code(scheme, newCodeId, decorationValue, "#ffffff", "", false));
+                                }
+
+                                var code = scheme.getCodeByValue(decorationValue);
+                                newEventObj.decorate(decorations[d], true, UUID, code, 0.95); // has to use decorations[d] as scheme key
+                            }
+                        });
+                        events.push(newEventObj);
+                    });
+                    var session = new Session(sessionKey, events);
+                    properDataset.sessions.set(sessionKey, session);
+                });
+
+                properDataset.schemes = schemes;
+                properDataset.eventCount = eventCount;
+                console.log(properDataset);
+                return properDataset;
+
+            }(data);
+
+            console.timeEnd("Default data init");
+
+            //dataset = data;
+            //newDataset = buildDataset;
+            // update the activity stack
+            storage.saveActivity({
+                "category": "DATASET",
+                "message": "Loaded default dataset",
+                "messageDetails": "",
+                "data": "sessions-numbered-1000.txt",
+                "timestamp": new Date()
+            });
+            initUI(newDataset);
+            undoManager.modelUndoStack = [];
+            undoManager.schemaUndoStack = [];
+            undoManager.pointer = 0;
+            undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
+
+        });
+    }); */
+/*
 storage.getDataset().then(dataset => {
     console.time("Data init");
     dataset = typeof dataset === "string" ? JSON.parse(dataset) : dataset;
@@ -155,6 +382,8 @@ storage.getDataset().then(dataset => {
 
     });
 });
+*/
+
 
 function initUI(dataset) {
     console.time("TOTAL UI INITIALISATION TIME");
@@ -422,7 +651,7 @@ function initUI(dataset) {
                                     confidence = undefined;
                                 }
 
-                                newEvent.decorate(newScheme.id, manual, newScheme.codes.get(eventRow["deco_codeId"]), confidence);
+                                newEvent.decorate(newScheme.id, manual, UUID, newScheme.codes.get(eventRow["deco_codeId"]), confidence);
                             }
 
                         }

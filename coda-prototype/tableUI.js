@@ -521,7 +521,7 @@ var messageViewerManager = {
         if (undone) {
             console.log("Undone! " + "Stack pt: " + undoManager.pointer + " Stack size: " + undoManager.modelUndoStack.length);
 
-            let newOrder = messageViewerManager.codeSchemeOrder.filter(schemeKey => !!newDataset[schemeKey]); // leave ones that are in dataset schemes
+            let newOrder = messageViewerManager.codeSchemeOrder.filter(schemeKey => !!newDataset.schemes[schemeKey]); // leave ones that are in dataset schemes
             Object.keys(newDataset.schemes).forEach(schemeKey => {
                 if (newOrder.indexOf(schemeKey) === -1) {
                     newOrder.push(schemeKey);
@@ -547,7 +547,7 @@ var messageViewerManager = {
         if (redone) {
             console.log("Redone! " + "Stack pt: " + undoManager.pointer + " Stack size: " + undoManager.modelUndoStack.length);
 
-            let newOrder = messageViewerManager.codeSchemeOrder.filter(schemeKey => !!newDataset[schemeKey]); // leave ones that are in dataset schemes
+            let newOrder = messageViewerManager.codeSchemeOrder.filter(schemeKey => !!newDataset.schemes[schemeKey]); // leave ones that are in dataset schemes
             Object.keys(newDataset.schemes).forEach(schemeKey => {
                 if (newOrder.indexOf(schemeKey) === -1) {
                     newOrder.push(schemeKey);
@@ -590,11 +590,12 @@ var messageViewerManager = {
             // add decoration
             let decoration = eventObj.decorationForName(schemeId);
             if (decoration === undefined) {
-                eventObj.decorate(schemeId, manual, newDataset.schemes[schemeId].getCodeByValue(value)); // todo fix codeObj
+                eventObj.decorate(schemeId, manual, UUID, newDataset.schemes[schemeId].getCodeByValue(value), 0.95); // todo fix codeObj
             } else {
                 decoration.code = newDataset.schemes[schemeId].getCodeByValue(value);
                 decoration.manual = manual;
                 decoration.confidence = 0.95;
+                decoration.author = UUID;
                 decoration.code.addEvent(eventObj);
             }
 
@@ -1113,7 +1114,7 @@ var messageViewerManager = {
                 var eventId = $(activeRow).attr("eventid");
                 $(activeRow).children("td").each(function(i, td) {
                     eventId = $(td).parent(".message").attr("eventid"); // todo this is unnecessary
-                    newDataset.events.get(eventId).decorate(codeObj.owner["id"], true, codeObj, 0.95);
+                    newDataset.events.get(eventId).decorate(codeObj.owner["id"], true, UUID, codeObj, 0.95);
                     var color = codeObj["color"];
 
                     if ($(td).hasClass("message-text")) {

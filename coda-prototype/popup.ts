@@ -142,7 +142,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                     if (!doFlag) {
                         // already open, so close the open tab first
-                        // todo PROMPT TO EXPORT data before wiping cache in the existing tab
                         chrome.tabs.remove([tabs[i].id], () => {
                             chrome.tabs.create({ url: chrome.extension.getURL("ui.html") });
                         });
