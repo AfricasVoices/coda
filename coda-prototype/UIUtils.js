@@ -160,7 +160,6 @@ var UIUtils = (
                                 eventObj.decorate(schemeKey);
                                 optionsString += "<option id='" + codeObj["id"] + "'>" + codeObj["value"] + "</option>";
                             }
-
                         });
 
                         let disabled = schemeKey == messageViewerManager.activeScheme ? "" : "disabled";

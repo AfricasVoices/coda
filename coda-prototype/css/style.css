@@ -304,8 +304,12 @@ tr.active.code-row > td {
   margin-bottom: 0;
 }
 
-#regex-edit {
+#regex-user, #regex-edit, #word-list {
   margin-bottom: 5px;
+}
+
+#regex-input-error {
+  color: red;
 }
 
 #word-textarea {

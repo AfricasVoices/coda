@@ -1324,7 +1324,19 @@ var messageViewerManager = {
                 rowColor = activeDecoration.code.color;
             }
 
-            eventText = regexMatcher.wrapText(eventObj["data"], regexMatcher.generateOrRegex(activeDecoration.code.words), "highlight", activeDecoration.code.id);
+            if (activeDecoration.code.regex && activeDecoration.code.regex.length === 2 && activeDecoration.code.regex[0].length > 0) {
+                try { //todo fix inefficiency in rebuilding regexes for each row
+                    let customRegex = new RegExp(activeDecoration.code.regex[0], activeDecoration.code.regex[1].indexOf("g") > -1 ? activeDecoration.code.regex[1] : activeDecoration.code.regex[1] + "g");
+                    eventText = regexMatcher.wrapText(eventObj["data"], customRegex, "highlight", activeDecoration.code.id);
+                } catch (e) {
+                    console.log(e);
+                    eventText = eventObj["data"];
+                }
+
+            } else {
+                eventText = regexMatcher.wrapText(eventObj["data"], regexMatcher.generateOrRegex(activeDecoration.code.words), "highlight", activeDecoration.code.id);
+            }
+
         }
 
         let shadowStyle = (rowColor === "#ffffff") ? "" : " style='box-shadow: inset 0px 0px 0px 4px " + rowColor + "'";
@@ -1354,6 +1366,10 @@ var messageViewerManager = {
 
                 var selection = window.getSelection().toString(); // todo do we preprocess this in any way?
                 console.log(selection);
+
+                if (selection.trim().length === 0) {
+                    return;
+                }
 
                 // check if current row has an assigned code and if yes, add the words to the data structure
                 // todo FIX THIS - check in data structure

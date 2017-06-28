@@ -48,6 +48,7 @@ var codeEditorManager =  {
     cancelEditorButton: {},
     addSchemeButton: {},
     saveSchemeButton: {},
+    activeCode: "",
 
     init: function(editorContainer) {
 
@@ -87,9 +88,9 @@ var codeEditorManager =  {
         $('#color-pick').colorpicker({component: $("#colorpicker-trigger")});
         $('#color-pick').on("changeColor", function(event) {
 
-            if (!$.isEmptyObject(state.activeEditorRow)) {
-                $(state.activeEditorRow).css("background-color", event.color.toHex());
-                var code = tempScheme.codes.get($(state.activeEditorRow).attr("codeid"));
+            if (state.activeEditorRow && state.activeEditorRow.length > 0) {
+                $(".code-row[codeid='" + state.activeEditorRow + "']").css("background-color", event.color.toHex());
+                var code = tempScheme.codes.get(state.activeEditorRow);
                 if (code) {
                     code.color = event.color.toHex();
                 }
@@ -272,7 +273,6 @@ var codeEditorManager =  {
 
     },
 
-
     bindSaveEditListener: function() {
         var editorContainer = this.editorContainer;
         var saveSchemeButton = this.saveSchemeButton;
@@ -432,7 +432,6 @@ var codeEditorManager =  {
         });
     },
 
-
     bindCloseDialogListeners: function() {
         var editorContainer = this.editorContainer;
         var closeButton = this.closeEditorButton;
@@ -452,7 +451,7 @@ var codeEditorManager =  {
                 .removeClass("has-error");
 
             editorOpen = false;
-            state.activeEditorRow = {};
+            state.activeEditorRow = "";
 
             // update the activity stack
             storage.saveActivity({
@@ -478,7 +477,7 @@ var codeEditorManager =  {
                 .removeClass("has-error");
 
             editorOpen = false;
-            state.activeEditorRow = {};
+            state.activeEditorRow = "";
 
             // update the activity stack
             storage.saveActivity({
@@ -528,15 +527,17 @@ var codeEditorManager =  {
 
         var newId = id;
         if (id.length === 0) {
+            // create new placeholder code
             newId = tempScheme["id"] + "-" + UIUtils.randomId(); // todo: check for duplicates
             codeObject = new Code(tempScheme, newId, code, color, shortcut, false);
             tempScheme.codes.set(newId, codeObject); // todo: fix owner when saving to parent scheme - what does this mean
         }
 
+        state.activeEditorRow = newId;
+
         $(".code-row").each(function(i,row) {$(row).removeClass("active")});
 
         var row = $("<tr class='row active code-row' codeid='" + newId + "'></tr>").insertBefore($(".add-code-row"));
-        state.activeEditorRow = row;
 
         var codeCell = $("<td class='col-md-6' style='background-color:" + color + "'></td>").appendTo(row);
         var shortcutCell = $("<td class='col-md-5' style='background-color:" + color + "'></td>").appendTo(row);
@@ -577,11 +578,15 @@ var codeEditorManager =  {
         });
 
         row.on("click", function() {
-            state.activeEditorRow.removeClass("active");
-            state.activeEditorRow = $(this);
-            state.activeEditorRow.addClass("active");
+            let oldRow = $(".code-row[codeid='" + state.activeEditorRow + "']");
+            oldRow.removeClass("active");
 
-            var code = tempScheme.codes.get($(this).attr("codeid"));
+            state.activeEditorRow = $(this).attr("codeid");
+
+            let newRow = $(".code-row[codeid='" + state.activeEditorRow + "']");
+            newRow.addClass("active");
+
+            var code = tempScheme.codes.get(state.activeEditorRow);
 
             if (code) {
                 codeEditorManager.updateCodePanel(code);
@@ -593,7 +598,6 @@ var codeEditorManager =  {
         return codeObject;
     },
 
-
     updateCodePanel: function(codeObj) {
 
         // todo problem when new row is added - codeObj doesn't exist yet, so can't bind the event handler for tags
@@ -604,6 +608,7 @@ var codeEditorManager =  {
         let colorPicker = $("#color-pick");
         var wordTextarea = $("#word-textarea");
         var regexField = $("#regex-edit").find("input");
+        var userRegexField = $("#regex-user").find("input");
         colorPicker.find("input").attr("value", color);
         colorPicker.colorpicker('setValue', color);
 
@@ -649,9 +654,27 @@ var codeEditorManager =  {
                 "timestamp": new Date()});
         });
 
-        regexField.val(regexMatcher.generateOrRegex(codeObj["words"]));
-    },
+        let wordsRegex = regexMatcher.generateOrRegex(codeObj["words"]);
+        if (wordsRegex) {
+            regexField.val(wordsRegex.source); // dont display flags
+        } else {
+            regexField.val("");
+        }
 
+        let userRegex;
+        if (!codeObj.regex || codeObj.regex.length === 0 || codeObj.regex[0].length === 0) {
+            // set placeholder text in input field!
+            userRegexField.val("");
+        } else {
+            try {
+                userRegex = new RegExp(codeObj.regex[0], codeObj.regex[1]);
+                userRegexField.val(userRegex);
+            } catch (e) {
+                console.log(e);
+                // append exclamation mark
+            }
+        }
+    },
 
     bindInputListeners: function(inputRow) {
 
@@ -735,12 +758,12 @@ var codeEditorManager =  {
 
             if (next.length != 0) {
                 $(next).addClass("active");
-                state.activeEditorRow = $(next);
-                codeEditorManager.updateCodePanel(tempScheme.codes.get($(next).attr("codeid")));
+                state.activeEditorRow = $(next).attr("codeid");
+                codeEditorManager.updateCodePanel(tempScheme.codes.get(state.activeEditorRow));
 
             } else if (prev.length != 0){
                 $(prev).addClass("active");
-                state.activeEditorRow = $(prev);
+                state.activeEditorRow = $(prev).attr("codeid");
                 codeEditorManager.updateCodePanel(tempScheme.codes.get($(prev).attr("codeid")));
 
             } else {

@@ -44,7 +44,7 @@ var activeSchemeId;
 
 var state = {
     activeMessageRow: {},
-    activeEditorRow: {},
+    activeEditorRow: "",
 };
 
 storage = StorageManager.instance;
@@ -504,7 +504,7 @@ function initUI(dataset) {
                 "category": "DATASET",
                 "message": "Exported dataset",
                 "messageDetails": "", //todo identifier
-                "data": tempScheme.toJSON(),
+                "data": "",
                 "timestamp": new Date()
             });
         });
@@ -900,9 +900,9 @@ function initUI(dataset) {
 
     $("#scheme-download").on("click", () => {
 
-        let schemeJSON = {"data": [], "fields":["scheme_id", "scheme_name", "code_id", "code_value", "code_colour", "code_shortcut","code_words"]};
+        let schemeJSON = {"data": [], "fields":["scheme_id", "scheme_name", "code_id", "code_value", "code_colour", "code_shortcut","code_words", "code_regex"]};
         for (let [codeId, code] of tempScheme.codes) {
-            let codeArr = [tempScheme.id, tempScheme.name, codeId, code.value, code.color, code.shortcut, code.words.toString()];
+            let codeArr = [tempScheme.id, tempScheme.name, codeId, code.value, code.color, code.shortcut, code.words.toString(), code.regex[0]];
             schemeJSON["data"].push(codeArr);
         }
 
@@ -1001,7 +1001,8 @@ function initUI(dataset) {
                         code_value = codeRow.hasOwnProperty("code_value"),
                         code_colour = codeRow.hasOwnProperty("code_colour"),
                         code_shortcut = codeRow.hasOwnProperty("code_shortcut"),
-                        code_words = codeRow.hasOwnProperty("code_words");
+                        code_words = codeRow.hasOwnProperty("code_words"),
+                        code_regex = codeRow.hasOwnProperty("code_regex");
 
                     if (id && name && code_id && code_value) {
 
@@ -1020,7 +1021,13 @@ function initUI(dataset) {
                             newShortcut = UIUtils.ascii(codeRow["code_shortcut"]);
                         }
 
-                        let newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"], codeRow["code_colour"], newShortcut, false);
+                        let newCode;
+                        if (code_regex && typeof codeRow["code_regex"] === "string") {
+                            newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"], codeRow["code_colour"], newShortcut, false, [codeRow["code_regex"], "g"]);
+                        } else {
+                            newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"], codeRow["code_colour"], newShortcut, false);
+                        }
+
 
                         if (code_words) {
 
@@ -1038,23 +1045,37 @@ function initUI(dataset) {
                 /*
                 Update the currently loaded scheme
                  */
+
+                let oldActiveRowCodeId = $(".code-row.active").attr("codeid");
+
                 for (let [codeId, code] of tempScheme.codes.entries()) {
                     // update existing codes
-                    let codeRow = $(".code-row[id='" + codeId + "']");
+                    let codeRow = $(".code-row[codeid='" + codeId + "']");
                     if (newScheme.codes.has(codeId)) {
                         let newCode = newScheme.codes.get(codeId);
                         newCode.owner = tempScheme;
                         codeRow.find(".code-input").attr("value", newCode.value);
-                        codeRow.find(".shortcut-input").attr("value", String.fromCharCode(newCode.shortcut));
+
+                        if (newCode.length > 0) {
+                            // don't set value to empty string, it still counts as value, fails validation and loses placeholder text
+                            codeRow.find(".shortcut-input").attr("value", String.fromCharCode(newCode.shortcut));
+                        }
+
                         codeRow.find("td").attr("style", "background-color: " + (newCode.color ? newCode.color : "#ffffff"));
                         tempScheme.codes.set(codeId, newCode);
                         newScheme.codes.delete(codeId);
                     } else {
+                        // not in the new scheme, remove row and set a new active row if necessary
+                        /*
                         let isActive = codeRow.hasClass("active");
-                        codeRow.remove();
                         if (isActive) {
-                            $(".code-row:first").addClass("active");
+                            let newActiveRow = $(".code-row:last");
+                            newActiveRow.addClass("active");
+                            codeEditorManager.activeCode = newActiveRow.attr("code-id");
                         }
+                        */
+
+                        codeRow.remove();
                         tempScheme.codes.delete(codeId);
                     }
                 }
@@ -1067,8 +1088,28 @@ function initUI(dataset) {
                 }
 
                 $("#scheme-name-input").val(newScheme.name);
-                let activeCode = tempScheme.codes.get($(".code-row.active").attr("id"));
-                if (activeCode) codeEditorManager.updateCodePanel(activeCode);
+
+                let newActiveRowCodeId = $(".code-row.active").attr("codeid");
+                if (newActiveRowCodeId !== oldActiveRowCodeId) {
+                    let newActiveRow = $(".code-row:last");
+                    newActiveRow.addClass('active');
+                }
+
+                codeEditorManager.activeCode = newActiveRowCodeId;
+                codeEditorManager.updateCodePanel(tempScheme.codes.get(codeEditorManager.activeCode));
+
+                /*
+                let activeCode = tempScheme.codes.get($(".code-row.active").attr("code-id"));
+                if (activeCode) {
+                    codeEditorManager.updateCodePanel(activeCode);
+                } else {
+                    // make a row active and update the code panel accordingly
+                    let newActiveRow = $(".code-row:last");
+                    newActiveRow.addClass('active');
+                    codeEditorManager.activeCode = newActiveRow.attr("code-id");
+                    codeEditorManager.updateCodePanel(tempScheme.codes.get(codeEditorManager.activeCode.id));
+                }
+                */
 
                 // update the activity stack
                 storage.saveActivity({
@@ -1167,6 +1208,121 @@ function initUI(dataset) {
         messagesTbody.append(tbody);
         messageViewerManager.messageContainer.scrollTop(previousScrollTop);
         activeRow = $("#" + previousActiveRow).addClass("active");
+    });
+
+    $("#submit").on("click", event => {
+        let regex = $('#regexModal-user-input').val();
+        if (regex && regex.length > 0) {
+            try {
+                let flags = "";
+                $(".form-check-input").each((index, checkbox) => {
+                    let flag = $(checkbox).attr("name");
+                    switch(flag) {
+                        case "case-insensitive":
+                            if ($(checkbox).prop("checked")) {
+                                flags += "i";
+                            }
+                            break;
+
+                        case "multi-line":
+                            if ($(checkbox).prop("checked")) {
+                                flags += "m";
+                            }
+                            break;
+
+                        case "sticky":
+                            if ($(checkbox).prop("checked")) {
+                                flags += "s";
+                            }
+                            break;
+
+                        case "unicode":
+                            if ($(checkbox).prop("checked")) {
+                                flags += "u";
+                            }
+                            break;
+                    }
+
+                });
+
+                flags += "g";
+
+                let regExp = new RegExp(regex, flags);
+                $("#regex-user").find("input").val(regExp);
+                tempScheme.codes.get(state.activeEditorRow).setRegexFromRegExpObj(regExp);
+                $("#regexModal").modal('hide');
+
+                // update the activity stack
+                storage.saveActivity({
+                    "category": "REGEX",
+                    "message": "Entered new regex",
+                    "messageDetails": {"scheme": tempScheme["id"], "code": state.activeEditorRow, "regex": regExp.source},
+                    "data": tempScheme.toJSON(),
+                    "timestamp": new Date()
+                });
+            } catch(e) {
+                $("#regex-input-error").text(e);
+                // update the activity stack
+                storage.saveActivity({
+                    "category": "REGEX",
+                    "message": "Invalid regex entered",
+                    "messageDetails": {"error": e},
+                    "data": tempScheme.toJSON(),
+                    "timestamp": new Date()
+                });
+            }
+        } else {
+            $("#regex-user").find("input").val("");
+            tempScheme.codes.get(state.activeEditorRow).clearRegex();
+            $("#regexModal").modal('hide');
+            // update the activity stack
+            storage.saveActivity({
+                "category": "REGEX",
+                "message": "Cleared custom regex",
+                "messageDetails": {"code": state.activeEditorRow ,"scheme": tempScheme["id"]},
+                "data": tempScheme.toJSON(),
+                "timestamp": new Date()
+            });
+        }
+    });
+
+    $("#regex-user").find(".input-group-btn").on("click", () => {
+        $("#regex-input-error").text("");
+        $(".modal-title").find("span").text(tempScheme.codes.get(state.activeEditorRow).value);
+
+        let regex = tempScheme.codes.get(state.activeEditorRow).regex;
+        $("#regexModal-user-input").val(regex && regex[0] ? regex[0] : "");
+
+        // set flags options
+        let checkBoxes = $("#regexModal").find(".form-check-input");
+        checkBoxes.each((index, checkbox) => {
+            let name = $(checkbox).prop("name");
+            switch(name) {
+                case "case-insensitive":
+                    $("checkbox").prop("checked", regex[1].indexOf("i") > -1);
+                    break;
+
+                case "multi-line":
+                    $("checkbox").prop("checked", regex[1].indexOf("m") > -1);
+                    break;
+
+                case "sticky":
+                    $("checkbox").prop("checked", regex[1].indexOf("s") > -1);
+                    break;
+
+                case "unicode":
+                    $("checkbox").prop("checked", regex[1].indexOf("c") > -1);
+                    break;
+            }
+        });
+
+        // try constructing the regex to see if what was loaded is valid!
+        try {
+            new RegExp(regex[0], regex[1]);
+        } catch (e) {
+            $("#regex-input-error").text(e);
+            //return false;
+        }
     });
 
     console.time("body.show()");

@@ -313,7 +313,7 @@ class Dataset {
             let scheme = schemes[schemeKey];
             if (scheme instanceof CodeScheme) {
                 // should never happen
-                console.log("Scheme object is a CodeScheme - shouldn't ever happen, bravo!");
+                console.log("Warning: Scheme object is a CodeScheme! (should be plain Object)");
                 this.schemes[schemeKey] = scheme;
             }
             else {
@@ -329,7 +329,7 @@ class Dataset {
              */
             if (eventToFix.decorations instanceof Map) {
                 // shouldn't be reached
-                console.log("Event decorations are a Map which shouldn't ever happen, bravo!");
+                console.log("Warning: Event decorations are a Map! (should be plain Object)");
                 for (let [key, deco] of eventToFix.decorations.entries()) {
                     let code = deco.code;
                     if (deco.owner == null && eventToFix instanceof RawEvent) {
@@ -777,7 +777,7 @@ class CodeScheme {
                     if (typeof code.owner == "string" || typeof code.owner == "number") {
                         code.owner = this;
                     }
-                    c.set(codeId, new Code(code.owner, code.id, code.value, code.color, code.shortcut, false));
+                    c.set(codeId, new Code(code.owner, code.id, code.value, code.color, code.shortcut, false, code.regex));
                     c.get(codeId).addWords(code.words);
                 });
                 this.codes = c;
@@ -862,9 +862,10 @@ class CodeScheme {
             if (this.codes.has(codeId)) {
                 let code = this.codes.get(codeId);
                 code.value = otherCodeObj.value;
-                code.words = otherCodeObj.words.slice(0); // todo take care to deep clone if necessary
+                code.words = otherCodeObj.words.slice(0);
                 code.color = otherCodeObj.color;
                 code.shortcut = otherCodeObj.shortcut;
+                code.setRegexFromArray(otherCodeObj.regex);
             }
             else {
                 this.codes.set(codeId, otherCodeObj);
@@ -933,7 +934,10 @@ class Code {
     get eventsWithCode() {
         return this._eventsWithCode;
     }
-    constructor(owner, id, value, color, shortcut, isEdited) {
+    get regex() {
+        return this._regex;
+    }
+    constructor(owner, id, value, color, shortcut, isEdited, regex) {
         this._owner = owner;
         this._id = id;
         this._value = value;
@@ -942,6 +946,20 @@ class Code {
         this._words = [];
         this._isEdited = isEdited;
         this._eventsWithCode = new Map();
+        if (regex && regex[0] && regex[0].length > 0) {
+            try {
+                let regEXP = new RegExp(regex[0], regex[1]);
+                this._regex = regex;
+            }
+            catch (e) {
+                console.log("Error: invalid regex given to Code constructor.");
+                console.log(e);
+                this._regex = ["", ""];
+            }
+        }
+        else {
+            this._regex = ["", ""];
+        }
     }
     toJSON() {
         let obj = Object.create(null);
@@ -951,6 +969,7 @@ class Code {
         obj.color = this.color;
         obj.shortcut = this.shortcut;
         obj.words = this.words;
+        obj.regex = this.regex && this.regex[0].length > 0 ? JSON.stringify(this.regex[0]) : []; // only export regex, not flags
         return obj;
     }
     set owner(value) {
@@ -1017,7 +1036,7 @@ class Code {
         return this;
     }
     static clone(original) {
-        let newCode = new Code(original["_owner"], original["_id"], original["_value"], original["_color"], original["_shortcut"], false);
+        let newCode = new Code(original["_owner"], original["_id"], original["_value"], original["_color"], original["_shortcut"], false, original["_regex"]);
         newCode._words = original["_words"].slice(0);
         return newCode;
     }
@@ -1033,6 +1052,19 @@ class Code {
     }
     removeEvent(event) {
         this._eventsWithCode.delete(event.name);
+    }
+    setRegexFromRegExpObj(regExp) {
+        if (regExp && regExp instanceof RegExp) {
+            this._regex = [regExp.source, regExp.flags];
+        }
+    }
+    setRegexFromArray(regex) {
+        if (regex && regex.length === 2) {
+            this._regex = regex;
+        }
+    }
+    clearRegex() {
+        this._regex = ["", ""];
     }
 }
 // Services

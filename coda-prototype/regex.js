@@ -38,6 +38,35 @@ var regexMatcher = {
 
         if (events == undefined || !events || events.size === 0) return null;
 
+        // only count text that appears more than once!
+        let eventCount = new Map();
+        for (let event of events.values()) {
+            let eventText = event["data"];
+            if (eventCount.has(eventText)) {
+                let currentCount = eventCount.get(eventText);
+                eventCount.set(eventText, currentCount++);
+            } else {
+                eventCount.set(eventText, 1);
+            }
+        }
+
+        let finalTexts = [];
+        for (let [eventText, textCount] of eventCount.entries()) {
+            if (textCount > 1) {
+                finalTexts.push(eventText);
+            }
+        }
+
+        if (finalTexts.length === 0) {
+            return null;
+        } else {
+            let regexedTexts = finalTexts.map(eventText => { return RegExp.escape(eventText);});
+            return new RegExp('^\s*(' + regexedTexts.join('|') + ')[\s]*$', 'ig');
+        }
+
+
+
+        /*
         let eventTexts = Array.from(events).map((event => { return event["data"]}));
         eventTexts.sort();
         eventTexts = eventTexts.filter((eventText, index) => {
@@ -48,20 +77,22 @@ var regexMatcher = {
         //return new RegExp('[\s]*(' + uniqueEventTexts.join('|') + ')[\s]*', 'ig');
 
         return new RegExp('^\s*(' + uniqueEventTexts.join('|') + ')[\s]*$', 'ig');
-
+        */
     },
 
-    codeEvent: function(eventObj, schemeId, eventWithCodeRegexes) {
+    codeEvent: function(eventObj, schemeId, regexesForEventsWithCodes) {
+
+        if (!eventObj) return;
 
         var codes = newDataset.schemes[schemeId].codes;
 
-        if (!eventWithCodeRegexes) {
-            eventWithCodeRegexes = {};
+        if (!regexesForEventsWithCodes) {
+            regexesForEventsWithCodes = {};
             for (let code of codes.entries()) {
                 // we only take manually coded events into account when full-text matching
                 // hence we only construct the regex at the beginning of recoding since we won't be overriding manual codings
                 // whereas automated ones might be changed as we go along
-                eventWithCodeRegexes[code[0]] = regexMatcher.generateFullTextRegex(code[1].eventsWithCode.values());
+                regexesForEventsWithCodes[code[0]] = regexMatcher.generateFullTextRegex(code[1].eventsWithCode);
             }
         }
 
@@ -79,7 +110,8 @@ var regexMatcher = {
          */
         for (let code of codes.entries()) {
 
-            var fullTextRegex = eventWithCodeRegexes[code[0]]; // regex from full message texts
+            var customRegexData = code[1]._regex;
+            var fullTextRegex = regexesForEventsWithCodes[code[0]]; // regex from full message texts
 
             if (fullTextRegex) {
                 let fullTextMatch = fullTextRegex.exec(eventObj.data + "");
@@ -92,36 +124,78 @@ var regexMatcher = {
                 }
             }
 
-            // if code has no words assigned
-            if (code[1].words.length === 0) continue;
-
-            // generate an OR regex of all words assigned
-            let regex = this.generateOrRegex(code[1].words);
-            if (regex === null) continue;
-
             let matchCount = new Map();
             let matches;
 
-            while (matches = regex.exec(eventObj.data + "")) {
+            if (customRegexData && customRegexData.length === 2 && customRegexData[0].length > 0) {
+                // match using custom user regex
 
-                if (matchCount.has(matches[1])) {
-                    let matchPosArr = matchCount.get(matches[1]);
-                    matchPosArr.push(matches.index);
-                } else {
-                    matchCount.set(matches[1], [matches.index]);
+                try {
+                    var customRegex;
+                    if (customRegexData[1].indexOf('g') === -1) {
+                        customRegex = new RegExp(customRegexData[0], customRegexData[1] + 'g');
+                    } else {
+                        customRegex = new RegExp(customRegexData[0], customRegexData[1]);
+                    }
+
+                    // MAKE SURE GLOBAL FLAG IS SET OTHERWISE LOOPING FOREVER!
+                    while (matches = customRegex.exec(eventObj.data + "")) {
+
+                        if (matchCount.has(matches[0])) { // zero holds the full match todo - do we care about groups
+                            let matchPosArr = matchCount.get(matches[0]);
+                            matchPosArr.push(matches.index);
+                        } else {
+                            matchCount.set(matches[0], [matches.index]);
+                        }
+                    }
+
+                    confidences.set(code[0], {
+                        "conf":regexMatcher.confidenceMatchLen(eventObj.data, matchCount),
+                        "isKeywordMatch":  false,
+                        "isFullTextMatch": false
+                    });
+
+                } catch (e) {
+                    console.log("Error: Can't construct custom user regex for Code " + code[0]);
+                    console.log(e);
+                    continue;
                 }
+
+            } else {
+
+                // if code has no words assigned
+                if (code[1].words.length === 0) continue;
+
+                // generate an OR regex of all words assigned
+                let regexFromWords = this.generateOrRegex(code[1].words);
+                if (regexFromWords === null) continue;
+
+                while (matches = regexFromWords.exec(eventObj.data + "")) {
+
+                    if (matchCount.has(matches[1])) {
+                        let matchPosArr = matchCount.get(matches[1]);
+                        matchPosArr.push(matches.index);
+                    } else {
+                        matchCount.set(matches[1], [matches.index]);
+                    }
+                }
+
+                confidences.set(code[0], {
+                    "conf":regexMatcher.confidenceMatchLen(eventObj.data, matchCount),
+                    "isKeywordMatch":  matchCount.size !== 0,
+                    "isFullTextMatch": false
+                });
             }
 
-            confidences.set(code[0], {
-                "conf":regexMatcher.confidenceMatchLen(eventObj.data, matchCount),
-                "isKeywordMatch":  matchCount.size !== 0,
-                "isFullTextMatch": false
-            });
             /*
             confidences.get(code[0]).isKeywordMatch = matchCount.size !== 0;
             confidences.get(code[0]).isFullTextMatch = false;
             */
         }
+
+        /*
+
+         */
 
         var maxConfEntry = null;
         for (let entry of confidences.entries()) {
@@ -132,28 +206,35 @@ var regexMatcher = {
         if (decoration) {
             let manual = (decoration.manual && decoration.manual != undefined) ? decoration.manual : false;
 
-            if (maxConfEntry && !manual) {
-                if (decoration.code) {
+            if (!manual) {
 
-                    if (maxConfEntry[1].conf === 0) {
-                        // no coding matches anymore, max confidence entry has confidence of 0!
-                        eventObj.uglify(schemeId);
-                    }
+                if (maxConfEntry) {
+                    if (decoration.code) {
 
-                    else if (codes.get(maxConfEntry[0]) !== decoration.code) {
-                        // override the current automatic code assignment
-                        eventObj.uglify(schemeId);
-                        eventObj.decorate(schemeId, false, UUID, codes.get(maxConfEntry[0]), maxConfEntry[1].conf);
-                    } else {
-                        // same code assignment, just different confidence
+                        if (maxConfEntry[1].conf === 0) {
+                            // no coding matches anymore, max confidence entry has confidence of 0!
+                            eventObj.uglify(schemeId);
+                        }
+
+                        else if (codes.get(maxConfEntry[0]) !== decoration.code) {
+                            // override the current automatic code assignment
+                            eventObj.uglify(schemeId);
+                            eventObj.decorate(schemeId, false, UUID, codes.get(maxConfEntry[0]), maxConfEntry[1].conf);
+                        } else {
+                            // same code assignment, just different confidence
+                            decoration.confidence = maxConfEntry[1].conf;
+                        }
+
+                    } else if (maxConfEntry[1].conf !== 0){
+                        // doesnt have a code yet, and there's an assignment higher than 0
                         decoration.confidence = maxConfEntry[1].conf;
+                        decoration.code = codes.get(maxConfEntry[0]);
+                        decoration.manual = false;
                     }
 
-                } else if (maxConfEntry[1].conf !== 0){
-                    // doesnt have a code yet, and there's an assignment higher than 0
-                    decoration.confidence = maxConfEntry[1].conf;
-                    decoration.code = codes.get(maxConfEntry[0]);
-                    decoration.manual = false;
+                } else {
+                    // has an automatic code but no matches anymore - not a fulltext one, not custom regex, not from words
+                    eventObj.uglify(schemeId);
                 }
             }
 
@@ -175,12 +256,20 @@ var regexMatcher = {
         var sortUtils = new SortUtils();
         var eventWithCodeRegexes = {};
         for (let code of codes.entries()) {
-            eventWithCodeRegexes[code[0]] = regexMatcher.generateFullTextRegex(code[1].eventsWithCode.values());
+            eventWithCodeRegexes[code[0]] = regexMatcher.generateFullTextRegex(code[1].eventsWithCode);
         }
 
+        if (newDataset.eventOrder.length === events.size) {
+            newDataset.eventOrder.forEach(eventKey => {
+                this.codeEvent(events.get(eventKey), schemeId, eventWithCodeRegexes);
+            });
+        }
+
+        /*
         for (let event of events.values()) {
             this.codeEvent(event, schemeId, eventWithCodeRegexes);
         }
+        */
         console.timeEnd("Coding dataset");
 
         storage.saveDataset(newDataset);
