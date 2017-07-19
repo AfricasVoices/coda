@@ -638,6 +638,22 @@ class RawEvent {
     decorationNames() {
         return Array.from(this.decorations.keys());
     }
+    isUncoded(schemeKeys) {
+        for (let schemeKey of schemeKeys) {
+            let hasValidCode = this.decorations.has(schemeKey) && this.decorations.get(schemeKey).code;
+            if (!hasValidCode)
+                return true;
+        }
+        return false;
+    }
+    firstUncodedScheme(schemeKeyOrder) {
+        for (let schemeKey of schemeKeyOrder) {
+            let hasValidCode = this.decorations.has(schemeKey) && this.decorations.get(schemeKey).code;
+            if (!hasValidCode)
+                return schemeKey;
+        }
+        return "";
+    }
     toJSON() {
         let obj = Object.create(null);
         obj.owner = this.owner;

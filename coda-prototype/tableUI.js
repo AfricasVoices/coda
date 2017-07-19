@@ -49,10 +49,12 @@ var messageViewerManager = {
     isProgramaticallyScrolling: false,
     sortUtils: new SortUtils(),
     currentSort: null,
+    firstScheme: "",
+    horizontal: true,
 
     init: function(messageContainer, data, rowsInTable) {
 
-        if (rowsInTable === undefined) rowsInTable = 40;
+        if (!rowsInTable) rowsInTable = 40;
         this.rowsInTable = rowsInTable;
 
         this.messageContainer = messageContainer;
@@ -60,8 +62,7 @@ var messageViewerManager = {
         this.lastLoadedPageIndex = 1;
         this.currentSort = this.sortUtils.restoreDefaultSort;
 
-        if (data == undefined) {
-
+        if (!data) {
             this.buildTable();
 
         } else {
@@ -231,14 +232,14 @@ var messageViewerManager = {
 
     buildTable: function(data, rowsPerPage, hasDataChanged) {
 
-        if (data == undefined) {
+        if (!data) {
 
             let tableTbody = messageViewerManager.table.find("tbody");
             tableTbody.append("<tr><td colspan='3'>Start by loading in data from Dataset menu</td></tr>");
             return;
         }
 
-        if (hasDataChanged === undefined) {
+        if (!hasDataChanged) {
             // checks if this is a result of UNDO/REDO action or new data was loaded in
             hasDataChanged = true;
         }
@@ -291,7 +292,11 @@ var messageViewerManager = {
         $(firstCol).find("i.scheme-name").addClass("active-scheme");
 
         $(appendedElement).find("i.scheme-name").on("click", event => {
-            messageViewerManager.changeActiveScheme(event);
+            let schemeHeaderContainer = $(event.target).parents("div.scheme-col"); // coding scheme header - container for buttons and name of particular scheme
+            let schemeId = schemeHeaderContainer.attr("scheme");
+            setTimeout(() => {
+                messageViewerManager.changeActiveScheme(schemeId);
+            }, 500);
         });
 
         appendedElement.find(".scheme-col").each((i,col) => {
@@ -414,18 +419,14 @@ var messageViewerManager = {
                         return;
                     }
 
-                    activeRow.toggleClass("active");
-
-
-                    // get next row and make it active
-                    activeRow = UIUtils.nextUnfilledRow(activeRow, true, activeSchemeId); // todo handle if have to load new page
-                    activeRow.toggleClass("active");
-
-
-                    var isVisible = UIUtils.isRowVisible(activeRow[0], messagePanel[0]);
-
-                    if (!isVisible) {
-                        UIUtils.scrollRowToTop(activeRow[0], messagePanel[0]);
+                    if (messageViewerManager.horizontal) {
+                        setTimeout(() => {
+                            messageViewerManager.horizontalCoding(activeRow.attr("eventid"));
+                        }, 500);
+                    } else {
+                        setTimeout(() => {
+                            messageViewerManager.verticalCoding(activeRow.attr("eventid"));
+                        }, 500);
                     }
                 }
 
@@ -438,82 +439,177 @@ var messageViewerManager = {
 
     },
 
-    changeActiveScheme: function(event) {
+    changeActiveScheme: function(schemeId) {
 
-        let schemeHeaderContainer = $(event.target).parents("div.scheme-col"); // coding scheme header - container for buttons and name of particular scheme
-        let headerDecorationColumn = $("#header-decoration-column"); // container for all the coding scheme headers
-        activeSchemeId = schemeHeaderContainer.attr("scheme");
-        headerDecorationColumn.find("i.scheme-name").removeClass("active-scheme");
-        $(event.target).addClass("active-scheme");
-        messageViewerManager.activeScheme = activeSchemeId;
+        if (!schemeId) {
+           /*
+           Circular
+            */
 
-        // 1. move header
-        headerDecorationColumn.find(".row").prepend(schemeHeaderContainer);
+            let nextActiveScheme = messageViewerManager.codeSchemeOrder[1];
+            let headerDecorationColumn = $("#header-decoration-column"); // container for all the coding scheme headers
 
+            let currentActiveSchemeHeaderContainer = headerDecorationColumn.find("div.scheme-col[scheme='" + messageViewerManager.activeScheme + "']");
+            let nextActiveSchemeHeaderContainer = headerDecorationColumn.find("div.scheme-col[scheme='" + nextActiveScheme + "']");
+            headerDecorationColumn.find("i.scheme-name").removeClass("active-scheme");
 
-        // 2. update scrollbar
-        var schemeObj = newDataset.schemes[activeSchemeId];
-        let thumbPos = scrollbarManager.getThumbPosition();
-        scrollbarManager.redraw(newDataset, activeSchemeId);
-        scrollbarManager.redrawThumb(thumbPos);
+            // push current one to the end of the list
+            headerDecorationColumn.find(".row").append(currentActiveSchemeHeaderContainer);
 
-        // TODO: INDICATE WHICH SORTING IS ACTIVE.... !!!!
+            // make the new top of list the active scheme
+            nextActiveSchemeHeaderContainer.find("i.scheme-name").addClass("active-scheme");
 
-        /*
-        1. Pass each row
-        2. In each row, pass each decoration column
-        3. In each decoration column: enable or disable the select field, enable or disable the checkbox, set or unset background and box-shadow
-         */
+            /*
+             1. Pass each row
+             2. In each row, pass each decoration column
+             3. In each decoration column: enable or disable the select field, enable or disable the checkbox, set or unset background and box-shadow
+             */
 
-        $(".message").each((i, tr) => {
-            var activeColumn = {};
-            var decoContainer  = {};
-            $(tr).find(".deco-container").each((i, col) => {
-                let schemeKey = $(col).attr("scheme");
-                var selectField = $(col).find("select");
-                var checkbox = $(col).find(".checkbox-manual");
+            $(".message").each((i, tr) => {
+                let activeColumn = {};
+                let decoContainer  = {};
+                $(tr).find(".deco-container").each((i, col) => {
+                    let schemeKey = $(col).attr("scheme");
+                    var selectField = $(col).find("select");
+                    var checkbox = $(col).find(".checkbox-manual");
 
-                if (schemeKey === activeSchemeId) {
-                    activeColumn = $(col);
-                    if (selectField.hasClass(activeSchemeId)) {
-                        selectField.removeAttr("disabled");
-                        let selectedOption = selectField.find("option:selected").not(".unassign"); // ignore 'empty' option
-                        if (selectedOption.length !== 0) {
-                            let color = schemeObj.codes.get(selectedOption.attr("id"))["color"];
-                            $(tr).children("td").each(function(i, td) {
-                                if ($(td).hasClass("message-text")) {
-                                    if (color && color.length !== 0 && color !== "#ffffff") {
-                                        $(td).css("box-shadow", "inset 0px 0px 0px 4px " + color);
+                    if (schemeKey === nextActiveScheme) {
+                        activeColumn = $(col);
+                        let schemeObj = newDataset.schemes[nextActiveScheme];
+
+                        if (selectField.hasClass(nextActiveScheme)) {
+                            selectField.removeAttr("disabled");
+                            let selectedOption = selectField.find("option:selected").not(".unassign"); // ignore 'empty' option
+                            if (selectedOption.length !== 0) {
+                                let color = schemeObj.codes.get(selectedOption.attr("id"))["color"];
+                                $(tr).children("td").each(function(i, td) {
+                                    if ($(td).hasClass("message-text")) {
+                                        if (color && color.length !== 0 && color !== "#ffffff") {
+                                            $(td).css("box-shadow", "inset 0px 0px 0px 4px " + color);
+                                        } else {
+                                            $(td).css("box-shadow", "");
+                                        }
                                     } else {
-                                        $(td).css("box-shadow", "");
+                                        $(td).css("background-color", color);
                                     }
-                                } else {
-                                    $(td).css("background-color", color);
-                                }
-                            });
-                        } else {
-                            $(tr).children("td").each(function(i, td) {
-                                $(td).css({"background-color":"#ffffff", "box-shadow": ""});
-                            });
+                                });
+                            } else {
+                                $(tr).children("td").each(function(i, td) {
+                                    $(td).css({"background-color":"#ffffff", "box-shadow": ""});
+                                });
+                            }
                         }
+
+                        checkbox.removeAttr("disabled");
+                        // NB No need to explicitly prepend as it already should be the first column!
+
+
+                    } else {
+                        $(selectField).attr("disabled", "");
+                        $(checkbox).attr("disabled", "");
+
+                        if (schemeKey === messageViewerManager.activeScheme) {
+                            activeColumn = $(col);
+                            $(tr).find(".decorator-column").append(activeColumn);
+                        }
+
                     }
-
-                    checkbox.removeAttr("disabled");
-
-                } else {
-                    $(selectField).attr("disabled", "");
-                    $(checkbox).attr("disabled", "");
-                }
+                });
             });
 
-            $(tr).find(".decorator-column").prepend(activeColumn);
+            let movedSchemeKey = messageViewerManager.codeSchemeOrder.splice(0, 1)[0]; // remove previous active scheme key
+            messageViewerManager.codeSchemeOrder.push(movedSchemeKey); // append it at the end
 
-        });
+            activeSchemeId = nextActiveScheme;
+            messageViewerManager.activeScheme = nextActiveScheme;
 
-        let indexOfScheme = messageViewerManager.codeSchemeOrder.indexOf(activeSchemeId);
-        let movedSchemeKey = messageViewerManager.codeSchemeOrder.splice(indexOfScheme, 1)[0]; // remove active scheme key
-        messageViewerManager.codeSchemeOrder.splice(0, 0, movedSchemeKey); // insert it at the beginning
+            let thumbPos = scrollbarManager.getThumbPosition();
+            scrollbarManager.redraw(newDataset, activeSchemeId);
+            scrollbarManager.redrawThumb(thumbPos);
 
+
+        } else {
+            /*
+            New scheme is pushed on top, the previous active one just moves one space down
+             */
+
+            let headerDecorationColumn = $("#header-decoration-column"); // container for all the coding scheme headers
+            headerDecorationColumn.find("i.scheme-name").removeClass("active-scheme");
+
+            let newActiveSchemeHeaderContainer = headerDecorationColumn.find("div.scheme-col[scheme='" + schemeId + "']");
+
+            newActiveSchemeHeaderContainer.find("i.scheme-name").addClass("active-scheme");
+            messageViewerManager.activeScheme = schemeId;
+            activeSchemeId = schemeId;
+
+            // 1. move header
+            headerDecorationColumn.find(".row").prepend(newActiveSchemeHeaderContainer);
+
+
+            // 2. update scrollbar
+            var schemeObj = newDataset.schemes[activeSchemeId];
+            let thumbPos = scrollbarManager.getThumbPosition();
+            scrollbarManager.redraw(newDataset, activeSchemeId);
+            scrollbarManager.redrawThumb(thumbPos);
+
+            // TODO: INDICATE WHICH SORTING IS ACTIVE.... !!!!
+
+            /*
+            1. Pass each row
+            2. In each row, pass each decoration column
+            3. In each decoration column: enable or disable the select field, enable or disable the checkbox, set or unset background and box-shadow
+             */
+
+            $(".message").each((i, tr) => {
+                var activeColumn = {};
+                var decoContainer  = {};
+                $(tr).find(".deco-container").each((i, col) => {
+                    let schemeKey = $(col).attr("scheme");
+                    var selectField = $(col).find("select");
+                    var checkbox = $(col).find(".checkbox-manual");
+
+                    if (schemeKey === activeSchemeId) {
+                        activeColumn = $(col);
+                        if (selectField.hasClass(activeSchemeId)) {
+                            selectField.removeAttr("disabled");
+                            let selectedOption = selectField.find("option:selected").not(".unassign"); // ignore 'empty' option
+                            if (selectedOption.length !== 0) {
+                                let color = schemeObj.codes.get(selectedOption.attr("id"))["color"];
+                                $(tr).children("td").each(function(i, td) {
+                                    if ($(td).hasClass("message-text")) {
+                                        if (color && color.length !== 0 && color !== "#ffffff") {
+                                            $(td).css("box-shadow", "inset 0px 0px 0px 4px " + color);
+                                        } else {
+                                            $(td).css("box-shadow", "");
+                                        }
+                                    } else {
+                                        $(td).css("background-color", color);
+                                    }
+                                });
+                            } else {
+                                $(tr).children("td").each(function(i, td) {
+                                    $(td).css({"background-color":"#ffffff", "box-shadow": ""});
+                                });
+                            }
+                        }
+
+                        checkbox.removeAttr("disabled");
+
+                    } else {
+                        $(selectField).attr("disabled", "");
+                        $(checkbox).attr("disabled", "");
+                    }
+                });
+
+                $(tr).find(".decorator-column").prepend(activeColumn);
+
+            });
+
+            let indexOfScheme = messageViewerManager.codeSchemeOrder.indexOf(activeSchemeId);
+            let movedSchemeKey = messageViewerManager.codeSchemeOrder.splice(indexOfScheme, 1)[0]; // remove active scheme key
+            messageViewerManager.codeSchemeOrder.splice(0, 0, movedSchemeKey); // insert it at the beginning
+            messageViewerManager.firstScheme = messageViewerManager.activeScheme;
+        }
     },
 
     undoHandler: function() {
@@ -586,6 +682,7 @@ var messageViewerManager = {
         var codeObj = newDataset.schemes[schemeId].getCodeByValue(value);
 
         if (value.length > 0) {
+            // CODED
 
             // add decoration
             let decoration = eventObj.decorationForName(schemeId);
@@ -636,7 +733,10 @@ var messageViewerManager = {
             regexMatcher.wrapElement(eventObj, regexMatcher.generateOrRegex(codeObj.words), codeObj.id);
 
 
+
+
         } else {
+            // UNCODED
 
             // remove code from event in data structure
             eventObj.uglify(schemeId);
@@ -673,60 +773,49 @@ var messageViewerManager = {
         and effectively 'hide' to a place that the user can't predict
          */
 
-        if (messageViewerManager.currentSort !== messageViewerManager.sortUtils.restoreDefaultSort && value.length > 0) {
+        if (!messageViewerManager.horizontal) {
 
-            if (messageViewerManager.currentSort === messageViewerManager.sortUtils.sortEventsByConfidenceOnly) {
-                newDataset.sortEventsByConfidenceOnly(schemeId);
-            }
-            if (messageViewerManager.currentSort === messageViewerManager.sortUtils.sortEventsByScheme) {
-                newDataset.sortEventsByScheme(schemeId, true);
-            }
+            if (messageViewerManager.currentSort !== messageViewerManager.sortUtils.restoreDefaultSort && value.length > 0) {
 
-            /*
-             redraw body
-             */
-            let tbody = "";
-            let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-
-            let iterationStop = messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventOrder.length ? newDataset.eventOrder.length : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
-
-            for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < iterationStop; i++) {
-                let eventKey = newDataset.eventOrder[i];
-                tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
-            }
-
-            $(messageViewerManager.table.find("tbody").empty()).append(tbody);
-            // todo adjust scroll offset appropriately!
-
-            /*
-             refresh scrollbar
-             */
-            var thumbPos = scrollbarManager.getThumbPosition();
-            scrollbarManager.redraw(newDataset, activeSchemeId);
-            scrollbarManager.redrawThumb(thumbPos);
-
-            /*
-             get new active row
-             */
-            let activeRowId = activeRow.attr("id"); // active row element is stale since tbody has been redrawn, so need to get the new copy
-            activeRow = $("#" + activeRowId);
-            var next = UIUtils.nextUnfilledRow(activeRow, true, activeSchemeId);
-            if (next.length !== 0) {
-                activeRow.removeClass('active');
-                activeRow = next.addClass('active');
-
-                if (!UIUtils.isRowVisible(next[0], messageViewerManager.messageContainer[0])) {
-                    UIUtils.scrollRowToTop(next[0], messageViewerManager.messageContainer[0]);
+                if (messageViewerManager.currentSort === messageViewerManager.sortUtils.sortEventsByConfidenceOnly) {
+                    newDataset.sortEventsByConfidenceOnly(schemeId);
+                }
+                if (messageViewerManager.currentSort === messageViewerManager.sortUtils.sortEventsByScheme) {
+                    newDataset.sortEventsByScheme(schemeId, true);
                 }
 
-            } else {
-                // handle behaviour when there are no unfilled rows... just proceed to next row
-                activeRow.removeClass('active');
-                activeRow = activeRow.next().addClass('active');
-                if (!UIUtils.isRowVisible(next[0], messageViewerManager.messageContainer[0])) {
-                    UIUtils.scrollRowToTop(next[0], messageViewerManager.messageContainer[0]);
+                /*
+                 redraw body
+                 */
+                let tbody = "";
+                let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
+
+                let iterationStop = messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventOrder.length ? newDataset.eventOrder.length : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
+
+                for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < iterationStop; i++) {
+                    let eventKey = newDataset.eventOrder[i];
+                    tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
                 }
+
+                $(messageViewerManager.table.find("tbody").empty()).append(tbody);
+                // todo adjust scroll offset appropriately!
+
+                /*
+                 refresh scrollbar
+                 */
+                var thumbPos = scrollbarManager.getThumbPosition();
+                scrollbarManager.redraw(newDataset, activeSchemeId);
+                scrollbarManager.redrawThumb(thumbPos);
             }
+
+            setTimeout(() => {
+                messageViewerManager.verticalCoding(eventId);
+            }, 500);
+
+        } else {
+            setTimeout(() => {
+                messageViewerManager.horizontalCoding(eventId);
+            }, 750);
         }
 
         undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
@@ -956,7 +1045,11 @@ var messageViewerManager = {
         $(".edit-scheme-button").tooltip();
 
         $(appendedElement).find("i.scheme-name").on("click", event => {
-            messageViewerManager.changeActiveScheme(event);
+            let schemeHeaderContainer = $(event.target).parents("div.scheme-col"); // coding scheme header - container for buttons and name of particular scheme
+            let schemeId = schemeHeaderContainer.attr("scheme");
+            setTimeout(() => {
+                messageViewerManager.changeActiveScheme(schemeId);
+            }, 500);
         });
 
         appendedElement.find(".scheme-col").each((i,col) => {
@@ -1011,7 +1104,11 @@ var messageViewerManager = {
 
         // set up all listeners for header again
         $(appendedElement).find("i.scheme-name").on("click", event => {
-            messageViewerManager.changeActiveScheme(event);
+            let schemeHeaderContainer = $(event.target).parents("div.scheme-col"); // coding scheme header - container for buttons and name of particular scheme
+            let schemeId = schemeHeaderContainer.attr("scheme");
+            setTimeout(() => {
+                messageViewerManager.changeActiveScheme(schemeId);
+            }, 500);
         });
 
         appendedElement.find(".scheme-col").each((i,col) => {
@@ -1140,25 +1237,14 @@ var messageViewerManager = {
                 let decoColumn = activeRow.find(".deco-container[scheme='" + activeSchemeId + "']");
                 decoColumn.find(".checkbox-manual").prop("checked", true);
 
-                //undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
-
-                // get new active row
-                var next = UIUtils.nextUnfilledRow(activeRow, true, activeSchemeId);
-                if (next.length !== 0 && next !== activeRow) {
-                    activeRow.removeClass('active');
-                    activeRow = next.addClass('active');
-
-                    if (!UIUtils.isRowVisible(next[0], messageViewerManager.messageContainer[0])) {
-                        UIUtils.scrollRowToTop(next[0], messageViewerManager.messageContainer[0]);
-                    }
-
+                if (messageViewerManager.horizontal) {
+                    setTimeout(() => {
+                        messageViewerManager.horizontalCoding(eventId);
+                    }, 750);
                 } else {
-                    // handle behaviour when there are no unfilled rows... just proceed to next row
-                    activeRow.removeClass('active');
-                    activeRow = activeRow.next().addClass('active');
-                    if (!UIUtils.isRowVisible(next[0], messageViewerManager.messageContainer[0])) {
-                        UIUtils.scrollRowToTop(next[0], messageViewerManager.messageContainer[0]);
-                    }
+                    setTimeout(() => {
+                        messageViewerManager.verticalCoding(eventId);
+                    }, 500);
                 }
 
                 // update the activity stack
@@ -1173,19 +1259,165 @@ var messageViewerManager = {
         }
     },
 
-    createPageHTML: function(index) {
-
-        var tbody = "";
-
-        const halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-        let stoppingCondition = (index * halfPage + halfPage > newDataset.eventOrder.length) ? newDataset.eventOrder.length : index * halfPage + halfPage;
-
-        for (let i = index * halfPage; i < stoppingCondition; i++) {
-            let eventKey = newDataset.eventOrder[i];
-            tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
+    verticalCoding: function(eventId) {
+        /*
+        get new active row, keeping the active scheme
+        N.B. will wrap if no uncoded events are found between eventId and end of list
+        */
+        let currentRow = $("#" + eventId);
+        let nextEventId;
+        let nextEventRow = null;
+        let currentEventIndex = newDataset.eventOrder.indexOf(eventId);
+        if (currentEventIndex+1 < newDataset.eventOrder.length) {
+            for (let i = currentEventIndex+1; i < newDataset.eventOrder.length; i++) {
+                let eventObj = newDataset.events.get(newDataset.eventOrder[i]);
+                let deco = eventObj.decorations.get(messageViewerManager.activeScheme);
+                if (!deco || !deco.code) {
+                    nextEventId = eventObj.name;
+                    break;
+                }
+            }
         }
 
-       return tbody;
+        if (!nextEventId) {
+            for (let i = 0; i < currentEventIndex+1; i++) {
+                let eventObj = newDataset.events.get(newDataset.eventOrder[i]);
+                let deco = eventObj.decorations.get(messageViewerManager.activeScheme);
+                if (!deco || !deco.code) {
+                    nextEventId = eventObj.name;
+                    break;
+                }
+            }
+        }
+
+        if (nextEventId) {
+            nextEventRow = messageViewerManager.bringEventIntoView(nextEventId);
+        } else {
+            nextEventRow = messageViewerManager.bringEventIntoView(newDataset.events.get(newDataset.eventOrder[currentEventIndex+1]));
+        }
+
+        return nextEventRow;
+    },
+
+    horizontalCoding: function(eventId) {
+
+        // switch to next active scheme: next uncoded column
+        let eventObj = newDataset.events.get(eventId);
+        let nextScheme = eventObj.firstUncodedScheme(messageViewerManager.codeSchemeOrder);
+        if (nextScheme.length > 0) {
+            // pass the columns until reaching this scheme
+            let immutableSchemeOrder = messageViewerManager.codeSchemeOrder.slice();
+            for (let schemeKey of immutableSchemeOrder) {
+                if (schemeKey === nextScheme) {
+                    break;
+                } else {
+                    messageViewerManager.changeActiveScheme();
+                }
+            }
+
+        } else {
+            // go to next uncoded event
+            let nextEventIndex = newDataset.eventOrder.indexOf(eventId);
+            let uncodedScheme = "";
+            while (uncodedScheme.length === 0 && nextEventIndex < newDataset.eventOrder.length) {
+                nextEventIndex++;
+                let nextEventObj = newDataset.events.get(newDataset.eventOrder[nextEventIndex]);
+                uncodedScheme = nextEventObj.firstUncodedScheme(messageViewerManager.codeSchemeOrder);
+                console.log(uncodedScheme);
+            }
+
+            if (uncodedScheme.length !== 0) {
+                //change active row & active scheme to first scheme
+                let newActiveEvent = newDataset.events.get(newDataset.eventOrder[nextEventIndex]);
+                let eventRow = messageViewerManager.bringEventIntoView(newActiveEvent.name);
+
+                if (eventRow && eventRow.length > 0) {
+                    // change active scheme!
+                    let immutableCodeSchemeOrder = messageViewerManager.codeSchemeOrder.slice();
+                    for (let scheme of immutableCodeSchemeOrder) {
+                        if (scheme === uncodedScheme) {
+                            break;
+                        } else {
+                            messageViewerManager.changeActiveScheme();
+                        }
+                    }
+                } else {
+                    // something went wrong with bringing event in
+                    console.log("WARNING: Event with id " + eventId + " not found in table");
+                }
+
+            } else {
+                // everything from here is coded
+                console.log("NO EVENT UNCODED");
+            }
+        }
+
+        // active row element is stale since tbody has been redrawn, so need to get the new copy
+        let activeRowId = activeRow.attr("id");
+        activeRow = $("#" + activeRowId);
+        activeRow.find("select." + messageViewerManager.activeScheme).focus();
+    },
+
+    bringEventIntoView: function(eventId) {
+        let eventRow = $(".message[eventid='" + eventId + "']");
+        let eventIndex = newDataset.eventOrder.indexOf(eventId);
+        activeRow.removeClass('active');
+
+        if (!eventRow || eventRow.length === 0) {
+            // this event is not loaded in the table
+            // 1. find out what page of events it's in
+            // 2. load the appropriate pair of pages in
+
+            let pageIndex = Math.floor(eventIndex / Math.floor(messageViewerManager.rowsInTable / 2));
+
+            // load in pages at index pageIndex & pageIndex-1 except if pageIndex-1 is out of range!
+            let tbody = "";
+            if (pageIndex === 0) {
+                // load 0th and 1st
+                tbody += messageViewerManager.createPageHTML(0);
+                tbody += messageViewerManager.createPageHTML(1);
+                messageViewerManager.lastLoadedPageIndex = 1;
+
+            } else {
+                tbody += messageViewerManager.createPageHTML(pageIndex-1);
+                tbody += messageViewerManager.createPageHTML(pageIndex);
+                messageViewerManager.lastLoadedPageIndex = pageIndex;
+
+            }
+
+            let currentTbody = messageViewerManager.table.find("tbody");
+            currentTbody.empty();
+            currentTbody.append(tbody);
+
+            eventRow = $(".message[eventid='" + eventId + "']");
+
+            if (eventRow) {
+                eventRow.addClass('active');
+                activeRow = eventRow;
+
+                if (!UIUtils.isRowVisible(eventRow[0], messageViewerManager.messageContainer[0])) {
+                    messageViewerManager.isProgramaticallyScrolling = true;
+                    UIUtils.scrollRowToTop(eventRow[0], messageViewerManager.messageContainer[0]);
+                    messageViewerManager.isProgramaticallyScrolling = false;
+                }
+
+                scrollbarManager.redrawThumbAtEvent(eventIndex);
+
+            }
+
+        } else {
+            eventRow.addClass('active');
+            activeRow = eventRow;
+
+            if (!UIUtils.isRowVisible(eventRow[0], messageViewerManager.messageContainer[0])) {
+                UIUtils.scrollRowToTop(eventRow[0], messageViewerManager.messageContainer[0]);
+            }
+            scrollbarManager.redrawThumbAtEvent(eventIndex);
+        }
+
+        let selectField = eventRow.find("select." + messageViewerManager.activeScheme);
+        selectField.focus();
+        return eventRow;
     },
 
     infiniteScroll : function(event) {
@@ -1295,18 +1527,31 @@ var messageViewerManager = {
         }
     },
 
+    createPageHTML: function(index) {
+
+        var tbody = "";
+
+        const halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
+        let stoppingCondition = (index * halfPage + halfPage > newDataset.eventOrder.length) ? newDataset.eventOrder.length : index * halfPage + halfPage;
+
+        for (let i = index * halfPage; i < stoppingCondition; i++) {
+            let eventKey = newDataset.eventOrder[i];
+            tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
+        }
+
+        return tbody;
+    },
+
     buildRow: function(eventObj, eventIndex, sessionIndex) {
 
         var decoNumber = Object.keys(newDataset.schemes).length;
         var decoColumnWidth = (12/decoNumber>>0);
         var sessionRow = "";
-        if (eventObj === undefined) {
+
+        if (!eventObj) {
             console.log("undefined");
         }
 
-        if (eventObj === undefined) {
-            console.log(eventObj);
-        }
         var activeDecoration = eventObj["decorations"].get(activeSchemeId);
         var rowColor = "#ffffff";
         var eventText = eventObj["data"];
@@ -1356,7 +1601,7 @@ var messageViewerManager = {
 
     collectWords : function(element) {
 
-        if ($(element).prop("tagName") == "TD") {
+        if ($(element).prop("tagName") === "TD") {
 
             let highlightContext = $(element);
             var sessionId = $(element).closest('tr').attr("sessionid");

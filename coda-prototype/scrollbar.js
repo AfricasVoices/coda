@@ -321,6 +321,13 @@ var scrollbarManager = {
 
     },
 
+    redrawThumbAtEvent(eventIndex) {
+
+        let indexToPixel = Math.floor(eventIndex / scrollbarManager.subsamplingNum);
+        scrollbarManager.redrawThumb(indexToPixel);
+
+    },
+
     redrawThumb : function(ycoord) {
         let scrollthumbLayer = this.scrollThumb.getLayer(0);
         if (ycoord < 2) ycoord = 2;

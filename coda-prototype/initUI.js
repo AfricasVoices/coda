@@ -1160,6 +1160,14 @@ function initUI(dataset) {
         });
     });
 
+    $("#horizontal-coding").on("click", () => {
+        messageViewerManager.horizontal = true;
+    });
+
+    $("#vertical-coding").on("click", () => {
+        messageViewerManager.horizontal = false;
+    });
+
     $("#code-now-button").on("click", () => {
 
         // code and re-sort dataset

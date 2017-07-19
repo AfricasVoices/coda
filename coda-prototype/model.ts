@@ -748,6 +748,23 @@ class RawEvent {
         return Array.from(this.decorations.keys());
     }
 
+    isUncoded(schemeKeys : Array<string>) : boolean {
+        for (let schemeKey of schemeKeys) {
+            let hasValidCode = this.decorations.has(schemeKey) && this.decorations.get(schemeKey).code;
+            if (!hasValidCode) return true;
+        }
+
+        return false;
+    }
+
+    firstUncodedScheme(schemeKeyOrder: Array<string>) : string {
+        for (let schemeKey of schemeKeyOrder) {
+            let hasValidCode = this.decorations.has(schemeKey) && this.decorations.get(schemeKey).code;
+            if (!hasValidCode) return schemeKey;
+        }
+        return "";
+    }
+
 
     toJSON() :{} {
 
