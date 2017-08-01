@@ -85,7 +85,7 @@ var codeEditorManager =  {
             }
         }, 1000, false);
 
-        $('#color-pick').colorpicker({component: $("#colorpicker-trigger")});
+        $('#color-pick').colorpicker({component: $("#colorpicker-trigger"), container:editorContainer});
         $('#color-pick').on("changeColor", function(event) {
 
             if (state.activeEditorRow && state.activeEditorRow.length > 0) {
@@ -99,17 +99,29 @@ var codeEditorManager =  {
             $("#word-textarea").find(".tag").css({"background-color": event.color.toHex()});
             logColorChange(code, event.color); // will only run every N ms in order not to flood the activity log
         });
+        $("#color-pick").on("showPicker", (event) => {
+            $(".colorpicker").offset({top:511, left:1080 + $("body").scrollLeft()});
+        });
+
+        $("#code-details-panel").on("scroll", () => {
+            $("#color-pick").focusout(); // to hide it
+        });
 
         $("#delete-scheme-button").on("click", () => {
            let nextActiveSchemeId = codeEditorManager.deleteScheme(tempScheme.id + "");
            activeSchemeId = nextActiveSchemeId;
+           messageViewerManager.activeScheme = nextActiveSchemeId;
+
            codeEditorManager.editorContainer.hide();
            codeEditorManager.editorContainer.find("tbody").empty();
            codeEditorManager.bindAddCodeButtonListener();
            codeEditorManager.editorContainer.find("#scheme-name-input").val("");
            editorOpen = false;
 
-           // update the activity stack
+           messageViewerManager.resizeViewport();
+
+
+            // update the activity stack
            storage.saveActivity({
                "category": "SCHEME",
                "message": "Deleted scheme",
@@ -174,9 +186,6 @@ var codeEditorManager =  {
                     }
                 });
 
-                // todo prevent saving when there is an empty code
-
-
                 let validation = CodeScheme.validateScheme(tempScheme);
                 var hasError = false;
 
@@ -198,8 +207,9 @@ var codeEditorManager =  {
                         .removeClass("has-error");
                 }
 
+                let codeTable = $("#code-table");
                 // turn on error on the right shortcut field(s)
-                $("#code-table").find(".code-row").each((index, codeRow) => {
+                codeTable.find(".code-row").each((index, codeRow) => {
                     let codeId = $(codeRow).attr("codeid");
                     if (validation.invalidShortcuts.indexOf(codeId) > -1) {
                         $(codeRow).find(".feedback-input-field.shortcut")
@@ -217,7 +227,7 @@ var codeEditorManager =  {
                 });
 
                 // turn on error on the right code value field(s)
-                $("#code-table").find(".code-row").each((index, codeRow) => {
+                codeTable.find(".code-row").each((index, codeRow) => {
                     let codeId = $(codeRow).attr("codeid");
                     if (validation.invalidValues.indexOf(codeId) > -1) {
                         $(codeRow).find(".feedback-input-field.code")
@@ -246,12 +256,11 @@ var codeEditorManager =  {
                     .removeClass("has-error");
 
                 newDataset.schemes[newId] = tempScheme;
-                messageViewerManager.codeSchemeOrder.push(newId + "");
+                messageViewerManager.codeSchemeOrder = [newId+""].concat(messageViewerManager.codeSchemeOrder);
+                activeSchemeId = newId + "";
+                messageViewerManager.activeScheme = newId + "";
 
                 messageViewerManager.addNewSchemeColumn(tempScheme, name);
-
-                var header = headerDecoColumn.find("[scheme='" + tempScheme["id"] + "']");
-                header.children("i").text(tempScheme["name"]);
 
                 undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
 
@@ -264,6 +273,8 @@ var codeEditorManager =  {
                 $(scrollbarManager.scrollbarEl).drawLayers();
                 editorOpen = false;
                 tempScheme = {};
+                messageViewerManager.resizeViewport();
+
             });
 
             $(editorContainer).show();
@@ -273,10 +284,9 @@ var codeEditorManager =  {
 
     },
 
-    bindSaveEditListener: function() {
+    bindSaveEditListener: function(header) {
         var editorContainer = this.editorContainer;
         var saveSchemeButton = this.saveSchemeButton;
-        var headerDecoColumn = $("#header-decoration-column");
 
         saveSchemeButton.off("click");
         saveSchemeButton.on("click", function () {
@@ -367,8 +377,7 @@ var codeEditorManager =  {
                 .removeClass("has-error");
 
             // update header in message view
-            var header = headerDecoColumn.find("[scheme='" + tempScheme["id"] + "']");
-            header.find("i.scheme-name").text(tempScheme["name"]);
+            header.find(".scheme-name").text(tempScheme["name"]);
 
             // update the original scheme
             newDataset.schemes[tempScheme["id"]].copyCodesFrom(tempScheme);
@@ -376,13 +385,13 @@ var codeEditorManager =  {
             // code and re-sort dataset
             regexMatcher.codeDataset(tempScheme["id"]);
             //newDataset.events = messageViewerManager.currentSort(newDataset.events, tempScheme, true);
-            if (messageViewerManager.currentSort == messageViewerManager.sortUtils.sortEventsByConfidenceOnly) {
+            if (messageViewerManager.currentSort === messageViewerManager.sortUtils.sortEventsByConfidenceOnly) {
                 newDataset.sortEventsByConfidenceOnly(tempScheme["id"]);
             }
-            if (messageViewerManager.currentSort == messageViewerManager.sortUtils.sortEventsByScheme) {
+            if (messageViewerManager.currentSort === messageViewerManager.sortUtils.sortEventsByScheme) {
                 newDataset.sortEventsByScheme(tempScheme["id"], true);
             }
-            if (messageViewerManager.currentSort == messageViewerManager.sortUtils.restoreDefaultSort) {
+            if (messageViewerManager.currentSort === messageViewerManager.sortUtils.restoreDefaultSort) {
                 newDataset.restoreDefaultSort();
             }
 
@@ -397,29 +406,44 @@ var codeEditorManager =  {
             });
 
             // redraw rows
-            var tbody = "";
+            let messageTableTbody = "";
+            let decoTableTbody = "";
 
             let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-            for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex * halfPage + halfPage; i++) {
+            let stoppingCondition = (messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventOrder.length) ? newDataset.eventOrder.length : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
+            for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < stoppingCondition; i++) {
                 let eventKey = newDataset.eventOrder[i];
-                tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
+                messageTableTbody += messageViewerManager.buildMessageTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.activeScheme);
+                decoTableTbody += messageViewerManager.buildDecorationTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.codeSchemeOrder.slice(1));
             }
+
+            let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
+            let decoTableTbodyElement = messageViewerManager.decorationTable.find("tbody");
+            let previousScrollTop = messageViewerManager.messageContainer.scrollTop();
+            let previousActiveRow = activeRow.attr("eventid");
+
+            messageTableTbodyElement.empty();
+            decoTableTbodyElement.empty();
+
+            let messageRows = $(messageTableTbody).prependTo(messageTableTbodyElement);
+            let decoRows = $(decoTableTbody).prependTo(decoTableTbodyElement);
+
+            for (let i = 0; i < messageRows.length; i++) {
+                // need to adjust heights so rows match in each table
+                let outerHeight = $(messageRows[i]).outerHeight();
+                $(decoRows[i]).outerHeight(outerHeight);
+            }
+
+            messageViewerManager.messageContainer.scrollTop(previousScrollTop);
+            activeRow = messageTableTbodyElement.find("tr[eventid='" + previousActiveRow + "']").addClass("active");
 
             // redraw scrollbar
             const thumbPosition = scrollbarManager.getThumbPosition();
             scrollbarManager.redraw(newDataset, tempScheme["id"]);
             scrollbarManager.redrawThumb(thumbPosition);
 
-            var messagesTbody = messageViewerManager.messageContainer.find("tbody");
-            var previousScrollTop = messageViewerManager.messageContainer.scrollTop();
-            var previousActiveRow = activeRow.attr("id");
-
-            messagesTbody.empty();
-            messagesTbody.append(tbody);
-            messageViewerManager.messageContainer.scrollTop(previousScrollTop);
-            activeRow = $("#" + previousActiveRow).addClass("active");
-
-            header.find("i.scheme-name").trigger("click"); // will make it active column
+            // make it active scheme
+            header.find(".scheme-name").trigger("click");
 
             undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
 
@@ -428,6 +452,7 @@ var codeEditorManager =  {
             codeEditorManager.bindAddCodeButtonListener();
             editorContainer.find("#scheme-name-input").val("");
             editorOpen = false;
+            messageViewerManager.resizeViewport();
 
         });
     },
@@ -492,7 +517,7 @@ var codeEditorManager =  {
 
     bindAddCodeButtonListener: function() {
 
-        var addCodeInputRow = codeEditorManager.addCodeInputRow;
+        let addCodeInputRow = codeEditorManager.addCodeInputRow;
 
         this.editorContainer.find("tbody").append('<tr class="row add-code-row">' +
             '<td class="col-md-6">' +
@@ -523,7 +548,7 @@ var codeEditorManager =  {
 
         var bindInputListeners = codeEditorManager.bindInputListeners;
         var codeObject;
-        if (!color ||color == undefined) color = "#ffffff";
+        if (!color) color = "#ffffff";
 
         var newId = id;
         if (id.length === 0) {
@@ -783,15 +808,17 @@ var codeEditorManager =  {
     },
 
     deleteScheme: function(schemeId) {
-        let schemeSnapshot = newDataset.schemes[schemeId];
-        let nextSchemeId;
+        let schemeSnapshot = CodeScheme.clone(newDataset.schemes[schemeId]);
 
         // delegate uglifying to datastructure
         newDataset.deleteScheme(schemeId);
         delete schemes[schemeId];
 
+        // remove from scheme order
         let schemeOrderIndex = messageViewerManager.codeSchemeOrder.indexOf(schemeId);
         if (schemeOrderIndex > -1) messageViewerManager.codeSchemeOrder.splice(schemeOrderIndex, 1);
+        activeSchemeId = messageViewerManager.codeSchemeOrder[0];
+        messageViewerManager.activeScheme = messageViewerManager.codeSchemeOrder[0];
 
         if (Object.keys(newDataset.schemes).length === 0) {
             // create new default coding scheme
@@ -800,8 +827,9 @@ var codeEditorManager =  {
             newDataset.schemes[newScheme.id] = newScheme;
 
             messageViewerManager.codeSchemeOrder.push(newScheme.id + "");
-            messageViewerManager.addNewSchemeColumn(newScheme);
-            schemeId = newScheme.id;
+            messageViewerManager.addNewActiveScheme(newScheme.id);
+            schemeId = newScheme.id + "";
+            messageViewerManager.activeScheme = newScheme.id + "";
 
             // save for UNDO and in storage
             undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);

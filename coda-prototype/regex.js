@@ -278,7 +278,7 @@ var regexMatcher = {
     generateOrRegex: function (wordArray) {
 
         console.time("Generate or regex");
-        if (wordArray.length == 0 || wordArray == null) return null;
+        if (!wordArray || wordArray.length === 0) return null;
         let filtered = wordArray.filter(word => {return word.length > 0});
         console.time("generate or regex");
         return new RegExp('[\\s]*[\#]?\\b(' + filtered.join('|') + ')[\.\,\-\?\)\]*[\\s]*', 'ig');
@@ -329,12 +329,12 @@ var regexMatcher = {
 
     wrapElement: function (eventObj, regex, codeId) {
 
-        if (regex == null || regex == undefined) return;
+        if (!regex || regex.length === 0 || !eventObj || !codeId || codeId.length === 0) return;
         let matches;
         let matchCount = new Map();
 
         // event object matching this text
-        var eventEl = $("#" + eventObj.name).find(".message-text");
+        var eventEl = $(".message-row[eventid='" + eventObj.name + "']").find(".message-text");
         while (matches = regex.exec(eventObj.data + "")) {
 
             if (matchCount.has(matches[0])) {
@@ -349,7 +349,7 @@ var regexMatcher = {
             let newNode = textNode.splitText(matches[0].length);
             let newSpan = document.createElement("span");
             newSpan.setAttribute("class", "highlight");
-            if (codeId != undefined) newSpan.setAttribute("codeid", codeId);
+            newSpan.setAttribute("codeid", codeId);
             newSpan.textContent = textNode.textContent;
             textNode.parentNode.replaceChild(newSpan, textNode);
 

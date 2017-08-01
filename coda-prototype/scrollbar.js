@@ -64,8 +64,8 @@ var scrollbarManager = {
 
         $("body").hide();
 
+        //this.subsamplingNum = Math.ceil(newDataset.eventOrder.length/(scrollbarEl.height-4));
         this.subsamplingNum = Math.floor(newDataset.eventOrder.length/(scrollbarEl.height-4));
-
 
         $("#scrollbar").drawRect({
             //strokeStyle: '#ddd',
@@ -294,9 +294,7 @@ var scrollbarManager = {
 
     scrolling : function(scrollthumbLayer) {
 
-        var thumbMid = scrollthumbLayer.y + scrollbarManager.thumbWidth + Math.floor(scrollbarManager.thumbHeight/2); // for stroke width of the scrollthumb
-        var pageSize = messageViewerManager.rowsInTable;
-        var rowsPerPixel = scrollbarManager.subsamplingNum;
+        let thumbMid = scrollthumbLayer.y + scrollbarManager.thumbWidth + Math.floor(scrollbarManager.thumbHeight/2); // for stroke width of the scrollthumb
 
         // todo need to take scaling into account
         let percentage = scrollthumbLayer.y + scrollbarManager.thumbWidth === 6 ? 0 : Math.round(((thumbMid - 10) / (scrollbarManager.scrollbarEl.height-20) * 100 )) / 100; // force it to 0 if top is 6px displaced, 2px for border, 4px for scrollthumb
@@ -308,14 +306,29 @@ var scrollbarManager = {
             pagesToLoad = pagesToLoad-2;
         }
 
-        var page1 = messageViewerManager.createPageHTML(pagesToLoad);
-        var page2 = messageViewerManager.createPageHTML(pagesToLoad+1);
+        let messageTablePage1 = messageViewerManager.createMessagePageHTML(pagesToLoad);
+        let messageTablePage2 = messageViewerManager.createMessagePageHTML(pagesToLoad+1);
+        let decoTablePage1 = messageViewerManager.createDecorationPageHTML(pagesToLoad);
+        let decoTablePage2 = messageViewerManager.createDecorationPageHTML(pagesToLoad+1);
         messageViewerManager.lastLoadedPageIndex = pagesToLoad + 1;
 
-        var tbodyElement = messageViewerManager.table.find("tbody");
-        tbodyElement.empty();
-        tbodyElement.append(page1);
-        tbodyElement.append(page2);
+        let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
+        let decoTableTbodyElement = messageViewerManager.decorationTable.find("tbody");
+
+        messageTableTbodyElement.empty();
+        decoTableTbodyElement.empty();
+
+        let messageRows = $(messageTablePage1).appendTo(messageTableTbodyElement);
+        messageRows = messageRows.add($(messageTablePage2).appendTo(messageTableTbodyElement));
+
+        let decoRows = $(decoTablePage1).appendTo(decoTableTbodyElement);
+        decoRows = decoRows.add($(decoTablePage2).appendTo(decoTableTbodyElement));
+
+        for (let i = 0; i < messageRows.length; i++) {
+            // need to adjust heights so rows match in each table
+            let outerHeight = $(messageRows[i]).outerHeight();
+            $(decoRows[i]).outerHeight(outerHeight);
+        }
 
         messageViewerManager.messageContainer.scrollTop(0);
 
@@ -323,9 +336,12 @@ var scrollbarManager = {
 
     redrawThumbAtEvent(eventIndex) {
 
+        if (!eventIndex || eventIndex.length === 0) {
+            return;
+        }
+        eventIndex = eventIndex + "";
         let indexToPixel = Math.floor(eventIndex / scrollbarManager.subsamplingNum);
         scrollbarManager.redrawThumb(indexToPixel);
-
     },
 
     redrawThumb : function(ycoord) {

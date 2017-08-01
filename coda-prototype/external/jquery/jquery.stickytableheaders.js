@@ -129,7 +129,7 @@
 			};
 		};
 
-		base.toggleHeaders = base.debounce(function () {
+		base.toggleHeaders =function () {
 			if (base.$el) {
 				base.$el.each(function () {
 					var $this = $(this),
@@ -161,6 +161,9 @@
 							'left': newLeft,
 							'z-index': 3 // #18: opacity bug
 						});
+						$("#deco-table").css({
+							'margin-top': '1px'
+						});
 						base.leftOffset = newLeft;
 						base.topOffset = newTopOffset;
 						base.$clonedHeader.css('display', '');
@@ -177,12 +180,15 @@
 						base.isSticky = false;
 						base.resetWidth($('td,th', base.$clonedHeader), $('td,th', base.$originalHeader));
 						$this.trigger('disabledStickiness.' + name);
+                        $("#deco-table").css({
+                            'margin-top': '0px'
+                        });
 					}
 				});
 			}
-		}, 0);
+		};
 
-		base.setPositionValues = base.debounce(function () {
+		base.setPositionValues = function () {
 			var winScrollTop = base.$window.scrollTop(),
 				winScrollLeft = base.$window.scrollLeft();
 			if (!base.isSticky ||
@@ -194,9 +200,9 @@
 				'top': base.topOffset - (base.isWindowScrolling ? 0 : winScrollTop),
 				'left': base.leftOffset - (base.isWindowScrolling ? 0 : winScrollLeft)
 			});
-		}, 0);
+		};
 
-		base.updateWidth = base.debounce(function () {
+		base.updateWidth = function () {
 			if (!base.isSticky) {
 				return;
 			}
@@ -217,7 +223,7 @@
 			if (base.options.cacheHeaderHeight) {
 				base.cachedHeaderHeight = base.$clonedHeader.height();
 			}
-		}, 0);
+		};
 
 		base.getWidth = function ($clonedHeaders) {
 			var widths = [];

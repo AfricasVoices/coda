@@ -69,7 +69,7 @@ var UIUtils = (
 
                             let sortIcon = "<button class='sort-btn btn btn-default btn-xs' data-toggle='tooltip' data-placement='top' title='Sort messages' data-container='body'><div class='sort-icon " + (schemeKey === messageViewerManager.activeScheme ? activeSortIcon + "'" : "icon-def active'") + "></div></button>";
                             let editButton = "<button type='button' class='btn btn-default btn-xs edit-scheme-button' data-toggle='tooltip' data-placement='top' title='Edit scheme' data-container='body'><i class='glyphicon glyphicon-edit'></i></button>";
-                            let columnDiv = "<div class='col-md-" + colAttrNum + " col-xs-" + colAttrNum + " scheme-col' scheme='" + schemeKey + "'><div>" + sortIcon + editButton + "</div><div class='scheme-name-cont'><i class='scheme-name'>" + schemes[schemeKey]["name"] + "</i></div>" +  "</div>";
+                            let columnDiv = "<div class='col-md-" + colAttrNum + " col-xs-" + colAttrNum + " scheme-header' scheme='" + schemeKey + "'><div>" + sortIcon + editButton + "</div><div class='scheme-name-cont'><i class='scheme-name'>" + schemes[schemeKey]["name"] + "</i></div>" +  "</div>";
                             decoCol = decoCol + columnDiv;
                         });
 
@@ -78,7 +78,7 @@ var UIUtils = (
                         messageViewerManager.codeSchemeOrder.forEach(schemeKey => {
                             let sortIcon = "<button class='sort-btn btn btn-default btn-xs' data-toggle='tooltip' data-placement='top' title='Sort messages' data-container='body'><div class='sort-icon " + (schemeKey === messageViewerManager.activeScheme ? activeSortIcon + "'" : "icon-def active'") + "></div></button>";
                             let editButton = "<button type='button' class='btn btn-default btn-xs edit-scheme-button' data-toggle='tooltip' data-placement='top' title='Edit scheme' data-container='body'><i class='glyphicon glyphicon-edit'></i></button>";
-                            let columnDiv = "<div class='col-md-" + colAttrNum + " col-xs-" + colAttrNum + " scheme-col' scheme='" + schemeKey + "'><div>" + sortIcon + editButton + "</div><div class='scheme-name-cont'><i class='scheme-name'>" + schemes[schemeKey]["name"] + "</i></div>" +  "</div>";
+                            let columnDiv = "<div class='col-md-" + colAttrNum + " col-xs-" + colAttrNum + " scheme-header' scheme='" + schemeKey + "'><div>" + sortIcon + editButton + "</div><div class='scheme-name-cont'><i class='scheme-name'>" + schemes[schemeKey]["name"] + "</i></div>" +  "</div>";
                             decoCol = decoCol + columnDiv;
                         });
                     }
@@ -132,7 +132,7 @@ var UIUtils = (
                         var codes = Array.from(newDataset.schemes[schemeKey].codes.values());
                         decoCol += "<div class='col-md-" + colAttrNum + " col-sm-"  + colAttrNum + " col-xs-" + colAttrNum + " deco-container' scheme='" + schemeKey + "'>";
                         decoCol += "<div class='input-group'>";
-                        var dis = schemeKey == messageViewerManager.activeScheme ? "" : "disabled";
+                        var dis = schemeKey === messageViewerManager.activeScheme ? "" : "disabled";
                         if (eventObj.decorations.get(schemeKey) && eventObj.decorations.get(schemeKey).manual) {
                             decoCol += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox' checked " + dis + "></span>";
                         } else {
@@ -487,14 +487,14 @@ var UIUtils = (
 
             isScrolledToBottom: function(tableContainer) {
                 // alternatively, get the last row in table, and see if its visible:
-               // return UIUtils.isRowVisible($(".message").last()[0], tableContainer[0]);
-                return UIUtils.checkVisible($(".message").last()[0]);
+               // return UIUtils.isRowVisible($(".message-row").last()[0], tableContainer[0]);
+                return UIUtils.checkVisible($(".message-row").last()[0]);
                     // table is 18px above bottom of the panel...
                // return (Math.abs(messageViewerManager.table[0].scrollHeight - $(tableContainer).scrollTop() - $(tableContainer).outerHeight()) -1  < 1)
             },
 
             isScrolledToTop: function(tableContainer) {
-                return UIUtils.checkVisible($(".message").first()[0]);
+                return UIUtils.checkVisible($(".message-row").first()[0]);
                     //return $("#message-panel").scrollTop() === 0;
             }
 

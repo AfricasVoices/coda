@@ -400,7 +400,10 @@ function initUI(dataset) {
     console.timeEnd("total messageview init");
 
     console.time("stickyheaders init");
-    $('#message-table').stickyTableHeaders({scrollableArea: messagePanel, container:messagePanel});
+    $('#deco-table').stickyTableHeaders({scrollableArea: messagePanel, container:messagePanel, fixedOffset: 1});
+
+    $('#message-table').stickyTableHeaders({scrollableArea: messagePanel, container:messagePanel, fixedOffset: 1});
+
     $('#code-table').stickyTableHeaders({scrollableArea: editorRow});
     console.timeEnd("stickyheaders init");
 
@@ -675,6 +678,8 @@ function initUI(dataset) {
                     //newDataset.schemes = schemes;
                     messageViewerManager.buildTable(newDataset, messageViewerManager.rowsInTable, true);
                     $("body").show();
+                    messageViewerManager.resizeViewport();
+
 
                     undoManager.pointer = 0;
                     undoManager.schemaUndoStack  = [];
@@ -1162,16 +1167,30 @@ function initUI(dataset) {
 
     $("#horizontal-coding").on("click", () => {
         messageViewerManager.horizontal = true;
+        storage.saveActivity({
+            "category": "CODING",
+            "message": "changed coding style to horizontal",
+            "messageDetails": "",
+            "data": {} ,
+            "timestamp": new Date()
+        });
     });
 
     $("#vertical-coding").on("click", () => {
         messageViewerManager.horizontal = false;
+        storage.saveActivity({
+            "category": "CODING",
+            "message": "changed coding style to vertical",
+            "messageDetails": "",
+            "data": {} ,
+            "timestamp": new Date()
+        });
     });
 
     $("#code-now-button").on("click", () => {
 
         // code and re-sort dataset
-        regexMatcher.codeDataset(activeSchemeId);
+        regexMatcher.codeDataset(messageViewerManager.activeScheme);
 
         if (messageViewerManager.currentSort === messageViewerManager.sortUtils.sortEventsByConfidenceOnly) {
             newDataset.sortEventsByConfidenceOnly(tempScheme["id"]);
@@ -1192,6 +1211,7 @@ function initUI(dataset) {
             "timestamp": new Date()
         });
 
+        /*
         // redraw rows
         var tbody = "";
 
@@ -1216,6 +1236,22 @@ function initUI(dataset) {
         messagesTbody.append(tbody);
         messageViewerManager.messageContainer.scrollTop(previousScrollTop);
         activeRow = $("#" + previousActiveRow).addClass("active");
+        */
+
+        // redraw body, PRESERVE ACTIVE ROW
+        messageViewerManager.messageTable.find("tbody").empty();
+        messageViewerManager.decorationTable.find("tbody").empty();
+
+        if (!activeRow) {
+            activeRow = $(".message-row:first");
+        }
+
+        messageViewerManager.bringEventIntoView2(activeRow.attr("eventid"));
+
+        // redraw scrollbar
+        scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);
+        scrollbarManager.redrawThumbAtEvent(newDataset.eventOrder.indexOf(activeRow.attr("eventid")));
+
     });
 
     $("#submit").on("click", event => {
@@ -1335,6 +1371,7 @@ function initUI(dataset) {
 
     console.time("body.show()");
     $("body").show();
+    messageViewerManager.resizeViewport();
     console.timeEnd("body.show()");
     console.timeEnd("TOTAL UI INITIALISATION TIME");
 }
