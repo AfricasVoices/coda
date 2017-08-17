@@ -108,6 +108,7 @@ var codeEditorManager =  {
         });
 
         $("#delete-scheme-button").on("click", () => {
+            console.time("delete column");
            let nextActiveSchemeId = codeEditorManager.deleteScheme(tempScheme.id + "");
            activeSchemeId = nextActiveSchemeId;
            messageViewerManager.activeScheme = nextActiveSchemeId;
@@ -118,7 +119,8 @@ var codeEditorManager =  {
            codeEditorManager.editorContainer.find("#scheme-name-input").val("");
            editorOpen = false;
 
-           messageViewerManager.resizeViewport();
+           messageViewerManager.resizeViewport(messageViewerManager.minHeaderWidth);
+           console.timeEnd("delete column");
 
 
             // update the activity stack
@@ -273,7 +275,7 @@ var codeEditorManager =  {
                 $(scrollbarManager.scrollbarEl).drawLayers();
                 editorOpen = false;
                 tempScheme = {};
-                messageViewerManager.resizeViewport();
+                messageViewerManager.resizeViewport(messageViewerManager.minHeaderWidth);
 
             });
 
@@ -407,15 +409,9 @@ var codeEditorManager =  {
 
             // redraw rows
             let messageTableTbody = "";
-            let decoTableTbody = "";
 
-            let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-            let stoppingCondition = (messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventOrder.length) ? newDataset.eventOrder.length : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
-            for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < stoppingCondition; i++) {
-                let eventKey = newDataset.eventOrder[i];
-                messageTableTbody += messageViewerManager.buildMessageTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.activeScheme);
-                decoTableTbody += messageViewerManager.buildDecorationTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.codeSchemeOrder.slice(1));
-            }
+            messageTableTbody += messageViewerManager.createJoinedPageHTML(messageViewerManager.lastLoadedPageIndex-1);
+            messageTableTbody += messageViewerManager.createJoinedPageHTML(messageViewerManager.lastLoadedPageIndex);
 
             let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
             let decoTableTbodyElement = messageViewerManager.decorationTable.find("tbody");
@@ -423,16 +419,8 @@ var codeEditorManager =  {
             let previousActiveRow = activeRow.attr("eventid");
 
             messageTableTbodyElement.empty();
-            decoTableTbodyElement.empty();
 
             let messageRows = $(messageTableTbody).prependTo(messageTableTbodyElement);
-            let decoRows = $(decoTableTbody).prependTo(decoTableTbodyElement);
-
-            for (let i = 0; i < messageRows.length; i++) {
-                // need to adjust heights so rows match in each table
-                let outerHeight = $(messageRows[i]).outerHeight();
-                $(decoRows[i]).outerHeight(outerHeight);
-            }
 
             messageViewerManager.messageContainer.scrollTop(previousScrollTop);
             activeRow = messageTableTbodyElement.find("tr[eventid='" + previousActiveRow + "']").addClass("active");
@@ -442,9 +430,6 @@ var codeEditorManager =  {
             scrollbarManager.redraw(newDataset, tempScheme["id"]);
             scrollbarManager.redrawThumb(thumbPosition);
 
-            // make it active scheme
-            header.find(".scheme-name").trigger("click");
-
             undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
 
             editorContainer.hide();
@@ -452,7 +437,7 @@ var codeEditorManager =  {
             codeEditorManager.bindAddCodeButtonListener();
             editorContainer.find("#scheme-name-input").val("");
             editorOpen = false;
-            messageViewerManager.resizeViewport();
+            messageViewerManager.resizeViewport(messageViewerManager.minHeaderWidth);
 
         });
     },
@@ -828,6 +813,8 @@ var codeEditorManager =  {
 
             messageViewerManager.codeSchemeOrder.push(newScheme.id + "");
             messageViewerManager.addNewActiveScheme(newScheme.id);
+            messageViewerManager.deleteSchemeColumn(schemeId);
+
             schemeId = newScheme.id + "";
             messageViewerManager.activeScheme = newScheme.id + "";
 

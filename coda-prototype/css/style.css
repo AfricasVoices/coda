@@ -31,12 +31,45 @@ SOFTWARE.
 #scrollbar-col {
   max-width: 120px !important;
   padding-right: 0px;
+  padding-left: 15px;
+  width: 8.33333333%;
+  float:left;
+}
+
+#table-col {
+  /*width: 83.33333333%;*/
+  padding-left: 15px;
+  padding-right: 15px;
+  /*float: left;*/
+}
+/*
+#button-col {
+  width: 8.33333333%;
+  padding-left: 15px;
+  padding-right: 15px;
+  float:left;
+}
+*/
+
+.message-id div{
+  width: 51px !important;
+  max-width: 51px;
+}
+
+.message-text div{
+  width: 284px !important;
+  max-width: 284px;
+}
+
+.active-scheme > div{
+
 }
 
 #message-table {
   table-layout: fixed;
   word-wrap: break-word;
 }
+
 
 .dropdown-toggle > b{
   font-weight: 500;
@@ -153,10 +186,14 @@ div[class*=col-], #message-panel {
 
 #message-viewer {
   min-width: 1230px !important;
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-right: auto;
+  margin-left: auto;
 }
 
 #message-panel {
-  height: 97%;
+  height: 80vh;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -455,20 +492,34 @@ i.scheme-name.active-scheme {
   width: 100%;
 }
 
+.deco-container {
+  min-width: 150px;
+  max-width: 255px !important;
+}
+
+.scheme-header {
+  /*max-width: 266px !important;*/
+  min-width: 150px !important;
+  /* HAVE TO KEEP MIN-WIDTH AS SET BY STICKYTABLEHEADERS */
+}
+
 .active-scheme .input-group {
   width: 100%;
 }
 
-#active-scheme-header, #active-scheme-header > .scheme-header {
-  max-width: none !important;
+.active-scheme-header {
+  /*max-width: 300px !important;*/
+  width: 300px;
 }
-/*
-.scheme-name{
-  width: 100%
+
+.active-scheme-header .scheme-name {
+  border: solid black 1px;
+  border-radius: 3px;
+  font-size: 16px;
+  font-style: normal;
 }
-*/
-.scheme-header {
-  max-width: 266px !important;
-  min-width: 266px;
-  /* HAVE TO KEEP MIN-WIDTH AS SET BY STICKYTABLEHEADERS */
+
+.active-scheme { /* active scheme cells */
+  width: 300px;
+  /*max-width: 300px !important;*/
 }

@@ -265,7 +265,8 @@
 				var width = widths[index];
 				$origHeaders.eq(index).css({
 					'min-width': width,
-					'max-width': width
+					'max-width': width,
+					'width': width // bug fix for CODA
 				});
 			});
 		};

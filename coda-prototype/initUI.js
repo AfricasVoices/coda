@@ -400,7 +400,7 @@ function initUI(dataset) {
     console.timeEnd("total messageview init");
 
     console.time("stickyheaders init");
-    $('#deco-table').stickyTableHeaders({scrollableArea: messagePanel, container:messagePanel, fixedOffset: 1});
+    //$('#deco-table').stickyTableHeaders({scrollableArea: messagePanel, container:messagePanel, fixedOffset: 1});
 
     $('#message-table').stickyTableHeaders({scrollableArea: messagePanel, container:messagePanel, fixedOffset: 1});
 
@@ -678,7 +678,7 @@ function initUI(dataset) {
                     //newDataset.schemes = schemes;
                     messageViewerManager.buildTable(newDataset, messageViewerManager.rowsInTable, true);
                     $("body").show();
-                    messageViewerManager.resizeViewport();
+                    messageViewerManager.resizeViewport(messageViewerManager.minHeaderWidth);
 
 
                     undoManager.pointer = 0;
@@ -1371,7 +1371,7 @@ function initUI(dataset) {
 
     console.time("body.show()");
     $("body").show();
-    messageViewerManager.resizeViewport();
+    messageViewerManager.resizeViewport(messageViewerManager.minHeaderWidth);
     console.timeEnd("body.show()");
     console.timeEnd("TOTAL UI INITIALISATION TIME");
 }
