@@ -69,6 +69,7 @@ var messageViewerManager = {
             this.buildTable();
 
         } else {
+            newDataset.restoreDefaultSort();
             this.buildTable(data, rowsInTable);
             if (Object.keys(newDataset.schemes).length > 4) {
                 //$("#message-viewer").css("width", (1230 + (Object.keys(newDataset.schemes).length - 4) * 360) + "");

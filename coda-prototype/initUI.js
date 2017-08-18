@@ -597,7 +597,7 @@ function initUI(dataset) {
                         let isEventNew;
 
                         if (!events.has(eventRow["id"])){
-                            newEvent = new RawEvent(events.size + "", eventRow["owner"], timestampData, eventRow["id"], eventRow["data"]);
+                            newEvent = new RawEvent(eventRow["id"], eventRow["owner"], timestampData, eventRow["id"], eventRow["data"]);
                             events.set(eventRow["id"], newEvent);
                             isEventNew = true;
                         } else {
@@ -675,7 +675,7 @@ function initUI(dataset) {
                         dataset.schemes[defaultScheme["id"]] = defaultScheme;
                     }
                     newDataset = dataset;
-                    //newDataset.schemes = schemes;
+                    newDataset.restoreDefaultSort();
                     messageViewerManager.buildTable(newDataset, messageViewerManager.rowsInTable, true);
                     $("body").show();
                     messageViewerManager.resizeViewport();
