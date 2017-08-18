@@ -192,6 +192,10 @@ var messageViewerManager = {
             // redraw body, PRESERVE ACTIVE ROW
             messageViewerManager.messageTable.find("tbody").empty();
             messageViewerManager.decorationTable.find("tbody").empty();
+
+            if (!activeRow || activeRow.length === 0) {
+                activeRow = $(".message-row").filter(":first");
+            }
             messageViewerManager.bringEventIntoView2(activeRow.attr("eventid"));
 
             // redraw scrollbar
@@ -1324,8 +1328,8 @@ setTimeout(() => {
             if (pageIndex === 0 || pageIndex === -1) {
                 // load 0th and 1st
                 // also cover the broken case of no index found
-                messageTableTbody += messageViewerManager.createMessagePageHTML(0);
-                messageTableTbody += messageViewerManager.createMessagePageHTML(1);
+                messageTableTbody += messageViewerManager.createJoinedPageHTML(0);
+                messageTableTbody += messageViewerManager.createJoinedPageHTML(1);
 
                 decoTableTbody += messageViewerManager.createDecorationPageHTML(0);
                 decoTableTbody += messageViewerManager.createDecorationPageHTML(1);
@@ -1333,8 +1337,8 @@ setTimeout(() => {
                 messageViewerManager.lastLoadedPageIndex = 1;
 
             } else if (pageIndex > 0) {
-                messageTableTbody += messageViewerManager.createMessagePageHTML(pageIndex-1);
-                messageTableTbody += messageViewerManager.createMessagePageHTML(pageIndex);
+                messageTableTbody += messageViewerManager.createJoinedPageHTML(pageIndex-1);
+                messageTableTbody += messageViewerManager.createJoinedPageHTML(pageIndex);
 
                 decoTableTbody += messageViewerManager.createDecorationPageHTML(pageIndex-1);
                 decoTableTbody += messageViewerManager.createDecorationPageHTML(pageIndex);
@@ -1358,7 +1362,7 @@ setTimeout(() => {
 
             eventRow = $(".message-row[eventid='" + eventId + "']");
 
-            if (eventRow) {
+            if (eventRow && eventRow.length > 0) {
                 eventRow.addClass('active');
                 activeRow = eventRow;
 
@@ -1389,8 +1393,6 @@ setTimeout(() => {
 
     infiniteScroll : function(event) {
 
-        // todo: fix bug with scrolling to the bottom!!!!!!!! :o :o :o :o :o :o
-
         let currentY = messageViewerManager.messageContainer.scrollTop();
         if (currentY === messageViewerManager.lastTableY || messageViewerManager.isProgramaticallyScrolling) {
             return;
@@ -1401,44 +1403,23 @@ setTimeout(() => {
 
             let nextPage = messageViewerManager.lastLoadedPageIndex + 1;
 
-            if (nextPage <= Math.floor(newDataset.eventOrder.length / Math.floor(messageViewerManager.rowsInTable/2)) - 1) {
+            if (nextPage <= Math.floor(newDataset.eventOrder.length / Math.floor(messageViewerManager.rowsInTable/2))) {
 
                 messageViewerManager.lastLoadedPageIndex = nextPage;
 
                 let messageTableTbody = "";
-                let decoTableTbody = "";
-
                 messageTableTbody += messageViewerManager.createJoinedPageHTML(nextPage);
-                /*
-                let halfPage = Math.floor(messageViewerManager.rowsInTable/2);
-                let stoppingCondition = nextPage * halfPage + halfPage > newDataset.eventOrder.length ? newDataset.eventOrder.length : nextPage * halfPage + halfPage;
-                for (let i = nextPage * halfPage; i < stoppingCondition; i++) {
-                    let eventKey = newDataset.eventOrder[i];
-                    messageTableTbody += messageViewerManager.buildMessageTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.activeScheme);
-                    decoTableTbody += messageViewerManager.buildDecorationTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.codeSchemeOrder.slice(1));
-                }
-                */
 
                 let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
-                let decoTableTbodyElement = messageViewerManager.decorationTable.find("tbody");
 
                 let lastMessage = messageTableTbodyElement.find(".message-row").last();
                 let lastMessagePosition = lastMessage.position().top;
 
                 let elementsToRemoveFromMessageTable = messageTableTbodyElement.find("tr:nth-child(-n+" + Math.floor(messageViewerManager.rowsInTable/2) + ")");
-                let elementsToRemoveFromDecoTable = decoTableTbodyElement.find("tr:nth-child(-n+" + Math.floor(messageViewerManager.rowsInTable/2) + ")");
 
                 elementsToRemoveFromMessageTable.remove();
-                elementsToRemoveFromDecoTable.remove();
 
                 let messageRows = $(messageTableTbody).appendTo(messageTableTbodyElement);
-                let decoRows = $(decoTableTbody).appendTo(decoTableTbodyElement);
-
-                for (let i = 0; i < messageRows.length; i++) {
-                    // need to adjust heights so rows match in each table
-                    let outerHeight = $(messageRows[i]).outerHeight();
-                    $(decoRows[i]).outerHeight(outerHeight);
-                }
 
                 console.log("new page added");
 
@@ -1453,34 +1434,23 @@ setTimeout(() => {
 
                 console.timeEnd("infinite scroll DOWN");
 
-            } else if ($(".message-row").length <= 40 && nextPage === Math.floor(newDataset.eventOrder.length / Math.floor(messageViewerManager.rowsInTable/2))) {
+            } else if ((newDataset.eventOrder.length / Math.floor(messageViewerManager.rowsInTable/2)) - nextPage > 0) {
                 let halfPage = Math.floor(messageViewerManager.rowsInTable/2);
 
                 let messageTableTbody = "";
-                let decoTableTbody = "";
-                for (let i = 0; i < (newDataset.eventOrder.length - (nextPage * halfPage)); i++) {
+                    for (let i = 0; i < (newDataset.eventOrder.length - (nextPage * halfPage)); i++) {
                     let eventKey = newDataset.eventOrder[(nextPage-1) * halfPage + halfPage + i];
                     if (eventKey) {
                         messageTableTbody += messageViewerManager.buildJoinedRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.activeScheme);
-                        //messageTableTbody += messageViewerManager.buildMessageTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.activeScheme);
-                        decoTableTbody += messageViewerManager.buildDecorationTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.codeSchemeOrder.slice(1));
                     }
                 }
 
                 let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
-                let decoTableTbodyElement = messageViewerManager.decorationTable.find("tbody");
 
                 let lastMessage = messageTableTbodyElement.find(".message-row").last();
                 let lastMessagePosition = lastMessage.position().top;
 
                 let messageRows = $(messageTableTbody).appendTo(messageTableTbodyElement);
-                let decoRows = $(decoTableTbody).appendTo(decoTableTbodyElement);
-
-                for (let i = 0; i < messageRows.length; i++) {
-                    // need to adjust heights so rows match in each table
-                    let outerHeight = $(messageRows[i]).outerHeight();
-                    $(decoRows[i]).outerHeight(outerHeight);
-                }
 
                 messageViewerManager.isProgramaticallyScrolling = true;
                 messageViewerManager.messageContainer.scrollTop($("#message-panel").scrollTop() + (-1 * (lastMessagePosition - lastMessage.position().top)));
