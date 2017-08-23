@@ -1371,6 +1371,7 @@ function initUI(dataset) {
 
     console.time("body.show()");
     $("body").show();
+    messageViewerManager.averageRowHeight = Math.floor(messageViewerManager.messageTable.height()/messageViewerManager.rowsInTable);
     messageViewerManager.resizeViewport(messageViewerManager.minHeaderWidth);
     console.timeEnd("body.show()");
     console.timeEnd("TOTAL UI INITIALISATION TIME");

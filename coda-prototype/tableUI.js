@@ -54,6 +54,8 @@ var messageViewerManager = {
     horizontal: true,
     minHeaderWidth: 155,
     maxHeaderWidth: 255,
+    averageRowHeight: "",
+    lastEventIndex: 0,
     //initialMessageTableWidth: 800,
 
     init: function(messageContainer, data, rowsInTable) {
@@ -106,17 +108,24 @@ var messageViewerManager = {
             });
 
             $("#message-panel").on("scroll", (throttle(function(event) {
-                //console.log("scroll height: " + $("#message-table")[0].scrollHeight + ", scroll top: " + $("#message-panel").scrollTop() +  ", outer height: " + $("#message-panel").outerHeight(false));
                 // todo need to know if scroll is from shortcut or manual
-                messageViewerManager.infiniteScroll(event);
 
+                let infiniteScroll = messageViewerManager.infiniteScroll(event);
+                let eventIndex = (messageViewerManager.lastLoadedPageIndex - 1) * Math.floor(messageViewerManager.rowsInTable/2) + Math.floor(messageViewerManager.messageContainer.scrollTop() / messageViewerManager.averageRowHeight);
+                console.log("eventindex: " + eventIndex + ", lasteventindex: " + messageViewerManager.lastEventIndex);
+                if (((infiniteScroll === "UP") && eventIndex <= messageViewerManager.lastEventIndex) || (infiniteScroll === "DOWN") && eventIndex >= messageViewerManager.lastEventIndex) {
+                    messageViewerManager.lastEventIndex = eventIndex;
+                }
+                if (infiniteScroll.length > 0) {
+                    scrollbarManager.redrawThumbAtEvent(messageViewerManager.lastEventIndex);
+                }
             }, 1)));
 
             $("#message-panel").on("scroll", function(){
+                /*
                 let yDifference = (messageViewerManager.lastTableY - messageViewerManager.messageContainer.scrollTop())/messageViewerManager.messageTable.height();
                 scrollbarManager.redrawThumb(scrollbarManager.getThumbPosition() - scrollbarManager.scrollbarEl.height * yDifference * (messageViewerManager.rowsInTable/newDataset.eventOrder.length));
-
-
+                */
                 messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
             });
 
@@ -135,6 +144,10 @@ var messageViewerManager = {
             console.time("shortcuts init");
             $(window).on("keypress", this.manageShortcuts);
             console.timeEnd("shortcuts init");
+
+            window.addEventListener("mousewheel", event => {
+                messageViewerManager.isProgramaticallyScrolling = false;
+            });
 
         }
     },
@@ -191,7 +204,6 @@ var messageViewerManager = {
 
             // redraw body, PRESERVE ACTIVE ROW
             messageViewerManager.messageTable.find("tbody").empty();
-            messageViewerManager.decorationTable.find("tbody").empty();
 
             if (!activeRow || activeRow.length === 0) {
                 activeRow = $(".message-row").filter(":first");
@@ -199,8 +211,9 @@ var messageViewerManager = {
             messageViewerManager.bringEventIntoView2(activeRow.attr("eventid"));
 
             // redraw scrollbar
+            const thumbPosition = scrollbarManager.getThumbPosition();
             scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);
-            scrollbarManager.redrawThumbAtEvent(newDataset.eventOrder.indexOf(activeRow.attr("eventid")));
+            scrollbarManager.redrawThumb(thumbPosition);
 
             // update the activity stack
             storage.saveActivity({
@@ -212,6 +225,7 @@ var messageViewerManager = {
             });
         }
         console.timeEnd("sort");
+        messageViewerManager.isProgramaticallyScrolling = true;
     },
 
     restorePreviousPosition: function() {
@@ -407,7 +421,6 @@ var messageViewerManager = {
         if (!hasDataChanged) {
             scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme ? messageViewerManager.activeScheme : Object.keys(newDataset.schemes)[0]);
         } else {
-            // todo take care to clear previous one
             scrollbarManager.init(newDataset.sessions, document.getElementById("scrollbar"), 100);
         }
 
@@ -489,18 +502,6 @@ var messageViewerManager = {
             }
 
         });
-
-        /*
-        Adjust width - have to scroll horizontally if screen is too small
-        */
-
-        /*
-        if ($(".scheme-header:first").outerWidth() <= 180 && Object.keys(newDataset.schemes).length > 4) {
-            let outerContainer = $("#message-viewer");
-            let current = outerContainer.outerWidth();
-            outerContainer.outerWidth(current + ((Object.keys(newDataset.schemes).length - 4) * 400));
-        }
-        */
 
     },
 
@@ -1324,15 +1325,11 @@ setTimeout(() => {
 
             // load in pages at index pageIndex & pageIndex-1 except if pageIndex-1 is out of range!
             let messageTableTbody = "";
-            let decoTableTbody = "";
             if (pageIndex === 0 || pageIndex === -1) {
                 // load 0th and 1st
                 // also cover the broken case of no index found
                 messageTableTbody += messageViewerManager.createJoinedPageHTML(0);
                 messageTableTbody += messageViewerManager.createJoinedPageHTML(1);
-
-                decoTableTbody += messageViewerManager.createDecorationPageHTML(0);
-                decoTableTbody += messageViewerManager.createDecorationPageHTML(1);
 
                 messageViewerManager.lastLoadedPageIndex = 1;
 
@@ -1340,25 +1337,13 @@ setTimeout(() => {
                 messageTableTbody += messageViewerManager.createJoinedPageHTML(pageIndex-1);
                 messageTableTbody += messageViewerManager.createJoinedPageHTML(pageIndex);
 
-                decoTableTbody += messageViewerManager.createDecorationPageHTML(pageIndex-1);
-                decoTableTbody += messageViewerManager.createDecorationPageHTML(pageIndex);
-
                 messageViewerManager.lastLoadedPageIndex = pageIndex;
 
             }
 
             let currentMessageTbody = messageViewerManager.messageTable.find("tbody");
-            let currentDecoTbody = messageViewerManager.decorationTable.find("tbody");
             currentMessageTbody.empty();
             let messageRows = $(messageTableTbody).appendTo(currentMessageTbody);
-            currentDecoTbody.empty();
-            let decoRows = $(decoTableTbody).appendTo(currentDecoTbody);
-
-            for (let i = 0; i < messageRows.length; i++) {
-                // need to adjust heights so rows match in each table
-                let outerHeight = $(messageRows[i]).outerHeight();
-                $(decoRows[i]).outerHeight(outerHeight);
-            }
 
             eventRow = $(".message-row[eventid='" + eventId + "']");
 
@@ -1373,7 +1358,6 @@ setTimeout(() => {
                 }
 
                 scrollbarManager.redrawThumbAtEvent(eventIndex);
-
             }
 
         } else {
@@ -1395,124 +1379,137 @@ setTimeout(() => {
 
         let currentY = messageViewerManager.messageContainer.scrollTop();
         if (currentY === messageViewerManager.lastTableY || messageViewerManager.isProgramaticallyScrolling) {
-            return;
+            return "";
         }
 
-        if (currentY > messageViewerManager.lastTableY && UIUtils.isScrolledToBottom(messageViewerManager.messageContainer)) {
-            console.time("infinite scroll DOWN");
+        if (currentY > messageViewerManager.lastTableY) {
+            if (UIUtils.isScrolledToBottom(messageViewerManager.messageContainer)) {
+                console.time("infinite scroll DOWN");
 
-            let nextPage = messageViewerManager.lastLoadedPageIndex + 1;
+                let nextPage = messageViewerManager.lastLoadedPageIndex + 1;
 
-            if (nextPage <= Math.floor(newDataset.eventOrder.length / Math.floor(messageViewerManager.rowsInTable/2))) {
+                if (nextPage >= Math.floor(newDataset.eventOrder.length / Math.floor(messageViewerManager.rowsInTable/2))) {
+                    console.log("ehh");
+                }
 
-                messageViewerManager.lastLoadedPageIndex = nextPage;
+                if (nextPage < Math.floor(newDataset.eventOrder.length / Math.floor(messageViewerManager.rowsInTable/2))) {
 
-                let messageTableTbody = "";
-                messageTableTbody += messageViewerManager.createJoinedPageHTML(nextPage);
+                    messageViewerManager.lastLoadedPageIndex = nextPage;
 
-                let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
+                    let messageTableTbody = "";
+                    messageTableTbody += messageViewerManager.createJoinedPageHTML(nextPage);
 
-                let lastMessage = messageTableTbodyElement.find(".message-row").last();
-                let lastMessagePosition = lastMessage.position().top;
+                    let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
 
-                let elementsToRemoveFromMessageTable = messageTableTbodyElement.find("tr:nth-child(-n+" + Math.floor(messageViewerManager.rowsInTable/2) + ")");
+                    let lastMessage = messageTableTbodyElement.find(".message-row").last();
+                    let lastMessagePosition = lastMessage.position().top;
 
-                elementsToRemoveFromMessageTable.remove();
+                    let elementsToRemoveFromMessageTable = messageTableTbodyElement.find("tr:nth-child(-n+" + Math.floor(messageViewerManager.rowsInTable/2) + ")");
 
-                let messageRows = $(messageTableTbody).appendTo(messageTableTbodyElement);
+                    elementsToRemoveFromMessageTable.remove();
 
-                console.log("new page added");
+                    let messageRows = $(messageTableTbody).appendTo(messageTableTbodyElement);
 
-                messageViewerManager.isProgramaticallyScrolling = true;
-                messageViewerManager.messageContainer.scrollTop($("#message-panel").scrollTop() + (-1 * (lastMessagePosition - lastMessage.position().top)));
-                messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
-                messageViewerManager.isProgramaticallyScrolling = false;
-                //scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);
+                    console.log("new page added");
 
-                let thumbPos = scrollbarManager.getThumbPosition();
-                scrollbarManager.redrawThumb(thumbPos);
+                    messageViewerManager.isProgramaticallyScrolling = true;
+                    messageViewerManager.messageContainer.scrollTop($("#message-panel").scrollTop() + (-1 * (lastMessagePosition - lastMessage.position().top)));
+                    messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
+                    messageViewerManager.isProgramaticallyScrolling = false;
+                    //scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);
 
-                console.timeEnd("infinite scroll DOWN");
-
-            } else if ((newDataset.eventOrder.length / Math.floor(messageViewerManager.rowsInTable/2)) - nextPage > 0) {
-                let halfPage = Math.floor(messageViewerManager.rowsInTable/2);
-
-                let messageTableTbody = "";
-                    for (let i = 0; i < (newDataset.eventOrder.length - (nextPage * halfPage)); i++) {
-                    let eventKey = newDataset.eventOrder[(nextPage-1) * halfPage + halfPage + i];
-                    if (eventKey) {
-                        messageTableTbody += messageViewerManager.buildJoinedRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.activeScheme);
+                    let thumbPos = scrollbarManager.getThumbPosition();
+                    scrollbarManager.redrawThumb(thumbPos);
+                    messageViewerManager.averageRowHeight = Math.floor(messageViewerManager.messageTable.height()/messageViewerManager.rowsInTable);
+                    if (messageViewerManager.averageRowHeight === 0) {
+                        console.log("fail");
                     }
+
+                    console.timeEnd("infinite scroll DOWN");
+
+                } else if (Math.floor(newDataset.eventOrder.length / Math.floor(messageViewerManager.rowsInTable/2)) - nextPage <= 0 && $(".message-row").length === 40) {
+                    let halfPage = Math.floor(messageViewerManager.rowsInTable/2);
+
+                    let messageTableTbody = "";
+                    for (let i = 0; i < (newDataset.eventOrder.length - (nextPage * halfPage)); i++) {
+                        let eventKey = newDataset.eventOrder[(nextPage-1) * halfPage + halfPage + i];
+                        if (eventKey) {
+                            messageTableTbody += messageViewerManager.buildJoinedRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.activeScheme);
+                        }
+                    }
+
+                    let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
+
+                    let lastMessage = messageTableTbodyElement.find(".message-row").last();
+                    let lastMessagePosition = lastMessage.position().top;
+
+                    let messageRows = $(messageTableTbody).appendTo(messageTableTbodyElement);
+
+                    messageViewerManager.isProgramaticallyScrolling = true;
+                    messageViewerManager.messageContainer.scrollTop($("#message-panel").scrollTop() + (-1 * (lastMessagePosition - lastMessage.position().top)));
+                    messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
+                    messageViewerManager.isProgramaticallyScrolling = false;
+                    messageViewerManager.averageRowHeight = Math.floor(messageViewerManager.messageTable.height()/messageViewerManager.rowsInTable);
+                    if (messageViewerManager.averageRowHeight === 0) {
+                        console.log("fail");
+                    }
+
+                    let thumbPos = scrollbarManager.getThumbPosition();
+                    scrollbarManager.redrawThumb(thumbPos);
+
                 }
-
-                let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
-
-                let lastMessage = messageTableTbodyElement.find(".message-row").last();
-                let lastMessagePosition = lastMessage.position().top;
-
-                let messageRows = $(messageTableTbody).appendTo(messageTableTbodyElement);
-
-                messageViewerManager.isProgramaticallyScrolling = true;
-                messageViewerManager.messageContainer.scrollTop($("#message-panel").scrollTop() + (-1 * (lastMessagePosition - lastMessage.position().top)));
-                messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
-                messageViewerManager.isProgramaticallyScrolling = false;
-
-                let thumbPos = scrollbarManager.getThumbPosition();
-                scrollbarManager.redrawThumb(thumbPos);
             }
+            return "DOWN"; // todo check if this is only for down
 
-        } else if (currentY < messageViewerManager.lastTableY && UIUtils.isScrolledToTop(messageViewerManager.messageContainer)){
+        } else if (currentY < messageViewerManager.lastTableY){
 
-            if (messageViewerManager.lastLoadedPageIndex !== 1 ) {
-                console.time("infinite scroll UP");
+            if (UIUtils.isScrolledToTop(messageViewerManager.messageContainer)) {
 
-                let prevPage = messageViewerManager.lastLoadedPageIndex - 2;
-                messageViewerManager.lastLoadedPageIndex--;
-                let firstRow = $(".message-row").first();
-                let originalOffset = firstRow.position().top;
+                if (messageViewerManager.lastLoadedPageIndex !== 1 ) {
+                    console.time("infinite scroll UP");
 
-                let messageTableTbody = "";
-                let decoTableTbody = "";
+                    let prevPage = messageViewerManager.lastLoadedPageIndex - 2;
+                    messageViewerManager.lastLoadedPageIndex--;
+                    let messageRows = $(".message-row");
+                    let firstRow = messageRows.first();
+                    let originalOffset = firstRow.position().top;
 
-                /*
-                let halfPage = Math.floor(messageViewerManager.rowsInTable/2);
-                let stoppingCondition = prevPage * halfPage + halfPage;
-                for (let i = prevPage * halfPage; i < stoppingCondition; i++) {
-                    let eventKey = newDataset.eventOrder[i];
-                    messageTableTbody += messageViewerManager.buildMessageTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.activeScheme);
-                    decoTableTbody += messageViewerManager.buildDecorationTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.codeSchemeOrder.slice(1));
+                    let messageTableTbody = "";
+                    messageTableTbody += messageViewerManager.createJoinedPageHTML(prevPage);
+
+                    let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
+
+                    // figure out if there are rowsInTable + x rows loaded (when number of elements is not divisible by rowsInTable)
+                    let numRowsToRemove = 0;
+
+                    if (messageRows.length !== messageViewerManager.rowsInTable) {
+                        numRowsToRemove =  Math.floor(messageViewerManager.rowsInTable/2) + messageRows.length % messageViewerManager.rowsInTable;
+                    } else {
+                        numRowsToRemove = Math.floor(messageViewerManager.rowsInTable/2);
+                    }
+
+                    messageTableTbodyElement.find("tr:nth-last-child(-n+" + numRowsToRemove + ")").remove();
+
+                    $(messageTableTbody).prependTo(messageTableTbodyElement);
+
+                    // adjust scrollTop of the panel so that the previous top row stays on top of the table (and not out of view)
+                    let newOffset = firstRow.position().top;
+                    messageViewerManager.isProgramaticallyScrolling = true;
+                    messageViewerManager.messageContainer.scrollTop(messageViewerManager.messageContainer.scrollTop()+ (-1 * (originalOffset - newOffset)));
+                    messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
+                    messageViewerManager.isProgramaticallyScrolling = false;
+
+                    messageViewerManager.averageRowHeight = Math.floor(messageViewerManager.messageTable.height()/messageViewerManager.rowsInTable);
+                    if (messageViewerManager.averageRowHeight === 0) {
+                        console.log("fail");
+                    }
+                    let thumbPos = scrollbarManager.getThumbPosition();
+                    scrollbarManager.redrawThumb(thumbPos);
+
+                    console.timeEnd("infinite scroll UP");
                 }
-                */
-
-                messageTableTbody += messageViewerManager.createJoinedPageHTML(prevPage);
-
-                let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
-                let decoTableTbodyElement = messageViewerManager.decorationTable.find("tbody");
-                messageTableTbodyElement.find("tr:nth-last-child(-n+" + Math.floor(messageViewerManager.rowsInTable)/2 + ")").remove();
-                decoTableTbodyElement.find("tr:nth-last-child(-n+" + Math.floor(messageViewerManager.rowsInTable)/2 + ")").remove();
-
-                let messageRows = $(messageTableTbody).prependTo(messageTableTbodyElement);
-                let decoRows = $(decoTableTbody).prependTo(decoTableTbodyElement);
-
-                for (let i = 0; i < messageRows.length; i++) {
-                    // need to adjust heights so rows match in each table
-                    let outerHeight = $(messageRows[i]).outerHeight();
-                    $(decoRows[i]).outerHeight(outerHeight);
-                }
-
-                // adjust scrollTop of the panel so that the previous top row stays on top of the table (and not out of view)
-                let newOffset = firstRow.position().top;
-                messageViewerManager.isProgramaticallyScrolling = true;
-                messageViewerManager.messageContainer.scrollTop(messageViewerManager.messageContainer.scrollTop()+ (-1 * (originalOffset - newOffset)));
-                messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
-                messageViewerManager.isProgramaticallyScrolling = false;
-
-
-                let thumbPos = scrollbarManager.getThumbPosition();
-                scrollbarManager.redrawThumb(thumbPos);
-                console.timeEnd("infinite scroll UP");
-
             }
+            return "UP";
         }
     },
 
