@@ -252,7 +252,7 @@ var messageViewerManager = {
             return;
         }
 
-        if (hasDataChanged == null) {
+        if (typeof hasDataChanged === "undefined") {
             // checks if this is a result of UNDO/REDO action or new data was loaded in
             hasDataChanged = true;
         }
@@ -261,10 +261,12 @@ var messageViewerManager = {
         Reset all css set when resizing programatically
          */
         if (hasDataChanged) {
+            $('#message-table').stickyTableHeaders("destroy");
+            messageViewerManager.messageTable.find(".scheme-header").remove();
+            messageViewerManager.messageTable.find("tbody").empty();
             $("#message-viewer").css("width", "");
-            messageViewerManager.decorationTable.css("width", "auto");
-            messageViewerManager.decorationTable.find("thead").css("width", "");
-            //messageViewerManager.messageTable.css("width", messageViewerManager.initialMessageTableWidth);
+            newDataset.restoreDefaultSort();
+
         }
 
         /*
@@ -302,25 +304,6 @@ var messageViewerManager = {
                 newDataset.restoreDefaultSort();
             }
         }
-
-        if (hasDataChanged) {
-            newDataset.restoreDefaultSort();
-        }
-
-        /*
-        let activeSchemeHeaderToAppend = this.buildSchemeHeaderElement(activeScheme, activeSortIcon, true);
-        let appendedActiveSchemeHeader = $(activeSchemeHeaderToAppend).appendTo(activeSchemeHeader);
-        let decorationsHeader = messageViewerManager.buildDecorationsHeader(messageViewerManager.codeSchemeOrder.slice(1), activeSortIcon, otherSchemeHeaders);
-
-        let allSchemeHeaders;
-
-        if (decorationsHeader && decorationsHeader.length > 0) {
-            let appendedOtherSchemeHeaders = decorationsHeader.appendTo(otherSchemeHeaders);
-            allSchemeHeaders = appendedActiveSchemeHeader.add(appendedOtherSchemeHeaders);
-        } else {
-            allSchemeHeaders = appendedActiveSchemeHeader;
-        }
-        */
 
         let allSchemeHeaders = $("#message-table").find("thead").find("tr");
         allSchemeHeaders = $(messageViewerManager.buildJoinedHeader(messageViewerManager.activeScheme)).appendTo(allSchemeHeaders);
@@ -374,10 +357,6 @@ var messageViewerManager = {
             let eventIndex = newDataset.eventOrder[i];
             let eventObj = newDataset.events.get(eventIndex);
             messageTableTbody += messageViewerManager.buildJoinedRow(eventObj, i, eventObj.owner, messageViewerManager.activeScheme);
-            /*
-            activeMessageTableTbody += messageViewerManager.buildMessageTableRow(eventObj, i, eventObj.owner, messageViewerManager.activeScheme);
-            decorationTableTbody += messageViewerManager.buildDecorationTableRow(eventObj, i, eventObj.owner, messageViewerManager.codeSchemeOrder.slice(1));
-            */
         }
 
         let messageTableBodyElement =  messageViewerManager.messageTable.find("tbody");
@@ -388,24 +367,6 @@ var messageViewerManager = {
         decorationTableBodyElement.empty();
 
         $(messageTableTbody).appendTo(messageTableBodyElement);
-        /*
-        let activeMessageRows = $(activeMessageTableTbody).appendTo(messageTableBodyElement);
-        if (decorationTableTbody.length > 0) {
-            let decoRows = $(decorationTableTbody).appendTo(decorationTableBodyElement);
-            messageViewerManager.decorationTable.show();
-            $('body').show();
-            for (let i = 0; i < activeMessageRows.length; i++) {
-                // need to adjust heights so rows match in each table
-                let outerHeight = $(activeMessageRows[i]).outerHeight();
-                $(decoRows[i]).outerHeight(outerHeight);
-            }
-            $('body').hide();
-        } else {
-            // if only one scheme (= the active one), hide deco table and expand the message one
-            messageViewerManager.decorationTable.hide();
-            messageViewerManager.messageTable.css({"width": "100%"});
-        }
-        */
 
         if (hasDataChanged) {
             this.messageContainer.scrollTop(0);
@@ -413,6 +374,7 @@ var messageViewerManager = {
             this.messageContainer.scrollTop(prevScroll);
         }
 
+        $('#message-table').stickyTableHeaders({scrollableArea: messageViewerManager.messageContainer, container:messageViewerManager.messageContainer, fixedOffset: 1})
         console.timeEnd("table building");
 
         /*
@@ -1003,7 +965,9 @@ setTimeout(() => {
 
         regexMatcher.codeDataset(scheme["id"]);
         messageViewerManager.addNewActiveScheme(scheme["id"]);
-
+        let thumbPos = scrollbarManager.getThumbPosition();
+        scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);
+        scrollbarManager.redrawThumb(thumbPos);
     },
 
     deleteSchemeColumn: function(schemeId) {
@@ -1011,7 +975,7 @@ setTimeout(() => {
         $('#message-table').stickyTableHeaders("destroy");
         // IMPORTANT: clear all style set by sticky table headers...
         $(".scheme-header").not(".active-scheme-header").css({"max-width":"", "min-width": "", "width": "auto"});
-        $(".active-scheme-header").css("width", "300px");
+        //$(".active-scheme-header").css("width", "300px");
 
         let allNewHeaders;
 
@@ -1024,12 +988,12 @@ setTimeout(() => {
             let indexOfActiveScheme = messageViewerManager.codeSchemeOrder.indexOf(schemeId);
             let nextActiveScheme = (indexOfActiveScheme + 1 < messageViewerManager.codeSchemeOrder.length) ? indexOfActiveScheme + 1 : 0;
             messageViewerManager.promoteToActiveScheme(messageViewerManager.codeSchemeOrder[nextActiveScheme]);
-
+            let thumbPos = scrollbarManager.getThumbPosition();
+            scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);
+            scrollbarManager.redrawThumb(thumbPos);
         }
 
         messageViewerManager.resizeViewport(messageViewerManager.minHeaderWidth);
-
-
         $('#message-table').stickyTableHeaders({scrollableArea: messageViewerManager.messageContainer, container:messageViewerManager.messageContainer, fixedOffset: 1});
 
 
@@ -1090,14 +1054,19 @@ setTimeout(() => {
                 $(activeRow).children("td").each(function(i, td) {
                     newDataset.events.get(eventId).decorate(codeObj.owner["id"], true, UUID, codeObj, 0.95);
                     var color = codeObj["color"];
-
+                    console.log(td);
                     if ($(td).hasClass("message-text")) {
                         if (color && color.length !== 0 && color !== "#ffffff") {
                             $(td).css("box-shadow", "inset 0px 0px 0px 4px " + color);
                         } else {
                             $(td).css("box-shadow", "");
                         }
+                    } else if ($(td).hasClass("active-scheme")){
+                        // set dropdown value
+                        $(td).find("select").val(codeObj["value"]).removeClass("uncoded").addClass("coded");
 
+                        // check checkbox
+                        let decoColumn = $(td).find(".checkbox-manual").prop("checked", true);
                     } else {
                         if (color && color.length !== 0) {
                             $(td).css("background-color", color);
@@ -1110,18 +1079,7 @@ setTimeout(() => {
                 $(activeRow).removeClass("uncoded");
                 $(activeRow).addClass("coded");
 
-                // set dropdown value
-                $(activeRow).find("select").val(codeObj["value"]).removeClass("uncoded").addClass("coded");
-
-                // check checkbox
-                let decoColumn = activeRow.find(".checkbox-manual").prop("checked", true);
-
                 if (messageViewerManager.horizontal) {
-                    /*
-  setTimeout(() => {
-      messageViewerManager.horizontalCoding(activeRow.attr("eventid"));
-  }, 500);
-  */
                     messageViewerManager.horizontalCoding(activeRow.attr("eventid"));
                 } else {
                     setTimeout(() => {
@@ -1412,6 +1370,10 @@ setTimeout(() => {
 
                     console.log("new page added");
 
+                    activeRow.removeClass("active");
+                    lastMessage.addClass("active");
+                    activeRow = lastMessage;
+
                     messageViewerManager.isProgramaticallyScrolling = true;
                     messageViewerManager.messageContainer.scrollTop($("#message-panel").scrollTop() + (-1 * (lastMessagePosition - lastMessage.position().top)));
                     messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
@@ -1444,6 +1406,10 @@ setTimeout(() => {
                     let lastMessagePosition = lastMessage.position().top;
 
                     let messageRows = $(messageTableTbody).appendTo(messageTableTbodyElement);
+
+                    activeRow.removeClass("active");
+                    lastMessage.addClass("active");
+                    activeRow = lastMessage;
 
                     messageViewerManager.isProgramaticallyScrolling = true;
                     messageViewerManager.messageContainer.scrollTop($("#message-panel").scrollTop() + (-1 * (lastMessagePosition - lastMessage.position().top)));
@@ -1491,6 +1457,10 @@ setTimeout(() => {
                     messageTableTbodyElement.find("tr:nth-last-child(-n+" + numRowsToRemove + ")").remove();
 
                     $(messageTableTbody).prependTo(messageTableTbodyElement);
+
+                    activeRow.removeClass("active");
+                    firstRow.addClass("active");
+                    activeRow = firstRow;
 
                     // adjust scrollTop of the panel so that the previous top row stays on top of the table (and not out of view)
                     let newOffset = firstRow.position().top;
@@ -1761,7 +1731,7 @@ setTimeout(() => {
 
         eventRow += "<tr class='message-row' id='message-" + eventObj["name"] + "' eventid = '" + eventObj["name"] + "' eventindex = '" + eventIndex + "' sessionId = '" + sessionId + "'>";
         eventRow += "<td style='width:67px' class='message-id' style='background-color: " + rowColor + "'><div>" + eventObj["name"] + "</div></td>";
-        eventRow += "<td style='width:300px' class='message-text'" + shadowStyle + "><div><p>" + eventText + "</p></div></td>";
+        eventRow += "<td style='width:400px' class='message-text'" + shadowStyle + "><div><p>" + eventText + "</p></div></td>";
 
         eventRow += "<td style='' class='active-scheme' style='background-color: " + rowColor+ "'>";
         eventRow += "<div class='input-group' scheme='" + activeSchemeKey + "' >";
@@ -1833,7 +1803,7 @@ setTimeout(() => {
 
         eventRow += "<tr class='message-row' id='message-" + eventObj["name"] + "' eventid = '" + eventObj["name"] + "' eventindex = '" + eventIndex + "' sessionId = '" + sessionId + "'>";
         eventRow += "<td class='message-id' style='width:67px;background-color: " + rowColor + "'><div>" + eventObj["name"] + "</div></td>";
-        eventRow += "<td class='message-text' style='width:300px;" + shadowStyle + "'><div><p>" + eventText + "</p></div></td>";
+        eventRow += "<td class='message-text' style='width:400px;" + shadowStyle + "'><div><p>" + eventText + "</p></div></td>";
 
         eventRow += messageViewerManager.buildSchemeRowCell(eventObj, messageViewerManager.activeScheme, true);
         let indexOfActiveScheme = messageViewerManager.codeSchemeOrder.indexOf(messageViewerManager.activeScheme);
@@ -1914,10 +1884,11 @@ setTimeout(() => {
         let schemRowCell = "";
         schemRowCell += "<td class='deco-container" +  (isActive ? " active-scheme" : "") + "' style='background-color:" + rowColor+ "' scheme='" + schemeId+ "'>";
         schemRowCell += "<div class='input-group' scheme='" + schemeId + "' >";
+        let disabled = (!isActive) ? "disabled" : "";
         if (eventObj.decorations.get(schemeId) && eventObj.decorations.get(schemeId).manual) {
-            schemRowCell += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox' checked></span>";
+            schemRowCell += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox' checked " + disabled +"></span>";
         } else {
-            schemRowCell += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox'></span>";
+            schemRowCell += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox' " + disabled +"></span>";
         }
 
         schemRowCell += this.buildCodeSelectField(newDataset.schemes[schemeId],eventObj,isActive);
@@ -2134,9 +2105,7 @@ setTimeout(() => {
         $(newHeader).each((i,col) => {
             let column = $(col);
             let button = column.find(".edit-scheme-button");
-
             messageViewerManager.bindEditSchemeButtonListener(button, newDataset["schemes"][schemeKey]);
-
         });
 
         let sortButton = $(".sort-btn");
@@ -2271,15 +2240,26 @@ setTimeout(() => {
         // IMPORTANT: clear all style set by sticky table headers...
         $(".scheme-header").css({"max-width":"", "min-width": "", "width": "auto"});
 
+        let messageViewer = $("#message-viewer");
         let schemeHeaders = $(".scheme-header");
         let activeSchemeHeader = $(".active-scheme-header");
         if (schemeHeaders.length === 2) {
             activeSchemeHeader.css("width", "auto");
             activeSchemeHeader.css("width", $(schemeHeaders[1]).outerWidth() + "px");
+            $("#message-text-header").css("width", "400px");
+            messageViewer.width(1250);
+
+        } else if (schemeHeaders.length === 1) {
+
+            activeSchemeHeader.css("width", "auto");
+            $("#message-text-header").css("width", "auto");
+            messageViewer.width(1250);
+
         } else {
             activeSchemeHeader.css("width", "300px");
-        }
+            $("#message-text-header").css("width", "400px");
 
+        }
 
         let allHeadersWideEnough = true;
         let noHeadersTooWide = true;
@@ -2293,6 +2273,7 @@ setTimeout(() => {
             }
             if ($(header).width() > messageViewerManager.maxHeaderWidth) {
                 noHeadersTooWide = false;
+                return false;
             }
         });
 
@@ -2301,11 +2282,26 @@ setTimeout(() => {
             let totalRequiredPanelWidth = $("#message-id-header").outerWidth() + $("#message-text-header").outerWidth() + $('.active-scheme-header').outerWidth() + minWidth * (messageViewerManager.codeSchemeOrder.length-1);
             let difference = totalRequiredPanelWidth - $("#message-panel").width();
 
-            let currentContainerWidth = $("#message-viewer").width();
+            let currentContainerWidth = messageViewer.width();
+            let newContainerWidth = currentContainerWidth + difference;
+            messageViewer.width(currentContainerWidth + difference);
 
-            $("#message-viewer").width(currentContainerWidth + difference);
+            let scrollThumb = $("#scrollthumb");
+            let scrollbar = $("#scrollbar");
+            scrollbar.css("margin-left", "0px");
+
+            if (newContainerWidth < 1250) {
+                let scrollThumbPosition = scrollThumb.position().left;
+                let scrollbarPosition = scrollbar.position().left;
+                if (scrollThumbPosition !== scrollbarPosition) {
+                    scrollbar.css("margin-left", "-" + (scrollbarPosition - scrollThumbPosition) + "px");
+                }
+            } else {
+                scrollThumb.css("left", scrollbar.position().left + "px");
+            }
         }
         $('#message-table').stickyTableHeaders({scrollableArea: messageViewerManager.messageContainer, container:messageViewerManager.messageContainer, fixedOffset: 1})
         $("body").scrollLeft(0);
+
     }
 };

@@ -57,8 +57,8 @@ SOFTWARE.
 }
 
 .message-text div{
-  width: 284px !important;
-  max-width: 284px;
+  width: 384px !important;
+  max-width: 384px;
 }
 
 .active-scheme > div{

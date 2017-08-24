@@ -270,9 +270,7 @@ var codeEditorManager =  {
                 editorContainer.find("tbody").empty();
                 codeEditorManager.bindAddCodeButtonListener();
                 editorContainer.find("#scheme-name-input").val("");
-                scrollbarManager.redraw(newDataset, newId);
-                scrollbarManager.redrawThumb(0);
-                $(scrollbarManager.scrollbarEl).drawLayers();
+
                 editorOpen = false;
                 tempScheme = {};
                 messageViewerManager.resizeViewport(messageViewerManager.minHeaderWidth);
@@ -414,7 +412,6 @@ var codeEditorManager =  {
             messageTableTbody += messageViewerManager.createJoinedPageHTML(messageViewerManager.lastLoadedPageIndex);
 
             let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
-            let decoTableTbodyElement = messageViewerManager.decorationTable.find("tbody");
             let previousScrollTop = messageViewerManager.messageContainer.scrollTop();
             let previousActiveRow = activeRow.attr("eventid");
 
@@ -423,6 +420,7 @@ var codeEditorManager =  {
             let messageRows = $(messageTableTbody).prependTo(messageTableTbodyElement);
 
             messageViewerManager.messageContainer.scrollTop(previousScrollTop);
+
             activeRow = messageTableTbodyElement.find("tr[eventid='" + previousActiveRow + "']").addClass("active");
 
             // redraw scrollbar
@@ -766,12 +764,12 @@ var codeEditorManager =  {
             $(inputRow).remove();
             tempScheme.codes.delete(id);
 
-            if (next.length != 0) {
+            if (next.length !== 0) {
                 $(next).addClass("active");
                 state.activeEditorRow = $(next).attr("codeid");
                 codeEditorManager.updateCodePanel(tempScheme.codes.get(state.activeEditorRow));
 
-            } else if (prev.length != 0){
+            } else if (prev.length !== 0){
                 $(prev).addClass("active");
                 state.activeEditorRow = $(prev).attr("codeid");
                 codeEditorManager.updateCodePanel(tempScheme.codes.get($(prev).attr("codeid")));
@@ -812,8 +810,8 @@ var codeEditorManager =  {
             newDataset.schemes[newScheme.id] = newScheme;
 
             messageViewerManager.codeSchemeOrder.push(newScheme.id + "");
-            messageViewerManager.addNewActiveScheme(newScheme.id);
             messageViewerManager.deleteSchemeColumn(schemeId);
+            messageViewerManager.addNewActiveScheme(newScheme.id);
 
             schemeId = newScheme.id + "";
             messageViewerManager.activeScheme = newScheme.id + "";
@@ -847,8 +845,7 @@ var codeEditorManager =  {
             });
 
             // UI changes need extra handling since there are multiple columns
-            let newSchemeId = messageViewerManager.deleteSchemeColumn(schemeId);
-            return newSchemeId;
+            return messageViewerManager.deleteSchemeColumn(schemeId);
         }
     }
 };

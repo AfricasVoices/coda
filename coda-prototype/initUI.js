@@ -195,195 +195,7 @@ storage
                 console.log(err);
                 return initDataset(storage);
             });
-    })/*.then(dataset => {
-        console.time("Data init");
-        dataset = typeof dataset === "string" ? JSON.parse(dataset) : dataset;
-        newDataset = Dataset.restoreFromTypelessDataset(dataset);//new Dataset().setFields(dataset["sessions"], dataset["schemes"], dataset["events"]);
-        console.log("LOG - Dataset restored is valid: " + JSON.stringify(Dataset.validate(newDataset)));
-        console.timeEnd("Data init");
-
-        // update the activity stack
-        storage.saveActivity({
-            "category": "DATASET",
-            "message": "Resuming coding dataset",
-            "messageDetails": "", // todo add identifier
-            "data": {"events": newDataset["events"].size, "schemes": Object.keys(newDataset["schemes"]).length, "sessions": newDataset["sessions"].size},
-            "timestamp": new Date()
-        });
-        initUI(newDataset);
-        undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
-    }).catch(error => {
-        if (error) console.log(error);
-        console.time("Default data init");
-        $.getJSON("./data/sessions-numbered-10000.json", function (data) {
-
-            // todo ensure ALL IDs are unique
-
-            newDataset = function (data) {
-                var decorations = {};
-                var eventCount = 0;
-                var schemes = {};
-
-                var properDataset = new Dataset();
-                Object.keys(data).forEach(function (sessionKey) {
-                    var events = [];
-                    data[sessionKey]["events"].forEach(function (event) {
-                        var newEventObj = new RawEvent(eventCount + "", sessionKey, event["timestamp"], "", event["data"]);
-                        properDataset.eventOrder.push(newEventObj.name);
-                        properDataset.events.set(newEventObj.name, newEventObj);
-                        eventCount += 1;
-
-                        Object.keys(event["decorations"]).forEach(function (d) {
-
-                            var decorationValue = event["decorations"][d];
-
-                            if (!decorations.hasOwnProperty(d)) {
-                                // TODO: how to do scheme ids
-                                let newSchemeId = UIUtils.randomId(Object.keys(schemes));
-                                schemes[newSchemeId] = new CodeScheme(newSchemeId, d, true);
-                                decorations[d] = newSchemeId;
-                            }
-
-                            if (decorationValue.length > 0) {
-                                var scheme = schemes[decorations[d]];
-                                if (!schemes[decorations[d]].getCodeValues().has(decorationValue)) {
-                                    var newCodeId = decorations[d] + "-" + UIUtils.randomId(Array.from(scheme.codes.keys()));
-                                    scheme.codes.set(newCodeId, new Code(scheme, newCodeId, decorationValue, "#ffffff", "", false));
-                                }
-
-                                var code = scheme.getCodeByValue(decorationValue);
-                                newEventObj.decorate(decorations[d], true, UUID, code, 0.95); // has to use decorations[d] as scheme key
-                            }
-                        });
-                        events.push(newEventObj);
-                    });
-                    var session = new Session(sessionKey, events);
-                    properDataset.sessions.set(sessionKey, session);
-                });
-
-                properDataset.schemes = schemes;
-                properDataset.eventCount = eventCount;
-                console.log(properDataset);
-                return properDataset;
-
-            }(data);
-
-            console.timeEnd("Default data init");
-
-            //dataset = data;
-            //newDataset = buildDataset;
-            // update the activity stack
-            storage.saveActivity({
-                "category": "DATASET",
-                "message": "Loaded default dataset",
-                "messageDetails": "",
-                "data": "sessions-numbered-1000.txt",
-                "timestamp": new Date()
-            });
-            initUI(newDataset);
-            undoManager.modelUndoStack = [];
-            undoManager.schemaUndoStack = [];
-            undoManager.pointer = 0;
-            undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
-
-        });
-    }); */
-/*
-storage.getDataset().then(dataset => {
-    console.time("Data init");
-    dataset = typeof dataset === "string" ? JSON.parse(dataset) : dataset;
-    newDataset = new Dataset().setFields(dataset["sessions"], dataset["schemes"], dataset["events"]);
-    console.timeEnd("Data init");
-
-    // update the activity stack
-    storage.saveActivity({
-        "category": "DATASET",
-        "message": "Resuming coding dataset",
-        "messageDetails": "", // todo add identifier
-        "data": {"events": newDataset["events"].size, "schemes": Object.keys(newDataset["schemes"]).length, "sessions": newDataset["sessions"].size},
-        "timestamp": new Date()
     });
-    initUI(newDataset);
-    undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
-
-}).catch(error => {
-    if (error) console.log(error);
-    console.time("Default data init");
-    $.getJSON("./data/sessions-numbered-10000.json", function (data) {
-
-        // todo ensure ALL IDs are unique
-
-        newDataset = function(data) {
-            var decorations = {};
-            var eventCount = 0;
-            var schemes = {};
-
-            var properDataset = new Dataset();
-            Object.keys(data).forEach(function (sessionKey) {
-                var events = [];
-                data[sessionKey]["events"].forEach(function (event) {
-                    var newEventObj = new RawEvent(eventCount + "", sessionKey, event["timestamp"], "", event["data"]);
-                    properDataset.eventOrder.push(newEventObj.name);
-                    properDataset.events.set(newEventObj.name, newEventObj);
-                    eventCount += 1;
-
-                    Object.keys(event["decorations"]).forEach(function (d) {
-
-                        var decorationValue = event["decorations"][d];
-
-                        if (!decorations.hasOwnProperty(d)) {
-                            // TODO: how to do scheme ids
-                            let newSchemeId = UIUtils.randomId(Object.keys(schemes));
-                            schemes[newSchemeId] = new CodeScheme(newSchemeId, d, true);
-                            decorations[d] = newSchemeId;
-                        }
-
-                        if (decorationValue.length > 0) {
-                            var scheme = schemes[decorations[d]];
-                            if (!schemes[decorations[d]].getCodeValues().has(decorationValue)) {
-                                var newCodeId = decorations[d] + "-" + UIUtils.randomId(Array.from(scheme.codes.keys()));
-                                scheme.codes.set(newCodeId, new Code(scheme, newCodeId, decorationValue, "#ffffff", "", false));
-                            }
-
-                            var code = scheme.getCodeByValue(decorationValue);
-                            newEventObj.decorate(decorations[d], true, code, 0.95); // has to use decorations[d] as scheme key
-                        }
-                    });
-                    events.push(newEventObj);
-                });
-                var session = new Session(sessionKey, events);
-                properDataset.sessions.set(sessionKey, session);
-            });
-
-            properDataset.schemes = schemes;
-            properDataset.eventCount = eventCount;
-            console.log(properDataset);
-            return properDataset;
-
-        }(data);
-
-        console.timeEnd("Default data init");
-
-        //dataset = data;
-        //newDataset = buildDataset;
-        // update the activity stack
-        storage.saveActivity({
-            "category": "DATASET",
-            "message": "Loaded default dataset",
-            "messageDetails": "",
-            "data": "sessions-numbered-1000.txt",
-            "timestamp": new Date()
-        });
-        initUI(newDataset);
-        undoManager.modelUndoStack = [];
-        undoManager.schemaUndoStack = [];
-        undoManager.pointer = 0;
-        undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
-
-    });
-});
-*/
-
 
 function initUI(dataset) {
     console.time("TOTAL UI INITIALISATION TIME");
@@ -400,10 +212,6 @@ function initUI(dataset) {
     console.timeEnd("total messageview init");
 
     console.time("stickyheaders init");
-    //$('#deco-table').stickyTableHeaders({scrollableArea: messagePanel, container:messagePanel, fixedOffset: 1});
-
-    $('#message-table').stickyTableHeaders({scrollableArea: messagePanel, container:messagePanel, fixedOffset: 1});
-
     $('#code-table').stickyTableHeaders({scrollableArea: editorRow});
     console.timeEnd("stickyheaders init");
 
@@ -553,7 +361,7 @@ function initUI(dataset) {
                     failAlert.show();
 
                     var errors = parse.errors;
-                    if (errors.length > 100) { // only report first 30 wrong lines
+                    if (errors.length > 100) { // only report first 100 wrong lines
                         errors = parse.errors.slice(0,100);
                     }
 
@@ -675,7 +483,8 @@ function initUI(dataset) {
                         dataset.schemes[defaultScheme["id"]] = defaultScheme;
                     }
                     newDataset = dataset;
-                    //newDataset.schemes = schemes;
+
+                    // NEED TO MAKE SURE THE TABLE IS PROPERLY RESET HERE
                     messageViewerManager.buildTable(newDataset, messageViewerManager.rowsInTable, true);
                     $("body").show();
                     messageViewerManager.resizeViewport(messageViewerManager.minHeaderWidth);
