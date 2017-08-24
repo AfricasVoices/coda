@@ -122,10 +122,7 @@ var messageViewerManager = {
             }, 1)));
 
             $("#message-panel").on("scroll", function(){
-                /*
-                let yDifference = (messageViewerManager.lastTableY - messageViewerManager.messageContainer.scrollTop())/messageViewerManager.messageTable.height();
-                scrollbarManager.redrawThumb(scrollbarManager.getThumbPosition() - scrollbarManager.scrollbarEl.height * yDifference * (messageViewerManager.rowsInTable/newDataset.eventOrder.length));
-                */
+                messageViewerManager.isProgramaticallyScrolling = true;
                 messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
             });
 
@@ -409,6 +406,13 @@ var messageViewerManager = {
             if (!editorOpen && document.activeElement.nodeName === "BODY") {
                 let messagePanel = messageViewerManager.messageContainer;
                 if (event.keyCode === 38) { // UP
+                    if (messageViewerManager.horizontal && messageViewerManager.codeSchemeOrder[0] !== messageViewerManager.activeScheme) {
+                        // make sure active scheme is the one at index 0
+                        for (let i = messageViewerManager.codeSchemeOrder.indexOf(messageViewerManager.activeScheme); i < messageViewerManager.codeSchemeOrder.length; i++) {
+                            messageViewerManager.changeActiveScheme();
+                        }
+                    }
+
                     var prev = activeRow.prev();
 
                     if (prev.length !== 0) {
@@ -418,11 +422,19 @@ var messageViewerManager = {
                         if (!UIUtils.isRowVisible(prev[0], messagePanel[0])) {
                             UIUtils.scrollRowToTop(prev[0], messagePanel[0]);
                         }
-
                     }
                 }
 
                 if (event.keyCode === 40) { // DOWN
+
+                    if (messageViewerManager.horizontal && messageViewerManager.codeSchemeOrder[0] !== messageViewerManager.activeScheme) {
+                        // make sure active scheme is the one at index 0
+
+                        for (let i = messageViewerManager.codeSchemeOrder.indexOf(messageViewerManager.activeScheme); i < messageViewerManager.codeSchemeOrder.length; i++) {
+                            messageViewerManager.changeActiveScheme();
+                        }
+                    }
+
                     var next = activeRow.next();
 
                     if (next.length !== 0) {
@@ -443,28 +455,13 @@ var messageViewerManager = {
                     }
 
                     if (messageViewerManager.horizontal) {
-                        /*
-                        setTimeout(() => {
-                            messageViewerManager.horizontalCoding(activeRow.attr("eventid"));
-                        }, 500);
-                        */
                         messageViewerManager.horizontalCoding(activeRow.attr("eventid"));
-
                     } else {
-                        /*
-                        setTimeout(() => {
-                            messageViewerManager.verticalCoding(activeRow.attr("eventid"));
-                        }, 500);
-                        */
                         messageViewerManager.verticalCoding(activeRow.attr("eventid"));
-
                     }
                 }
-
             }
-
         });
-
     },
 
     buildDecorationsHeader: function(orderedSchemes, activeSortIcon, decorationsHeader) {
@@ -562,13 +559,16 @@ var messageViewerManager = {
            Circular
             */
 
-            let nextActiveScheme = messageViewerManager.codeSchemeOrder[1];
+            let nextActiveSchemeIndex = messageViewerManager.codeSchemeOrder.indexOf(messageViewerManager.activeScheme) + 1;
+            let nextActiveScheme = nextActiveSchemeIndex >= messageViewerManager.codeSchemeOrder.length ? messageViewerManager.codeSchemeOrder[0] : messageViewerManager.codeSchemeOrder[nextActiveSchemeIndex];
 
             messageViewerManager.demoteFromActiveScheme(messageViewerManager.activeScheme, true);
             messageViewerManager.promoteToActiveScheme(nextActiveScheme);
 
+            /*
             let movedSchemeKey = messageViewerManager.codeSchemeOrder.splice(0, 1)[0]; // remove previous active scheme key
             messageViewerManager.codeSchemeOrder.push(movedSchemeKey); // append it at the end
+            */
 
             activeSchemeId = nextActiveScheme;
             messageViewerManager.activeScheme = nextActiveScheme;
@@ -798,11 +798,6 @@ var messageViewerManager = {
             }, 250);
 
         } else {
-            /*
-setTimeout(() => {
-    messageViewerManager.horizontalCoding(activeRow.attr("eventid"));
-}, 500);
-*/
             messageViewerManager.horizontalCoding(activeRow.attr("eventid"));
         }
 
@@ -952,6 +947,7 @@ setTimeout(() => {
                     let newMessageRow = messageViewerManager.bringEventIntoView2(nextEventId);
 
                     if (offset.top < messageViewerManager.messageContainer.height() && offset.top > messageViewerManager.messageTable.find("thead").height()) {
+                        messageViewerManager.isProgramaticallyScrolling = true;
                         messageViewerManager.messageContainer.scrollTop(messageViewerManager.messageContainer.scrollTop() + (offset.top - newMessageRow.offset().top));
                     }
                 }, 350);
@@ -1147,29 +1143,28 @@ setTimeout(() => {
         if (nextScheme.length > 0) {
             // pass the columns until reaching this scheme
             setTimeout(() => {
-                let immutableSchemeOrder = messageViewerManager.codeSchemeOrder.slice();
+                let immutableSchemeOrder = messageViewerManager.codeSchemeOrder.slice(messageViewerManager.codeSchemeOrder.indexOf(messageViewerManager.activeScheme));
                 for (let schemeKey of immutableSchemeOrder) {
                     if (schemeKey === nextScheme) {
                         break;
                     } else {
                         messageViewerManager.changeActiveScheme();
-                        //messageViewerManager.resizeViewport(messageViewerManager.minHeaderWidth);
                     }
                 }
             }, 750);
 
         } else {
             // go to next uncoded event
+            // keep codescheme order
 
             setTimeout(() => {
 
                 let nextEventIndex = newDataset.eventOrder.indexOf(eventId);
-                let uncodedScheme = "";
-                while (uncodedScheme.length === 0 && nextEventIndex < newDataset.eventOrder.length) {
+                let uncodedScheme = messageViewerManager.codeSchemeOrder[0];
+                let nextEventObj = newDataset.events.get(newDataset.eventOrder[nextEventIndex]);
+                while (nextEventObj.decorations.get(uncodedScheme) && nextEventObj.decorations.get(uncodedScheme).code && nextEventIndex < newDataset.eventOrder.length) {
                     nextEventIndex++;
-                    let nextEventObj = newDataset.events.get(newDataset.eventOrder[nextEventIndex]);
-                    uncodedScheme = nextEventObj.firstUncodedScheme(messageViewerManager.codeSchemeOrder);
-                    console.log(uncodedScheme);
+                    nextEventObj = newDataset.events.get(newDataset.eventOrder[nextEventIndex]);
                 }
 
                 if (uncodedScheme.length !== 0) {
@@ -1180,13 +1175,9 @@ setTimeout(() => {
                     if (eventRow && eventRow.length > 0) {
                         // change active scheme!
                         let immutableCodeSchemeOrder = messageViewerManager.codeSchemeOrder.slice();
-                        for (let scheme of immutableCodeSchemeOrder) {
-                            if (scheme === uncodedScheme) {
-                                break;
-                            } else {
-                                messageViewerManager.changeActiveScheme();
-                                //messageViewerManager.resizeViewport(messageViewerManager.minHeaderWidth);
-                            }
+
+                        for (let i = messageViewerManager.codeSchemeOrder.indexOf(messageViewerManager.activeScheme); i < messageViewerManager.codeSchemeOrder.length; i++) {
+                            messageViewerManager.changeActiveScheme();
                         }
                     } else {
                         // something went wrong with bringing event in
@@ -1312,10 +1303,10 @@ setTimeout(() => {
                 if (!UIUtils.isRowVisible(eventRow[0], messageViewerManager.messageContainer[0])) {
                     messageViewerManager.isProgramaticallyScrolling = true;
                     UIUtils.scrollRowToTop(eventRow[0], messageViewerManager.messageContainer[0]);
-                    messageViewerManager.isProgramaticallyScrolling = false;
                 }
 
                 scrollbarManager.redrawThumbAtEvent(eventIndex);
+                messageViewerManager.lastEventIndex = eventIndex;
             }
 
         } else {
@@ -1323,9 +1314,11 @@ setTimeout(() => {
             activeRow = eventRow;
 
             if (!UIUtils.isRowVisible(eventRow[0], messageViewerManager.messageContainer[0])) {
+                messageViewerManager.isProgramaticallyScrolling = true;
                 UIUtils.scrollRowToTop(eventRow[0], messageViewerManager.messageContainer[0]);
             }
             scrollbarManager.redrawThumbAtEvent(eventIndex);
+            messageViewerManager.lastEventIndex = eventIndex;
         }
 
         let selectField = eventRow.find("select." + messageViewerManager.activeScheme);
@@ -1377,7 +1370,6 @@ setTimeout(() => {
                     messageViewerManager.isProgramaticallyScrolling = true;
                     messageViewerManager.messageContainer.scrollTop($("#message-panel").scrollTop() + (-1 * (lastMessagePosition - lastMessage.position().top)));
                     messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
-                    messageViewerManager.isProgramaticallyScrolling = false;
                     //scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);
 
                     let thumbPos = scrollbarManager.getThumbPosition();
@@ -1414,7 +1406,6 @@ setTimeout(() => {
                     messageViewerManager.isProgramaticallyScrolling = true;
                     messageViewerManager.messageContainer.scrollTop($("#message-panel").scrollTop() + (-1 * (lastMessagePosition - lastMessage.position().top)));
                     messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
-                    messageViewerManager.isProgramaticallyScrolling = false;
                     messageViewerManager.averageRowHeight = Math.floor(messageViewerManager.messageTable.height()/messageViewerManager.rowsInTable);
                     if (messageViewerManager.averageRowHeight === 0) {
                         console.log("fail");
