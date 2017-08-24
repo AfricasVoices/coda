@@ -98,11 +98,16 @@ var messageViewerManager = {
                 /*
                  All this
                  */
-                if (targetElement.nodeName != "TD") {
-                    targetElement = targetElement.parentElement;
+                if (targetElement.nodeName !== "TD") {
+                    if (targetElement.nodeName === "P") {
+                        targetElement = targetElement.parentElement.parentElement;
+                    }
+                    if (targetElement.nodeName === "DIV") {
+                        targetElement = targetElement.parentElement;
+                    }
                 }
 
-                if (targetElement.nodeName === "TD" && targetElement.className.split(" ").indexOf("message-text") != -1) {
+                if (targetElement.nodeName === "TD" && targetElement.className.split(" ").indexOf("message-text") !== -1) {
                     messageViewerManager.collectWords(targetElement);
                 }
             });
@@ -448,12 +453,16 @@ var messageViewerManager = {
                     }
                 }
 
+                if (event.keyCode === 39) { // RIGHT
+                    messageViewerManager.changeActiveScheme();
+
+                }
+
                 if (event.keyCode === 13) { // ENTER
 
                     if ($(document.activeElement).is("input")) {
                         return;
                     }
-
                     if (messageViewerManager.horizontal) {
                         messageViewerManager.horizontalCoding(activeRow.attr("eventid"));
                     } else {
@@ -2179,18 +2188,15 @@ var messageViewerManager = {
                 // todo FIX THIS - check in data structure
 
                 const code = newDataset.events.get(eventId).codeForScheme(messageViewerManager.activeScheme);
-                const isCoded = code!=undefined;
+                const isCoded = typeof code !== "undefined" && code;
 
                 if (isCoded) {
 
                     code.addWords([selection]);
                     let regex = regexMatcher.generateOrRegex(code.words);
 
-                    //$(".message-row[eventid='" + eventId + "']").find("p").html(regexMatcher.wrapText(newDataset.events.get(eventId).data, regex, "highlight", code.id));
-
                     regexMatcher.unwrapHighlights($(element).find("p"));
                     regexMatcher.wrapElement(newDataset.events.get(eventId),regex, code.id);
-                    //schemes[messageViewerManager.activeScheme].getCodeByValue(selectElement.val()).words = words;
 
                     // update the activity stack
                     storage.saveActivity({
@@ -2198,23 +2204,6 @@ var messageViewerManager = {
                         "message": "Highlighted string for code in scheme",
                         "messageDetails": {"word": selection, "scheme":code.owner.id, "code": code.id},
                         "data": code,
-                        "timestamp": new Date()
-                    });
-
-                } else {
-                    let regex = regexMatcher.generateOrRegex([selection]);
-                    $(".message-row[eventid='" + eventId + "']").find("p").html(regexMatcher.wrapText(newDataset.events.get(eventId).data, regex, "highlight"));
-
-                    if (messageViewerManager.wordBuffer[sessionId][eventId][selection]!== 1) {
-                        messageViewerManager.wordBuffer[sessionId][eventId][selection] = 1;
-                    }
-
-                    // update the activity stack
-                    storage.saveActivity({
-                        "category": "SCHEME",
-                        "message": "Highlighted string",
-                        "messageDetails": {"word": selection},
-                        "data": [selection],
                         "timestamp": new Date()
                     });
                 }

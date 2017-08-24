@@ -284,20 +284,12 @@ var scrollbarManager = {
                         counter++;
                     } else {
                         colors.push("#ffffff");
-                        counter++;
-                        //counter.push("#ffffff");
                     }
                 } else {
                     colors.push("#ffffff");
-                    counter++;
-                    //counter.push("#ffffff");
                 }
-            } else {
-                counter2++;
-                console.log("fail");
             }
         });
-        console.log(counter.length);
         return sampleColours;
     },
 
