@@ -56,6 +56,10 @@ SOFTWARE.
   max-width: 51px;
 }
 
+.message-id {
+  font-size: 12px;
+}
+
 .message-text div{
   width: 384px !important;
   max-width: 384px;

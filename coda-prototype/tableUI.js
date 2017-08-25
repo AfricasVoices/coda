@@ -71,6 +71,7 @@ var messageViewerManager = {
             this.buildTable();
 
         } else {
+            newDataset.restoreDefaultSort();
             this.buildTable(data, rowsInTable);
 
             console.time("dropdown init");
@@ -621,6 +622,7 @@ var messageViewerManager = {
             // check checkbox
             checkbox.prop("checked", true);
 
+            regexMatcher.unwrapHighlights(row.find("p"));
             regexMatcher.wrapElement(eventObj, regexMatcher.generateOrRegex(codeObj.words), codeObj.id);
 
 
@@ -742,7 +744,7 @@ var messageViewerManager = {
                 // update dropdown to the right value
                 let select = messageRow.find("select." + activeScheme);
                 select.find("option").attr("selected",false);
-                select.find("#" + deco.code.id).attr("selected", true);
+                select.find("option[codeid='" + deco.code.id + "']").attr("selected", true);
 
             } else { // not coded anymore
                 let color = "#ffffff";
@@ -1059,19 +1061,34 @@ var messageViewerManager = {
                 let uncodedScheme = "";
 
                 let nextEventObj = newDataset.events.get(newDataset.eventOrder[nextEventIndex]);
-                let nextEventObj2 = "";
                 while (nextEventObj && nextEventObj.decorations.get(firstScheme) && nextEventObj.decorations.get(firstScheme).code && nextEventIndex < newDataset.eventOrder.length) {
                     nextEventIndex++;
                     nextEventObj = newDataset.events.get(newDataset.eventOrder[nextEventIndex]);
-                    if (nextEventObj2 === "") {
-                        uncodedScheme = nextEventObj.firstUncodedScheme(messageViewerManager.codeSchemeOrder);
-                        if (uncodedScheme.length > 0) {
+                    if (!nextEventObj || typeof nextEventObj === "undefined" ) {
 
+                        uncodedScheme = eventObj.firstUncodedScheme(messageViewerManager.codeSchemeOrder);
+                        if (uncodedScheme.length > 0) {
+                            let activeSchemeIndex = messageViewerManager.codeSchemeOrder.indexOf(messageViewerManager.activeScheme);
+                            let uncodedSchemeIndex = messageViewerManager.codeSchemeOrder.indexOf(uncodedScheme);
+
+                            if (activeSchemeIndex < uncodedSchemeIndex) {
+                                for (let i =activeSchemeIndex; i < uncodedSchemeIndex; i++) {
+                                    messageViewerManager.changeActiveScheme();
+                                }
+
+                            } else {
+                                for (let i =activeSchemeIndex; i < messageViewerManager.codeSchemeOrder.length; i++) {
+                                    messageViewerManager.changeActiveScheme();
+                                }
+                                for (let i = 0 ; i < uncodedSchemeIndex; i++) {
+                                    messageViewerManager.changeActiveScheme();
+                                }
+                            }
                         }
+                        return;
                     }
                 }
 
-                // todo do we wrap around or loop again and find the first uncoded scheme
                 if (firstScheme.length !== 0) {
                     //change active row & active scheme to first scheme
                     let newActiveEvent = newDataset.events.get(newDataset.eventOrder[nextEventIndex]);

@@ -487,10 +487,30 @@ class Dataset {
 
         this.eventOrder.sort((e1,e2) => {
 
-           let name1 = parseInt(this.events.get(e1).name,10);
-           let name2 = parseInt(this.events.get(e2).name,10);
+            let name1, name2;
 
-           return name1-name2;
+            let intParse1 = parseInt(this.events.get(e1).name,10);
+            let intParse2 = parseInt(this.events.get(e2).name,10);
+
+            if (isNaN(intParse1)) {
+                name1 = this.events.get(e1).name.toLowerCase();
+            } else {
+                name1 = intParse1;
+            }
+
+            if (isNaN(intParse2)) {
+                name2 = this.events.get(e2).name.toLowerCase();
+            } else {
+                name2 = intParse2;
+            }
+
+            if (name1 < name2) {
+                return -1;
+            }
+            if (name2 < name1) {
+                return 1;
+            }
+            return 0;
 
         });
 
@@ -517,40 +537,140 @@ class Dataset {
                 let code1 = hasCode1 ? codes.indexOf(e1.decorationForName(schemeId).code.value ) : -1;
                 let code2 = hasCode2 ? codes.indexOf(e2.decorationForName(schemeId).code.value ) : -1;
 
-                if (code1 == -1 && code2 != -1) {
+                if (code1 === -1 && code2 !== -1) {
                     // one assigned, one unassigned
                     return isToDoList ? -1 : 1;
                 }
 
-                if (code2 == -1 && code1 != -1) {
+                if (code2 === -1 && code1 !== -1) {
                     // one assigned, one unassigned
                     return isToDoList ? 1 : -1;
                 }
 
                 if (code1 == code2) {
 
-                    if (code1 == -1) {
+                    if (code1 === -1) {
                         // neither event has a code assigned
-                        return parseInt(e1.name) - parseInt(e2.name);
+                        let intParse1 = parseInt(e1.name);
+                        let intParse2 = parseInt(e2.name);
+
+                        let name1, name2;
+                        if (isNaN(intParse1)) {
+                            name1 = e1.name.toLowerCase();
+                        } else {
+                            name1 = intParse1;
+                        }
+                        if (isNaN(intParse2)) {
+                            name2 = e2.name.toLowerCase();
+                        } else {
+                            name2 = intParse2;
+                        }
+
+                        if (name1 < name2) {
+                            return -1;
+                        }
+                        if (name2 < name1) {
+                            return 1;
+                        }
+                        return 0;
                     }
 
                     // same codes, now sort by manual/automatic & confidence
-                    if (deco1.confidence != null && deco1.confidence != undefined && deco2 != null && deco2.confidence != undefined) {
+                    if (deco1.confidence != null && typeof deco1.confidence !== "undefined" && deco2 != null && typeof deco2.confidence !== "undefined") {
 
-                        if (deco1.manual != undefined && deco1.manual) {
-                            if (deco2.manual != undefined && deco2.manual) {
-                                return deco1.confidence - deco2.confidence || parseInt(e1.name) - parseInt(e2.name);
+                        if (typeof deco1.manual !== "undefined" && deco1.manual) {
+                            if (typeof deco2.manual !== "undefined" && deco2.manual) {
+
+                                let decoDifference = deco1.confidence - deco2.confidence;
+                                if (decoDifference === 0) {
+                                    let intParse1 = parseInt(e1.name);
+                                    let intParse2 = parseInt(e2.name);
+
+                                    let name1, name2;
+                                    if (isNaN(intParse1)) {
+                                        name1 = e1.name.toLowerCase();
+                                    } else {
+                                        name1 = intParse1;
+                                    }
+                                    if (isNaN(intParse2)) {
+                                        name2 = e2.name.toLowerCase();
+                                    } else {
+                                        name2 = intParse2;
+                                    }
+
+                                    if (name1 < name2) {
+                                        return -1;
+                                    }
+                                    if (name2 < name1) {
+                                        return 1;
+                                    }
+                                    return 0;
+
+                                } else {
+                                    return decoDifference;
+                                }
                             } else {
                                 return 1;
                             }
-                        } else if (deco2.manual != undefined && deco2.manual) {
+                        } else if (typeof deco2.manual !== "undefined" && deco2.manual) {
                             return -1;
                         } else {
-                            return deco1.confidence - deco2.confidence || parseInt(e1.name) - parseInt(e2.name);
+                            let decoDifference = deco1.confidence - deco2.confidence;
+                            if (decoDifference === 0) {
+                                let intParse1 = parseInt(e1.name);
+                                let intParse2 = parseInt(e2.name);
+
+                                let name1, name2;
+                                if (isNaN(intParse1)) {
+                                    name1 = e1.name.toLowerCase();
+                                } else {
+                                    name1 = intParse1;
+                                }
+                                if (isNaN(intParse2)) {
+                                    name2 = e2.name.toLowerCase();
+                                } else {
+                                    name2 = intParse2;
+                                }
+
+                                if (name1 < name2) {
+                                    return -1;
+                                }
+                                if (name2 < name1) {
+                                    return 1;
+                                }
+                                return 0;
+
+                            } else {
+                                return decoDifference;
+                            }
                         }
 
                     } else if (deco1.confidence == null && deco2.confidence == null) {
-                        return parseInt(e1.name) - parseInt(e2.name);
+
+                        let intParse1 = parseInt(e1.name);
+                        let intParse2 = parseInt(e2.name);
+
+                        let name1, name2;
+                        if (isNaN(intParse1)) {
+                            name1 = e1.name.toLowerCase();
+                        } else {
+                            name1 = intParse1;
+                        }
+                        if (isNaN(intParse2)) {
+                            name2 = e2.name.toLowerCase();
+                        } else {
+                            name2 = intParse2;
+                        }
+
+                        if (name1 < name2) {
+                            return -1;
+                        }
+                        if (name2 < name1) {
+                            return 1;
+                        } else {
+                            return 0;
+                        }
+
                     } else if (deco1.confidence == null) {
                         return -1;
                     } else if (deco2.confidence == null) {
@@ -576,6 +696,7 @@ class Dataset {
         if ((this.schemes.hasOwnProperty && this.schemes.hasOwnProperty(schemeId)) || this.schemes[schemeId] != undefined) {
 
             this.eventOrder.sort((eventKey1, eventKey2) => {
+
                 let returnResult = 0;
 
                 var e1 = this.events.get(eventKey1);
@@ -583,26 +704,124 @@ class Dataset {
                 let deco1 = e1.decorationForName(schemeId);
                 let deco2 = e2.decorationForName(schemeId);
 
+                if (e1.name === "k" || e2.name === "k") {
+                    console.log("");
+                }
+
                 if (deco1 == undefined && deco2 == undefined) {
-                    returnResult = parseInt(e1.name) - parseInt(e2.name);
+                    let intParse1 = parseInt(e1.name);
+                    let intParse2 = parseInt(e2.name);
+
+                    let name1, name2;
+                    if (isNaN(intParse1)) {
+                        name1 = e1.name.toLowerCase();
+                    } else {
+                        name1 = intParse1;
+                    }
+                    if (isNaN(intParse2)) {
+                        name2 = e2.name.toLowerCase();
+                    } else {
+                        name2 = intParse2;
+                    }
+
+                    if (name1 < name2) {
+                        returnResult = -1;
+                    }
+                    else if (name2 < name1) {
+                        returnResult = 1;
+                    } else  {
+                        returnResult = 0;
+                    }
                 } else if (deco1 == undefined) {
-                    let hasManual2 = deco2.manual != undefined || deco2.manual != null;
-                    returnResult = hasManual2 ? -1 : parseInt(e1.name) - parseInt(e2.name);
+                    let hasManual2 = typeof deco2.manual !== "undefined" || deco2.manual != null;
+                    if (hasManual2) returnResult = -1;
+                    else {
+                        let intParse1 = parseInt(e1.name);
+                        let intParse2 = parseInt(e2.name);
+
+                        let name1, name2;
+                        if (isNaN(intParse1)) {
+                            name1 = e1.name.toLowerCase();
+                        } else {
+                            name1 = intParse1;
+                        }
+                        if (isNaN(intParse2)) {
+                            name2 = e2.name.toLowerCase();
+                        } else {
+                            name2 = intParse2;
+                        }
+
+                        if (name1 < name2) {
+                            returnResult = -1;
+                        }
+                        else if (name2 < name1) {
+                            returnResult = 1;
+                        } else {
+                            returnResult = 0;
+                        }
+                    }
 
                 } else if (deco2 == undefined) {
-                    let hasManual1 = deco1.manual != undefined || deco1.manual != null;
-                    returnResult = hasManual1 ? 1 : parseInt(e1.name) - parseInt(e2.name);
+                    let hasManual1 = typeof deco1.manual !== "undefined" || deco1.manual != null;
+                    if (hasManual1) returnResult = 1;
+                    else {
+                        let intParse1 = parseInt(e1.name);
+                        let intParse2 = parseInt(e2.name);
+
+                        let name1, name2;
+                        if (isNaN(intParse1)) {
+                            name1 = e1.name.toLowerCase();
+                        } else {
+                            name1 = intParse1;
+                        }
+                        if (isNaN(intParse2)) {
+                            name2 = e2.name.toLowerCase();
+                        } else {
+                            name2 = intParse2;
+                        }
+
+                        if (name1 < name2) {
+                            returnResult = -1;
+                        }
+                        else if (name2 < name1) {
+                            returnResult = 1;
+                        } else {
+                            returnResult = 0;
+                        }
+                    }
 
                 } else {
-                    let hasManual1 = deco1.manual != undefined || deco1.manual != null;
-                    let hasManual2 = deco2.manual != undefined || deco2.manual != null;
+                    let hasManual1 = typeof deco1.manual !== "undefined" || deco1.manual != null;
+                    let hasManual2 = typeof deco2.manual !== "undefined" || deco2.manual != null;
 
                     if (hasManual1 && hasManual2) {
 
                         if (deco1.manual) {
 
                             if (deco2.manual) {
-                                returnResult = parseInt(e1.name) - parseInt(e2.name);
+                                let intParse1 = parseInt(e1.name);
+                                let intParse2 = parseInt(e2.name);
+
+                                let name1, name2;
+                                if (isNaN(intParse1)) {
+                                    name1 = e1.name.toLowerCase();
+                                } else {
+                                    name1 = intParse1;
+                                }
+                                if (isNaN(intParse2)) {
+                                    name2 = e2.name.toLowerCase();
+                                } else {
+                                    name2 = intParse2;
+                                }
+
+                                if (name1 < name2) {
+                                    returnResult = -1;
+                                }
+                                else if (name2 < name1) {
+                                    returnResult = 1;
+                                } else {
+                                    returnResult = 0;
+                                }
                             } else {
                                 // deco2 is before deco1, automatic always before manual
                                 returnResult = 1
@@ -613,14 +832,64 @@ class Dataset {
                                 returnResult = -1;
                             } else {
                                 //both are automatic in which case compare confidence!
-                                returnResult = deco1.confidence - deco2.confidence || parseInt(e1.name, 10) - parseInt(e2.name, 10);
+                                let decoDifference = deco1.confidence - deco2.confidence;
+                                if (decoDifference === 0) {
+                                    let intParse1 = parseInt(e1.name);
+                                    let intParse2 = parseInt(e2.name);
+
+                                    let name1, name2;
+                                    if (isNaN(intParse1)) {
+                                        name1 = e1.name.toLowerCase();
+                                    } else {
+                                        name1 = intParse1;
+                                    }
+                                    if (isNaN(intParse2)) {
+                                        name2 = e2.name.toLowerCase();
+                                    } else {
+                                        name2 = intParse2;
+                                    }
+
+                                    if (name1 < name2) {
+                                        returnResult = -1;
+                                    }
+                                    else if (name2 < name1) {
+                                        returnResult = 1;
+                                    } else {
+                                        returnResult = 0;
+                                    }
+
+                                } else {
+                                    returnResult = decoDifference;
+                                }
                             }
                         }
                     } else {
 
                         if (hasManual1 == hasManual2) {
                             // both are uncoded
-                            returnResult = parseInt(e1.name) - parseInt(e2.name); // todo replace with ids
+                            let intParse1 = parseInt(e1.name);
+                            let intParse2 = parseInt(e2.name);
+
+                            let name1, name2;
+                            if (isNaN(intParse1)) {
+                                name1 = e1.name.toLowerCase();
+                            } else {
+                                name1 = intParse1;
+                            }
+                            if (isNaN(intParse2)) {
+                                name2 = e2.name.toLowerCase();
+                            } else {
+                                name2 = intParse2;
+                            }
+
+                            if (name1 < name2) {
+                                returnResult =  -1;
+                            }
+                            else if (name2 < name1) {
+                                returnResult =  1;
+                            } else {
+                                returnResult = 0;
+                            }
                         } else if (hasManual1) {
                             // uncoded e2 before coded e1
                             returnResult = 1;
@@ -632,8 +901,8 @@ class Dataset {
                         }
                     }
                 }
-                if ((returnResult < 0 && (deco1 && deco1.confidence > 0 && (deco2 == undefined))) ||
-                    (returnResult > 0 && (deco2 && deco2.confidence > 0 && (deco1 == undefined))) ||
+                if ((returnResult < 0 && (deco1 && deco1.confidence > 0 && (typeof deco2 === "undefined"))) ||
+                    (returnResult > 0 && (deco2 && deco2.confidence > 0 && (typeof deco1 === "undefined"))) ||
                     (returnResult > 0 && (deco2 && deco1 && deco2.confidence > deco1.confidence && deco2.code !=null)) ||
                     (returnResult < 0 && (deco2 && deco1 && deco1.confidence > deco2.confidence && deco1.code != null))) {
                     console.log(e1.name + ", " + e2.name);
