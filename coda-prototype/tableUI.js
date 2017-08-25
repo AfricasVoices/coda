@@ -437,7 +437,6 @@ var messageViewerManager = {
 
                 if (event.keyCode === 39) { // RIGHT
                     messageViewerManager.changeActiveScheme();
-
                 }
 
                 if (event.keyCode === 13) { // ENTER
@@ -445,7 +444,7 @@ var messageViewerManager = {
                     if ($(document.activeElement).is("input")) {
                         return;
                     }
-                    if (messageViewerManager.horizontal) {
+                    if (messageViewerManager.horizontal && Object.keys(newDataset.schemes).length > 1) {
                         messageViewerManager.horizontalCoding(activeRow.attr("eventid"));
                     } else {
                         messageViewerManager.verticalCoding(activeRow.attr("eventid"));
@@ -466,7 +465,7 @@ var messageViewerManager = {
 
         let sortIcon = "<button class='sort-btn btn btn-default btn-xs' data-toggle='tooltip' data-placement='top' title='Sort messages' data-container='body'><div class='sort-icon " + (schemeKey === messageViewerManager.activeScheme ? activeSortIcon + "'" : "icon-def active'") + "></div></button>";
         let editButton = "<button type='button' class='btn btn-default btn-xs edit-scheme-button' data-toggle='tooltip' data-placement='top' title='Edit scheme' data-container='body'><i class='glyphicon glyphicon-edit'></i></button>";
-        return "<th class='scheme-header" + activeSchemeClass + "' scheme='" + schemeKey + "'><div>" + sortIcon + editButton + "</div><div class='scheme-name-cont'><i class='scheme-name" + activeSchemeClass + "'>" + schemeObj["name"] + "</i></div></th>";
+        return "<th class='scheme-header" + activeSchemeClass + "' scheme='" + schemeKey + "'><div>" + sortIcon + editButton + "</div><div class='scheme-name-cont'><i class='scheme-name'>" + schemeObj["name"] + "</i></div></th>";
     },
 
     changeActiveScheme: function(schemeId) {
@@ -658,7 +657,7 @@ var messageViewerManager = {
         and effectively 'hide' to a place that the user can't predict
          */
 
-        if (!messageViewerManager.horizontal) {
+        if (!messageViewerManager.horizontal || Object.keys(newDataset.schemes).length === 1) {
 
             if (messageViewerManager.currentSort !== messageViewerManager.sortUtils.restoreDefaultSort && value.length > 0) {
 
@@ -870,7 +869,6 @@ var messageViewerManager = {
         messageViewerManager.messageTable.stickyTableHeaders("destroy");
         // IMPORTANT: clear all style set by sticky table headers...
         $(".scheme-header").not(".active-scheme-header").css({"max-width":"", "min-width": "", "width": "auto"});
-        //$(".active-scheme-header").css("width", "300px");
 
         let activeSchemeInHtml = $(".active-scheme-header").attr("scheme");
 
@@ -973,7 +971,7 @@ var messageViewerManager = {
                 $(activeRow).removeClass("uncoded");
                 $(activeRow).addClass("coded");
 
-                if (messageViewerManager.horizontal) {
+                if (messageViewerManager.horizontal && Object.keys(newDataset.schemes).length > 1) {
                     messageViewerManager.horizontalCoding(activeRow.attr("eventid"));
                 } else {
                     setTimeout(() => {
@@ -1111,11 +1109,6 @@ var messageViewerManager = {
 
             }, 250);
         }
-
-        // active row element is stale since tbody has been redrawn, so need to get the new copy
-        let activeRowId = activeRow.attr("id");
-        activeRow = $("#" + activeRowId);
-        activeRow.find("select." + messageViewerManager.activeScheme).focus();
     },
 
     bringEventIntoView: function(eventId) {
@@ -1535,7 +1528,7 @@ var messageViewerManager = {
 
         if (typeof moveToBack === "undefined") moveToBack = true;
 
-        let currentActiveSchemeHeaderContainer = $(".active-scheme-header");
+        let currentActiveSchemeHeaderContainer = $("th.active-scheme-header");
         let demotedHeader = currentActiveSchemeHeaderContainer;
 
         currentActiveSchemeHeaderContainer.css({"width":"auto"});
