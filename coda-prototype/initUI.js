@@ -1055,7 +1055,7 @@ function initUI(dataset) {
             activeRow = $(".message-row:first");
         }
 
-        messageViewerManager.bringEventIntoView2(activeRow.attr("eventid"));
+        messageViewerManager.bringEventIntoView(activeRow.attr("eventid"));
 
         // redraw scrollbar
         scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);

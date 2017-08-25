@@ -37,7 +37,7 @@ Responsible for drawing the main table interface and handling all events related
  */
 
 var messageViewerManager = {
-    messageContainer: {},
+    messagePanel: {},
     messageTable: {},
     decorationTable: {},
     codeSchemeOrder: [],
@@ -45,7 +45,6 @@ var messageViewerManager = {
     tablePages: [], // list of objects {start: [sessionIndex, eventIndex], end: [sessionIndex, eventIndex]}
     rowsInTable : 0,
     lastLoadedPageIndex : 0,
-    wordBuffer: {}, // format {sessionId :{ eventId: {}} ... }
     lastTableY: 0,
     isProgramaticallyScrolling: false,
     sortUtils: new SortUtils(),
@@ -56,14 +55,13 @@ var messageViewerManager = {
     maxHeaderWidth: 255,
     averageRowHeight: "",
     lastEventIndex: 0,
-    //initialMessageTableWidth: 800,
 
     init: function(messageContainer, data, rowsInTable) {
 
         if (!rowsInTable) rowsInTable = 40;
         this.rowsInTable = rowsInTable;
 
-        this.messageContainer = messageContainer;
+        this.messagePanel = messageContainer;
         this.messageTable = $("#message-table");
         this.decorationTable = $("#deco-table");
         this.lastLoadedPageIndex = 1;
@@ -74,11 +72,6 @@ var messageViewerManager = {
 
         } else {
             this.buildTable(data, rowsInTable);
-            if (Object.keys(newDataset.schemes).length > 4) {
-                //$("#message-viewer").css("width", (1230 + (Object.keys(newDataset.schemes).length - 4) * 360) + "");
-            }
-
-            //scrollbarManager.init(newDataset.sessions, document.getElementById("scrollbar"), 100);
 
             console.time("dropdown init");
 
@@ -112,11 +105,11 @@ var messageViewerManager = {
                 }
             });
 
-            $("#message-panel").on("scroll", (throttle(function(event) {
+            this.messagePanel.on("scroll", (throttle(function(event) {
                 // todo need to know if scroll is from shortcut or manual
 
                 let infiniteScroll = messageViewerManager.infiniteScroll(event);
-                let eventIndex = (messageViewerManager.lastLoadedPageIndex - 1) * Math.floor(messageViewerManager.rowsInTable/2) + Math.floor(messageViewerManager.messageContainer.scrollTop() / messageViewerManager.averageRowHeight);
+                let eventIndex = (messageViewerManager.lastLoadedPageIndex - 1) * Math.floor(messageViewerManager.rowsInTable/2) + Math.floor(messageViewerManager.messagePanel.scrollTop() / messageViewerManager.averageRowHeight);
                 console.log("eventindex: " + eventIndex + ", lasteventindex: " + messageViewerManager.lastEventIndex);
                 if (((infiniteScroll === "UP") && eventIndex <= messageViewerManager.lastEventIndex) || (infiniteScroll === "DOWN") && eventIndex >= messageViewerManager.lastEventIndex) {
                     messageViewerManager.lastEventIndex = eventIndex;
@@ -126,28 +119,39 @@ var messageViewerManager = {
                 }
             }, 1)));
 
-            $("#message-panel").on("scroll", function(){
+            this.messagePanel.on("scroll", function(){
                 messageViewerManager.isProgramaticallyScrolling = true;
-                messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
+                messageViewerManager.lastTableY = messageViewerManager.messagePanel.scrollTop();
             });
 
             this.messageTable.dblclick(function(event) {
                 if (event.originalEvent.target.className === "highlight") {
-                    // open editor
-                    let scheme = $(event.originalEvent.target).attr("codeid").split("-")[0];
-                    $(".scheme-header[scheme='" + scheme + "']").find(".edit-scheme-button").trigger("click");
+                    let codeId = $(event.originalEvent.target).attr("codeid");
+                    let scheme = newDataset.findSchemeByCode(codeId);
+
+                    if (scheme) {
+                        scheme = scheme.id;
+                        $(".scheme-header[scheme='" + scheme + "']").find(".edit-scheme-button").trigger("click"); // opens editor
+                        $(".code-row[codeid='" + codeId + "']").trigger("click"); // make the right code row active
+
+                        // bring code row into view if necessary
+
+                        // scroll down to the word field and focus on it
+                        $("#code-details-panel").scrollTop($("#color-pick").outerHeight() + $("#regex-user").outerHeight() + 30);
+                    }
                 }
             });
 
-            $(".sort-btn").off("click");
-            $(".sort-btn").on("click", messageViewerManager.sortHandler);
+            let sortButtons = $(".sort-btn");
+            sortButtons.off("click");
+            sortButtons.on("click", messageViewerManager.sortHandler);
 
             console.timeEnd("dropdown init");
             console.time("shortcuts init");
             $(window).on("keypress", this.manageShortcuts);
             console.timeEnd("shortcuts init");
 
-            window.addEventListener("mousewheel", event => {
+            window.addEventListener("mousewheel", () => {
                 messageViewerManager.isProgramaticallyScrolling = false;
             });
 
@@ -160,7 +164,7 @@ var messageViewerManager = {
 
         console.time("sort");
 
-        var iconClassesNext = {
+        let iconClassesNext = {
             "icon-def": "icon-cat", // current: default on-load order
             "icon-cat" : "icon-conf", // current: sort by code + conf
             "icon-conf" : "icon-def" // current: sort by confidence - when we want global minimum confidence
@@ -168,8 +172,8 @@ var messageViewerManager = {
 
         $(".sort-btn").find("div.active").toggleClass("active");
 
-        var targetElement = event.originalEvent.target;
-        var elementClass;
+        let targetElement = event.originalEvent.target;
+        let elementClass;
         if (targetElement.nodeName === "DIV") {
             elementClass = targetElement.className.split(" ")[0];
         } else if (targetElement.nodeName ===  "BUTTON") {
@@ -210,7 +214,7 @@ var messageViewerManager = {
             if (!activeRow || activeRow.length === 0) {
                 activeRow = $(".message-row").filter(":first");
             }
-            messageViewerManager.bringEventIntoView2(activeRow.attr("eventid"));
+            messageViewerManager.bringEventIntoView(activeRow.attr("eventid"));
 
             // redraw scrollbar
             const thumbPosition = scrollbarManager.getThumbPosition();
@@ -230,22 +234,6 @@ var messageViewerManager = {
         messageViewerManager.isProgramaticallyScrolling = true;
     },
 
-    restorePreviousPosition: function() {
-
-        let tbody = "";
-        let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-        for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex * halfPage + halfPage; i++) {
-            let eventKey = newDataset.eventOrder[i];
-            tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
-        }
-
-        $(messageViewerManager.messageTable.find("tbody").empty()).append(tbody);
-        // todo adjust scroll offset appropriately!
-
-        scrollbarManager.redraw(newDataset, this.activeScheme);
-
-    },
-
     buildTable: function(data, rowsPerPage, hasDataChanged) {
         if (!data) {
 
@@ -263,7 +251,7 @@ var messageViewerManager = {
         Reset all css set when resizing programatically
          */
         if (hasDataChanged) {
-            $('#message-table').stickyTableHeaders("destroy");
+            messageViewerManager.messageTable.stickyTableHeaders("destroy");
             messageViewerManager.messageTable.find(".scheme-header").remove();
             messageViewerManager.messageTable.find("tbody").empty();
             $("#message-viewer").css("width", "");
@@ -291,23 +279,19 @@ var messageViewerManager = {
         otherSchemeHeaders.empty();
 
         // establish sorting
-        let activeSortIcon = "icon-def'";
         if (!hasDataChanged && data.schemes[messageViewerManager.activeScheme]) {
             if (this.currentSort === this.sortUtils.sortEventsByConfidenceOnly) {
-                activeSortIcon = "icon-conf'";
                 newDataset.sortEventsByConfidenceOnly(messageViewerManager.activeScheme);
             }
             if (this.currentSort === this.sortUtils.sortEventsByScheme) {
-                activeSortIcon = "icon-cat'";
                 newDataset.sortEventsByScheme(messageViewerManager.activeScheme,true);
             }
             if (this.currentSort === this.sortUtils.restoreDefaultSort) {
-                activeSortIcon = "icon-def'";
                 newDataset.restoreDefaultSort();
             }
         }
 
-        let allSchemeHeaders = $("#message-table").find("thead").find("tr");
+        let allSchemeHeaders = messageViewerManager.messageTable.find("thead").find("tr");
         allSchemeHeaders = $(messageViewerManager.buildJoinedHeader(messageViewerManager.activeScheme)).appendTo(allSchemeHeaders);
 
         // setup listeners
@@ -345,9 +329,6 @@ var messageViewerManager = {
          */
         console.time("table building");
 
-        let activeMessageTableTbody = "";
-        let decorationTableTbody = "";
-
         let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
         if (hasDataChanged) {
             messageViewerManager.lastLoadedPageIndex=1;
@@ -364,19 +345,19 @@ var messageViewerManager = {
         let messageTableBodyElement =  messageViewerManager.messageTable.find("tbody");
         let decorationTableBodyElement =  messageViewerManager.decorationTable.find("tbody");
 
-        let prevScroll = this.messageContainer.scrollTop();
+        let prevScroll = this.messagePanel.scrollTop();
         messageTableBodyElement.empty();
         decorationTableBodyElement.empty();
 
         $(messageTableTbody).appendTo(messageTableBodyElement);
 
         if (hasDataChanged) {
-            this.messageContainer.scrollTop(0);
+            this.messagePanel.scrollTop(0);
         } else {
-            this.messageContainer.scrollTop(prevScroll);
+            this.messagePanel.scrollTop(prevScroll);
         }
 
-        $('#message-table').stickyTableHeaders({scrollableArea: messageViewerManager.messageContainer, container:messageViewerManager.messageContainer, fixedOffset: 1})
+        messageViewerManager.messageTable.stickyTableHeaders({scrollableArea: messageViewerManager.messagePanel, container:messageViewerManager.messagePanel, fixedOffset: 1});
         console.timeEnd("table building");
 
         /*
@@ -409,7 +390,7 @@ var messageViewerManager = {
         $(document).on('keydown', function(event) {
 
             if (!editorOpen && document.activeElement.nodeName === "BODY") {
-                let messagePanel = messageViewerManager.messageContainer;
+                let messagePanel = messageViewerManager.messagePanel;
                 if (event.keyCode === 38) { // UP
                     if (messageViewerManager.horizontal && messageViewerManager.codeSchemeOrder[0] !== messageViewerManager.activeScheme) {
                         // make sure active scheme is the one at index 0
@@ -418,7 +399,7 @@ var messageViewerManager = {
                         }
                     }
 
-                    var prev = activeRow.prev();
+                    let prev = activeRow.prev();
 
                     if (prev.length !== 0) {
                         activeRow.removeClass('active');
@@ -440,7 +421,7 @@ var messageViewerManager = {
                         }
                     }
 
-                    var next = activeRow.next();
+                    let next = activeRow.next();
 
                     if (next.length !== 0) {
                         activeRow.removeClass('active');
@@ -473,75 +454,6 @@ var messageViewerManager = {
         });
     },
 
-    buildDecorationsHeader: function(orderedSchemes, activeSortIcon, decorationsHeader) {
-
-
-        return getDividedHeaderColumns(orderedSchemes, activeSortIcon, decorationsHeader);
-
-
-        function getDividedHeaderColumns(orderedSchemes, activeSortIcon, decorationsParent) {
-
-            let decorationsParentElement = $(decorationsParent);
-            let schemeNumber  = orderedSchemes.length;
-            let colAttrNum;
-            let dividedHeaders = "";
-
-            if (schemeNumber >= 1 && 12 >= schemeNumber) {
-                switch(schemeNumber) {
-                    case(5):
-                        decorationsParentElement.addClass("five-cols");
-                        colAttrNum = 1;
-                        break;
-                    case(7):
-                        decorationsParentElement.addClass("seven-cols");
-                        colAttrNum = 1;
-                        break;
-                    case(8):
-                        decorationsParentElement.addClass("eight-cols");
-                        colAttrNum = 1;
-                        break;
-                    case(9):
-                        decorationsParentElement.addClass("nine-cols");
-                        colAttrNum = 1;
-                        break;
-                    case(10):
-                        decorationsParentElement.addClass("ten-cols");
-                        colAttrNum = 1;
-                        break;
-                    case(11):
-                        decorationsParentElement.addClass("eleven-cols");
-                        colAttrNum = 1;
-                        break;
-                    default:
-                        colAttrNum = 12/schemeNumber>>0;
-                }
-
-                orderedSchemes.forEach(schemeKey => {
-                    let schemeObj = newDataset.schemes[schemeKey];
-
-                    let sortIcon = "<button class='sort-btn btn btn-default btn-xs' data-toggle='tooltip' data-placement='top' title='Sort messages' data-container='body'><div class='sort-icon " + (schemeKey === messageViewerManager.activeScheme ? activeSortIcon + "'" : "icon-def active'") + "></div></button>";
-                    let editButton = "<button type='button' class='btn btn-default btn-xs edit-scheme-button' data-toggle='tooltip' data-placement='top' title='Edit scheme' data-container='body'><i class='glyphicon glyphicon-edit'></i></button>";
-                    let columnDiv = "<th class='col-md-" + colAttrNum + " col-xs-" + colAttrNum + " scheme-header' scheme='" + schemeKey + "'><div>" + sortIcon + editButton + "</div><div class='scheme-name-cont'><i class='scheme-name'>" + schemeObj["name"] + "</i></div>" +  "</th>";
-                    dividedHeaders += columnDiv;
-                });
-
-                return $(dividedHeaders);
-
-            } else if (schemeNumber > 12) {
-
-                let decoCol1 = $("<div class='col-md-6 col-sm-6 col-lg-6 col-xs-6'></div>");
-                $(this.decoHeaderColumn(orderedSchemes.slice(0,schemeNumber/2>>0), activeSortIcon, decoCol1)).appendTo(decoCol1);
-
-                let decoCol2 = $("<div class='col-md-6 col-sm-6 col-lg-6 col-xs-6'></div>");
-                $(this.decoHeaderColumn(orderedSchemes.slice(schemeNumber/2>>0),  activeSortIcon, decoCol2)).appendTo(decoCol2);
-                return  decoCol1 + decoCol2;
-            }
-
-        }
-
-
-    },
-
     buildSchemeHeaderElement: function(schemeKey, activeSortIcon, isActiveScheme) {
 
         let activeSchemeClass = "";
@@ -553,13 +465,12 @@ var messageViewerManager = {
 
         let sortIcon = "<button class='sort-btn btn btn-default btn-xs' data-toggle='tooltip' data-placement='top' title='Sort messages' data-container='body'><div class='sort-icon " + (schemeKey === messageViewerManager.activeScheme ? activeSortIcon + "'" : "icon-def active'") + "></div></button>";
         let editButton = "<button type='button' class='btn btn-default btn-xs edit-scheme-button' data-toggle='tooltip' data-placement='top' title='Edit scheme' data-container='body'><i class='glyphicon glyphicon-edit'></i></button>";
-        let columnDiv = "<th class='scheme-header" + activeSchemeClass + "' scheme='" + schemeKey + "'><div>" + sortIcon + editButton + "</div><div class='scheme-name-cont'><i class='scheme-name" + activeSchemeClass + "'>" + schemeObj["name"] + "</i></div></th>";
-        return columnDiv;
+        return "<th class='scheme-header" + activeSchemeClass + "' scheme='" + schemeKey + "'><div>" + sortIcon + editButton + "</div><div class='scheme-name-cont'><i class='scheme-name" + activeSchemeClass + "'>" + schemeObj["name"] + "</i></div></th>";
     },
 
     changeActiveScheme: function(schemeId) {
 
-        $('#message-table').stickyTableHeaders("destroy");
+        messageViewerManager.messageTable.stickyTableHeaders("destroy");
         // IMPORTANT: clear all style set by sticky table headers...
         $(".scheme-header").not(".active-scheme-header").css({"max-width":"", "min-width": "", "width": "auto"});
 
@@ -573,11 +484,6 @@ var messageViewerManager = {
 
             messageViewerManager.demoteFromActiveScheme(messageViewerManager.activeScheme, true);
             messageViewerManager.promoteToActiveScheme(nextActiveScheme);
-
-            /*
-            let movedSchemeKey = messageViewerManager.codeSchemeOrder.splice(0, 1)[0]; // remove previous active scheme key
-            messageViewerManager.codeSchemeOrder.push(movedSchemeKey); // append it at the end
-            */
 
             activeSchemeId = nextActiveScheme;
             messageViewerManager.activeScheme = nextActiveScheme;
@@ -599,7 +505,7 @@ var messageViewerManager = {
             messageViewerManager.firstScheme = messageViewerManager.activeScheme;
         }
 
-        $('#message-table').stickyTableHeaders({scrollableArea: messageViewerManager.messageContainer, container:messageViewerManager.messageContainer, fixedOffset: 1})
+        messageViewerManager.messageTable.stickyTableHeaders({scrollableArea: messageViewerManager.messagePanel, container:messageViewerManager.messagePanel, fixedOffset: 1});
 
         let thumbPos = scrollbarManager.getThumbPosition();
         scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);
@@ -666,22 +572,21 @@ var messageViewerManager = {
             console.log("?");
         }
 
-        var schemeId = /form-control (.*) (uncoded|coded)/.exec(selectElement.attr("class"))[1];
+        let schemeId = /form-control (.*) (uncoded|coded)/.exec(selectElement.attr("class"))[1];
         let value = selectElement.val();
         let row = selectElement.parents(".message-row");
-        let sessionId = $(row).attr("sessionid");
         let eventId = $(row).attr("eventid");
         let checkbox = selectElement.siblings("span").find(".checkbox-manual");
 
-        var eventObj = newDataset.events.get(eventId);
-        var codeObj = newDataset.schemes[schemeId].getCodeByValue(value);
+        let eventObj = newDataset.events.get(eventId);
+        let codeObj = newDataset.schemes[schemeId].getCodeByValue(value);
 
         if (value.length > 0) {
             // CODED
 
             // add decoration
             let decoration = eventObj.decorationForName(schemeId);
-            if (decoration === undefined) {
+            if (!decoration || typeof decoration === "undefined") {
                 eventObj.decorate(schemeId, manual, UUID, newDataset.schemes[schemeId].getCodeByValue(value), 0.95); // todo fix codeObj
             } else {
                 decoration.code = newDataset.schemes[schemeId].getCodeByValue(value);
@@ -716,18 +621,7 @@ var messageViewerManager = {
             // check checkbox
             checkbox.prop("checked", true);
 
-            // if words in buffer, add to scheme dataset
-            if (messageViewerManager.wordBuffer.hasOwnProperty(sessionId)
-                && messageViewerManager.wordBuffer.hasOwnProperty(eventId)
-                && messageViewerManager.wordBuffer[sessionId][eventId].length > 0) {
-
-                codeObj.addWords(Object.keys(messageViewerManager.wordBuffer[sessionId][eventId]));
-                messageViewerManager.wordBuffer[sessionId][eventId] = {}
-            }
-
             regexMatcher.wrapElement(eventObj, regexMatcher.generateOrRegex(codeObj.words), codeObj.id);
-
-
 
 
         } else {
@@ -752,12 +646,6 @@ var messageViewerManager = {
 
             // uncheck checkbox
             checkbox.prop("checked", false);
-
-            // remove words from dataset, get words from message text
-            let words = $(row).find("td.message-text span.highlight").map(function(index, element) {
-                console.log($(element).text());
-                return $(element).text()});
-            //schemes[schemeId].deleteWords(words); // todo keep track which message is the origin of the added words... ?
         }
 
         /*
@@ -789,7 +677,7 @@ var messageViewerManager = {
 
                 for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < iterationStop; i++) {
                     let eventKey = newDataset.eventOrder[i];
-                    tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
+                    tbody += messageViewerManager.buildJoinedRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.activeScheme);
                 }
 
                 $(messageViewerManager.messageTable.find("tbody").empty()).append(tbody);
@@ -797,7 +685,7 @@ var messageViewerManager = {
                 /*
                  refresh scrollbar
                  */
-                var thumbPos = scrollbarManager.getThumbPosition();
+                let thumbPos = scrollbarManager.getThumbPosition();
                 scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);
                 scrollbarManager.redrawThumb(thumbPos);
             }
@@ -953,11 +841,11 @@ var messageViewerManager = {
                 setTimeout(() => {
                     messageViewerManager.messageTable.find("tbody").empty();
                     messageViewerManager.decorationTable.find("tbody").empty();
-                    let newMessageRow = messageViewerManager.bringEventIntoView2(nextEventId);
+                    let newMessageRow = messageViewerManager.bringEventIntoView(nextEventId);
 
-                    if (offset.top < messageViewerManager.messageContainer.height() && offset.top > messageViewerManager.messageTable.find("thead").height()) {
+                    if (offset.top < messageViewerManager.messagePanel.height() && offset.top > messageViewerManager.messageTable.find("thead").height()) {
                         messageViewerManager.isProgramaticallyScrolling = true;
-                        messageViewerManager.messageContainer.scrollTop(messageViewerManager.messageContainer.scrollTop() + (offset.top - newMessageRow.offset().top));
+                        messageViewerManager.messagePanel.scrollTop(messageViewerManager.messagePanel.scrollTop() + (offset.top - newMessageRow.offset().top));
                     }
                 }, 350);
             }
@@ -977,12 +865,10 @@ var messageViewerManager = {
 
     deleteSchemeColumn: function(schemeId) {
 
-        $('#message-table').stickyTableHeaders("destroy");
+        messageViewerManager.messageTable.stickyTableHeaders("destroy");
         // IMPORTANT: clear all style set by sticky table headers...
         $(".scheme-header").not(".active-scheme-header").css({"max-width":"", "min-width": "", "width": "auto"});
         //$(".active-scheme-header").css("width", "300px");
-
-        let allNewHeaders;
 
         let activeSchemeInHtml = $(".active-scheme-header").attr("scheme");
 
@@ -999,7 +885,7 @@ var messageViewerManager = {
         }
 
         messageViewerManager.resizeViewport(messageViewerManager.minHeaderWidth);
-        $('#message-table').stickyTableHeaders({scrollableArea: messageViewerManager.messageContainer, container:messageViewerManager.messageContainer, fixedOffset: 1});
+        messageViewerManager.messageTable.stickyTableHeaders({scrollableArea: messageViewerManager.messagePanel, container:messageViewerManager.messagePanel, fixedOffset: 1});
 
 
         return this.activeScheme;
@@ -1013,14 +899,11 @@ var messageViewerManager = {
         $(editButton).on("click", function(event) {
 
             let button = event.target;
-            //let schemeId = $(this).parent().attr("scheme");
             scheme = newDataset.schemes[schemeId];
             tempScheme = CodeScheme.clone(scheme);
             let header = $(button).parents(".scheme-header");
 
             if (!(codeEditor.is(":visible"))) {
-
-                let selectedOptionId = activeRow.find("option[selected]");
 
                 editorOpen = true;
                 let values = Array.from(tempScheme.codes.values()); // todo rewrite to use iterator
@@ -1037,6 +920,10 @@ var messageViewerManager = {
                 // need to update code panel after editor is displayed so that the width is set correctly!
                 codeEditorManager.updateCodePanel(values[values.length-1]);
 
+                let firstCodeRow = codeEditor.find(".code-row").filter(":first");
+                firstCodeRow.trigger("click");
+
+
                 // update the activity stack
                 storage.saveActivity({
                     "category": "SCHEME",
@@ -1052,13 +939,13 @@ var messageViewerManager = {
     manageShortcuts : function(event) {
         if (!editorOpen && messageViewerManager.activeScheme && activeRow && messageViewerManager.activeScheme.length > 0 && activeRow.length) {
 
-            var shortcuts = newDataset.schemes[messageViewerManager.activeScheme].getShortcuts();
+            let shortcuts = newDataset.schemes[messageViewerManager.activeScheme].getShortcuts();
             if (shortcuts.has(event.keyCode)) {
-                var codeObj = shortcuts.get(event.keyCode);
-                var eventId = $(activeRow).attr("eventid");
+                let codeObj = shortcuts.get(event.keyCode);
+                let eventId = $(activeRow).attr("eventid");
                 $(activeRow).children("td").each(function(i, td) {
                     newDataset.events.get(eventId).decorate(codeObj.owner["id"], true, UUID, codeObj, 0.95);
-                    var color = codeObj["color"];
+                    let color = codeObj["color"];
                     console.log(td);
                     if ($(td).hasClass("message-text")) {
                         if (color && color.length !== 0 && color !== "#ffffff") {
@@ -1071,7 +958,7 @@ var messageViewerManager = {
                         $(td).find("select").val(codeObj["value"]).removeClass("uncoded").addClass("coded");
 
                         // check checkbox
-                        let decoColumn = $(td).find(".checkbox-manual").prop("checked", true);
+                        $(td).find(".checkbox-manual").prop("checked", true);
                     } else {
                         if (color && color.length !== 0) {
                             $(td).css("background-color", color);
@@ -1109,7 +996,6 @@ var messageViewerManager = {
         get new active row, keeping the active scheme
         N.B. will wrap if no uncoded events are found between eventId and end of list
         */
-        let currentRow = $("#" + eventId);
         let nextEventId;
         let nextEventRow = null;
         let currentEventIndex = newDataset.eventOrder.indexOf(eventId);
@@ -1169,22 +1055,30 @@ var messageViewerManager = {
             setTimeout(() => {
 
                 let nextEventIndex = newDataset.eventOrder.indexOf(eventId);
-                let uncodedScheme = messageViewerManager.codeSchemeOrder[0];
+                let firstScheme = messageViewerManager.codeSchemeOrder[0];
+                let uncodedScheme = "";
+
                 let nextEventObj = newDataset.events.get(newDataset.eventOrder[nextEventIndex]);
-                while (nextEventObj.decorations.get(uncodedScheme) && nextEventObj.decorations.get(uncodedScheme).code && nextEventIndex < newDataset.eventOrder.length) {
+                let nextEventObj2 = "";
+                while (nextEventObj && nextEventObj.decorations.get(firstScheme) && nextEventObj.decorations.get(firstScheme).code && nextEventIndex < newDataset.eventOrder.length) {
                     nextEventIndex++;
                     nextEventObj = newDataset.events.get(newDataset.eventOrder[nextEventIndex]);
+                    if (nextEventObj2 === "") {
+                        uncodedScheme = nextEventObj.firstUncodedScheme(messageViewerManager.codeSchemeOrder);
+                        if (uncodedScheme.length > 0) {
+
+                        }
+                    }
                 }
 
-                if (uncodedScheme.length !== 0) {
+                // todo do we wrap around or loop again and find the first uncoded scheme
+                if (firstScheme.length !== 0) {
                     //change active row & active scheme to first scheme
                     let newActiveEvent = newDataset.events.get(newDataset.eventOrder[nextEventIndex]);
                     let eventRow = messageViewerManager.bringEventIntoView(newActiveEvent.name);
 
                     if (eventRow && eventRow.length > 0) {
                         // change active scheme!
-                        let immutableCodeSchemeOrder = messageViewerManager.codeSchemeOrder.slice();
-
                         for (let i = messageViewerManager.codeSchemeOrder.indexOf(messageViewerManager.activeScheme); i < messageViewerManager.codeSchemeOrder.length; i++) {
                             messageViewerManager.changeActiveScheme();
                         }
@@ -1220,68 +1114,6 @@ var messageViewerManager = {
             let pageIndex = Math.floor(eventIndex / Math.floor(messageViewerManager.rowsInTable / 2));
 
             // load in pages at index pageIndex & pageIndex-1 except if pageIndex-1 is out of range!
-            let tbody = "";
-            if (pageIndex === 0) {
-                // load 0th and 1st
-                tbody += messageViewerManager.createPageHTML(0);
-                tbody += messageViewerManager.createPageHTML(1);
-                messageViewerManager.lastLoadedPageIndex = 1;
-
-            } else {
-                tbody += messageViewerManager.createPageHTML(pageIndex-1);
-                tbody += messageViewerManager.createPageHTML(pageIndex);
-                messageViewerManager.lastLoadedPageIndex = pageIndex;
-
-            }
-
-            let currentTbody = messageViewerManager.messageTable.find("tbody");
-            currentTbody.empty();
-            currentTbody.append(tbody);
-
-            eventRow = $(".message-row[eventid='" + eventId + "']");
-
-            if (eventRow) {
-                eventRow.addClass('active');
-                activeRow = eventRow;
-
-                if (!UIUtils.isRowVisible(eventRow[0], messageViewerManager.messageContainer[0])) {
-                    messageViewerManager.isProgramaticallyScrolling = true;
-                    UIUtils.scrollRowToTop(eventRow[0], messageViewerManager.messageContainer[0]);
-                    messageViewerManager.isProgramaticallyScrolling = false;
-                }
-
-                scrollbarManager.redrawThumbAtEvent(eventIndex);
-
-            }
-
-        } else {
-            eventRow.addClass('active');
-            activeRow = eventRow;
-
-            if (!UIUtils.isRowVisible(eventRow[0], messageViewerManager.messageContainer[0])) {
-                UIUtils.scrollRowToTop(eventRow[0], messageViewerManager.messageContainer[0]);
-            }
-            scrollbarManager.redrawThumbAtEvent(eventIndex);
-        }
-
-        let selectField = eventRow.find("select." + messageViewerManager.activeScheme);
-        selectField.focus();
-        return eventRow;
-    },
-
-    bringEventIntoView2: function(eventId) {
-        let eventRow = $(".message-row[eventid='" + eventId + "']");
-        let eventIndex = newDataset.eventOrder.indexOf(eventId);
-        activeRow.removeClass('active');
-
-        if (!eventRow || eventRow.length === 0) {
-            // this event is not loaded in the table
-            // 1. find out what page of events it's in
-            // 2. load the appropriate pair of pages in
-
-            let pageIndex = Math.floor(eventIndex / Math.floor(messageViewerManager.rowsInTable / 2));
-
-            // load in pages at index pageIndex & pageIndex-1 except if pageIndex-1 is out of range!
             let messageTableTbody = "";
             if (pageIndex === 0 || pageIndex === -1) {
                 // load 0th and 1st
@@ -1301,7 +1133,7 @@ var messageViewerManager = {
 
             let currentMessageTbody = messageViewerManager.messageTable.find("tbody");
             currentMessageTbody.empty();
-            let messageRows = $(messageTableTbody).appendTo(currentMessageTbody);
+            $(messageTableTbody).appendTo(currentMessageTbody);
 
             eventRow = $(".message-row[eventid='" + eventId + "']");
 
@@ -1309,9 +1141,9 @@ var messageViewerManager = {
                 eventRow.addClass('active');
                 activeRow = eventRow;
 
-                if (!UIUtils.isRowVisible(eventRow[0], messageViewerManager.messageContainer[0])) {
+                if (!UIUtils.isRowVisible(eventRow[0], messageViewerManager.messagePanel[0])) {
                     messageViewerManager.isProgramaticallyScrolling = true;
-                    UIUtils.scrollRowToTop(eventRow[0], messageViewerManager.messageContainer[0]);
+                    UIUtils.scrollRowToTop(eventRow[0], messageViewerManager.messagePanel[0]);
                 }
 
                 scrollbarManager.redrawThumbAtEvent(eventIndex);
@@ -1322,9 +1154,9 @@ var messageViewerManager = {
             eventRow.addClass('active');
             activeRow = eventRow;
 
-            if (!UIUtils.isRowVisible(eventRow[0], messageViewerManager.messageContainer[0])) {
+            if (!UIUtils.isRowVisible(eventRow[0], messageViewerManager.messagePanel[0])) {
                 messageViewerManager.isProgramaticallyScrolling = true;
-                UIUtils.scrollRowToTop(eventRow[0], messageViewerManager.messageContainer[0]);
+                UIUtils.scrollRowToTop(eventRow[0], messageViewerManager.messagePanel[0]);
             }
             scrollbarManager.redrawThumbAtEvent(eventIndex);
             messageViewerManager.lastEventIndex = eventIndex;
@@ -1335,15 +1167,15 @@ var messageViewerManager = {
         return eventRow;
     },
 
-    infiniteScroll : function(event) {
+    infiniteScroll : function() {
 
-        let currentY = messageViewerManager.messageContainer.scrollTop();
+        let currentY = messageViewerManager.messagePanel.scrollTop();
         if (currentY === messageViewerManager.lastTableY || messageViewerManager.isProgramaticallyScrolling) {
             return "";
         }
 
         if (currentY > messageViewerManager.lastTableY) {
-            if (UIUtils.isScrolledToBottom(messageViewerManager.messageContainer)) {
+            if (UIUtils.isScrolledToBottom(messageViewerManager.messagePanel)) {
                 console.time("infinite scroll DOWN");
 
                 let nextPage = messageViewerManager.lastLoadedPageIndex + 1;
@@ -1368,7 +1200,7 @@ var messageViewerManager = {
 
                     elementsToRemoveFromMessageTable.remove();
 
-                    let messageRows = $(messageTableTbody).appendTo(messageTableTbodyElement);
+                    $(messageTableTbody).appendTo(messageTableTbodyElement);
 
                     console.log("new page added");
 
@@ -1377,8 +1209,8 @@ var messageViewerManager = {
                     activeRow = lastMessage;
 
                     messageViewerManager.isProgramaticallyScrolling = true;
-                    messageViewerManager.messageContainer.scrollTop($("#message-panel").scrollTop() + (-1 * (lastMessagePosition - lastMessage.position().top)));
-                    messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
+                    messageViewerManager.messagePanel.scrollTop($("#message-panel").scrollTop() + (-1 * (lastMessagePosition - lastMessage.position().top)));
+                    messageViewerManager.lastTableY = messageViewerManager.messagePanel.scrollTop();
                     //scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);
 
                     let thumbPos = scrollbarManager.getThumbPosition();
@@ -1406,15 +1238,15 @@ var messageViewerManager = {
                     let lastMessage = messageTableTbodyElement.find(".message-row").last();
                     let lastMessagePosition = lastMessage.position().top;
 
-                    let messageRows = $(messageTableTbody).appendTo(messageTableTbodyElement);
+                    $(messageTableTbody).appendTo(messageTableTbodyElement);
 
                     activeRow.removeClass("active");
                     lastMessage.addClass("active");
                     activeRow = lastMessage;
 
                     messageViewerManager.isProgramaticallyScrolling = true;
-                    messageViewerManager.messageContainer.scrollTop($("#message-panel").scrollTop() + (-1 * (lastMessagePosition - lastMessage.position().top)));
-                    messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
+                    messageViewerManager.messagePanel.scrollTop($("#message-panel").scrollTop() + (-1 * (lastMessagePosition - lastMessage.position().top)));
+                    messageViewerManager.lastTableY = messageViewerManager.messagePanel.scrollTop();
                     messageViewerManager.averageRowHeight = Math.floor(messageViewerManager.messageTable.height()/messageViewerManager.rowsInTable);
                     if (messageViewerManager.averageRowHeight === 0) {
                         console.log("fail");
@@ -1425,11 +1257,11 @@ var messageViewerManager = {
 
                 }
             }
-            return "DOWN"; // todo check if this is only for down
+            return "DOWN";
 
         } else if (currentY < messageViewerManager.lastTableY){
 
-            if (UIUtils.isScrolledToTop(messageViewerManager.messageContainer)) {
+            if (UIUtils.isScrolledToTop(messageViewerManager.messagePanel)) {
 
                 if (messageViewerManager.lastLoadedPageIndex !== 1 ) {
                     console.time("infinite scroll UP");
@@ -1445,9 +1277,7 @@ var messageViewerManager = {
 
                     let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
 
-                    // figure out if there are rowsInTable + x rows loaded (when number of elements is not divisible by rowsInTable)
                     let numRowsToRemove = 0;
-
                     if (messageRows.length !== messageViewerManager.rowsInTable) {
                         numRowsToRemove =  Math.floor(messageViewerManager.rowsInTable/2) + messageRows.length % messageViewerManager.rowsInTable;
                     } else {
@@ -1465,9 +1295,8 @@ var messageViewerManager = {
                     // adjust scrollTop of the panel so that the previous top row stays on top of the table (and not out of view)
                     let newOffset = firstRow.position().top;
                     messageViewerManager.isProgramaticallyScrolling = true;
-                    messageViewerManager.messageContainer.scrollTop(messageViewerManager.messageContainer.scrollTop()+ (-1 * (originalOffset - newOffset)));
-                    messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
-                    messageViewerManager.isProgramaticallyScrolling = false;
+                    messageViewerManager.messagePanel.scrollTop(messageViewerManager.messagePanel.scrollTop()+ (-1 * (originalOffset - newOffset)));
+                    messageViewerManager.lastTableY = messageViewerManager.messagePanel.scrollTop();
 
                     messageViewerManager.averageRowHeight = Math.floor(messageViewerManager.messageTable.height()/messageViewerManager.rowsInTable);
                     if (messageViewerManager.averageRowHeight === 0) {
@@ -1485,7 +1314,7 @@ var messageViewerManager = {
 
     createJoinedPageHTML: function(index) {
 
-        var tbody = "";
+        let tbody = "";
 
         const halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
         let stoppingCondition = (index * halfPage + halfPage > newDataset.eventOrder.length) ? newDataset.eventOrder.length : index * halfPage + halfPage;
@@ -1498,259 +1327,6 @@ var messageViewerManager = {
         return tbody;
     },
 
-    createPageHTML: function(index) {
-
-        var tbody = "";
-
-        const halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-        let stoppingCondition = (index * halfPage + halfPage > newDataset.eventOrder.length) ? newDataset.eventOrder.length : index * halfPage + halfPage;
-
-        for (let i = index * halfPage; i < stoppingCondition; i++) {
-            let eventKey = newDataset.eventOrder[i];
-            tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
-        }
-
-        return tbody;
-    },
-
-    createMessagePageHTML: function(index) {
-
-        var tbody = "";
-
-        const halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-        let stoppingCondition = (index * halfPage + halfPage > newDataset.eventOrder.length) ? newDataset.eventOrder.length : index * halfPage + halfPage;
-
-        for (let i = index * halfPage; i < stoppingCondition; i++) {
-            let eventKey = newDataset.eventOrder[i];
-            tbody += messageViewerManager.buildMessageTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.activeScheme);
-        }
-
-        return tbody;
-    },
-
-    createDecorationPageHTML: function(index) {
-
-        var tbody = "";
-
-        const halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-        let stoppingCondition = (index * halfPage + halfPage > newDataset.eventOrder.length) ? newDataset.eventOrder.length : index * halfPage + halfPage;
-
-        for (let i = index * halfPage; i < stoppingCondition; i++) {
-            let eventKey = newDataset.eventOrder[i];
-            tbody += messageViewerManager.buildDecorationTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.codeSchemeOrder.slice(1));
-        }
-
-        return tbody;
-    },
-
-    buildRow: function(eventObj, eventIndex, sessionIndex) {
-
-        var decoNumber = Object.keys(newDataset.schemes).length;
-        var decoColumnWidth = (12/decoNumber>>0);
-        var sessionRow = "";
-
-        if (!eventObj) {
-            console.log("undefined");
-        }
-
-        var activeDecoration = eventObj["decorations"].get(messageViewerManager.activeScheme);
-        var rowColor = "#ffffff";
-        var eventText = eventObj["data"];
-
-        // need to check if eventObj has a 'stale' decoration
-        // need to perform null checks for code! if event isn't coded yet it has a null code.
-        if ( activeDecoration !== undefined && activeDecoration.code !== null) {
-
-            var parentSchemeCodes = activeDecoration.code.owner instanceof CodeScheme ? activeDecoration.code.owner.codes : newDataset.schemes[activeDecoration.code.owner].codes;
-            if (!parentSchemeCodes.has(activeDecoration.code.id)) {
-                // in case the event object is still coded with a code that doesn't exist in the scheme anymore
-                eventObj.uglify(activeDecoration.scheme_id);
-
-            } else if (activeDecoration.code.color !== undefined && activeDecoration.code.color.length !== 0) {
-                rowColor = activeDecoration.code.color;
-            }
-
-            if (activeDecoration.code.regex && activeDecoration.code.regex.length === 2 && activeDecoration.code.regex[0].length > 0) {
-                try { //todo fix inefficiency in rebuilding regexes for each row
-                    let customRegex = new RegExp(activeDecoration.code.regex[0], activeDecoration.code.regex[1].indexOf("g") > -1 ? activeDecoration.code.regex[1] : activeDecoration.code.regex[1] + "g");
-                    eventText = regexMatcher.wrapText(eventObj["data"], customRegex, "highlight", activeDecoration.code.id);
-                } catch (e) {
-                    console.log(e);
-                    eventText = eventObj["data"];
-                }
-
-            } else {
-                eventText = regexMatcher.wrapText(eventObj["data"], regexMatcher.generateOrRegex(activeDecoration.code.words), "highlight", activeDecoration.code.id);
-            }
-
-        }
-
-        let shadowStyle = (rowColor === "#ffffff") ? "" : " style='box-shadow: inset 0px 0px 0px 4px " + rowColor + "'";
-
-        sessionRow += "<tr class='message-row' id=" + eventObj["name"] + " eventid = '" + eventObj["name"] + "' eventindex = '" + eventIndex + "' sessionId = '" + sessionIndex + "'>";
-        sessionRow += "<td class='col-md-1 message-id' style='background-color: " + rowColor + "'>" + eventObj["name"] + "</td>";
-        sessionRow += "<td class='col-md-7 message-text'" + shadowStyle + "><p>" + eventText + "</p></td>";
-        sessionRow += "<td class='col-md-4 decorations' style='background-color: " + rowColor+ "'>";
-
-        sessionRow += UIUtils.decoRowColumn(Object.keys(newDataset.schemes).length, newDataset.schemes, eventObj);
-        sessionRow += "</td>";
-        sessionRow += "</td>";
-        sessionRow += "</tr>";
-
-        return sessionRow;
-    },
-
-    buildDecorationTableRow: function(eventObj, eventIndex, sessionIndex, remainingOrderedSchemes) {
-
-        if (!eventObj) {
-            console.log("undefined");
-            return "";
-        }
-
-        if (remainingOrderedSchemes.length === 0) {
-            return "";
-        }
-
-        function divideRowInColumns(schemeNumber, orderedSchemes, eventObj) {
-
-            let rowColumnNumberClass = "";
-            let cellColumnNumberClass = "";
-            let eventRow = "";
-            if (schemeNumber >= 1 && 12 >= schemeNumber) {
-                switch(schemeNumber) {
-                    case(5):
-                        rowColumnNumberClass = "five-cols";
-                        cellColumnNumberClass = 1;
-                        break;
-                    case(7):
-                        rowColumnNumberClass = "seven-cols";
-                        cellColumnNumberClass = 1;
-                        break;
-                    case(8):
-                        rowColumnNumberClass = "eight-cols";
-                        cellColumnNumberClass = 1;
-                        break;
-                    case(9):
-                        rowColumnNumberClass = "nine-cols";
-                        cellColumnNumberClass = 1;
-                        break;
-                    case(10):
-                        rowColumnNumberClass = "nine-cols";
-                        cellColumnNumberClass = 1;
-                        break;
-                    case(11):
-                        rowColumnNumberClass = "eleven-cols";
-                        cellColumnNumberClass = 1;
-                        break;
-                    default:
-                        rowColumnNumberClass = "";
-                        cellColumnNumberClass = 12/schemeNumber>>0;
-                }
-
-                eventRow += "<tr class='deco-row row " + rowColumnNumberClass + "' id='message-deco-" + eventObj["name"] + "' eventid = '" + eventObj["name"] + "' eventindex = '" + eventIndex + "' sessionId = '" + sessionIndex + "'>";
-
-                orderedSchemes.forEach(schemeKey => {
-
-                    eventRow += "<td class='col-md-" + cellColumnNumberClass + " col-sm-"  + cellColumnNumberClass + " col-xs-" + cellColumnNumberClass + " deco-container' scheme='" + schemeKey + "'>";
-
-                    eventRow += "<div class='input-group'>";
-                    let dis = "disabled";
-                    if (eventObj.decorations.get(schemeKey) && eventObj.decorations.get(schemeKey).manual) {
-                        eventRow += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox' checked " + dis + "></span>";
-                    } else {
-                        eventRow += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox' " + dis + "></span>";
-                    }
-                    eventRow += messageViewerManager.buildCodeSelectField(newDataset.schemes[schemeKey],eventObj,false);
-                    eventRow += "</div>";
-
-                    eventRow += "</td>";
-                });
-
-                return eventRow + "</tr>";
-
-            } else if (schemeNumber > 12) {
-                eventRow = "<tr class='deco-row row' id='message-deco-" + eventObj["name"] + "' eventid = '" + eventObj["name"] + "' eventindex = '" + eventIndex + "' sessionId = '" + sessionIndex + "'>";
-                let decoCol1 = "<div class='col-md-6 col-sm-6 col-lg-6 col-xs-6'>" + divideRowInColumns(schemeNumber/2>>0, orderedSchemes, eventObj) + "</div>";
-                let decoCol2 = "<div class='col-md-6 col-sm-6 col-lg-6 col-xs-6'>" + divideRowInColumns((schemeNumber/2>>0) + schemeNumber % 2, orderedSchemes, eventObj) + "</div>";
-                return eventRow + decoCol1 + decoCol2 + "</tr>";
-            }
-
-        }
-
-        let eventRow = divideRowInColumns(remainingOrderedSchemes.length, remainingOrderedSchemes, eventObj);
-
-        return eventRow;
-    },
-
-    buildMessageTableRow: function(eventObj, eventIndex, sessionId, activeSchemeKey) {
-
-        if (!eventObj) {
-            console.log("undefined");
-            return;
-        }
-
-        let schemeObj = newDataset.schemes[activeSchemeKey];
-        let eventText = eventObj["data"];
-        let activeDecoration = eventObj["decorations"].get(activeSchemeKey);
-
-
-        let eventRow = "";
-        let rowColor = "#ffffff";
-
-
-        // need to check if eventObj has a 'stale' decoration
-        // need to perform null checks for code! if event isn't coded yet it has a null code.
-        if (activeDecoration && activeDecoration.code) {
-            let parentSchemeCodes = activeDecoration.code.owner instanceof CodeScheme ? activeDecoration.code.owner.codes : newDataset.schemes[activeDecoration.code.owner].codes;
-
-            if (!parentSchemeCodes.has(activeDecoration.code.id)) {
-                // in case the event object is still coded with a code that doesn't exist in the scheme anymore
-                eventObj.uglify(activeDecoration.scheme_id);
-
-            } else if (activeDecoration.code.color !== undefined && activeDecoration.code.color.length !== 0) {
-                rowColor = activeDecoration.code.color;
-            }
-
-            if (activeDecoration.code.regex && activeDecoration.code.regex.length === 2 && activeDecoration.code.regex[0].length > 0) {
-                try {
-                    // todo fix inefficiency in rebuilding regexes for each row
-                    let customRegex = new RegExp(activeDecoration.code.regex[0], activeDecoration.code.regex[1].indexOf("g") > -1 ? activeDecoration.code.regex[1] : activeDecoration.code.regex[1] + "g");
-                    eventText = regexMatcher.wrapText(eventObj["data"], customRegex, "highlight", activeDecoration.code.id);
-                } catch (e) {
-                    console.log(e);
-                    eventText = eventObj["data"];
-                }
-
-            } else {
-                eventText = regexMatcher.wrapText(eventObj["data"], regexMatcher.generateOrRegex(activeDecoration.code.words), "highlight", activeDecoration.code.id);
-            }
-
-        }
-
-        let shadowStyle = (rowColor === "#ffffff") ? "" : " style='box-shadow: inset 0px 0px 0px 4px " + rowColor + "'"; // coloured shadow around message text
-
-        eventRow += "<tr class='message-row' id='message-" + eventObj["name"] + "' eventid = '" + eventObj["name"] + "' eventindex = '" + eventIndex + "' sessionId = '" + sessionId + "'>";
-        eventRow += "<td style='width:67px' class='message-id' style='background-color: " + rowColor + "'><div>" + eventObj["name"] + "</div></td>";
-        eventRow += "<td style='width:400px' class='message-text'" + shadowStyle + "><div><p>" + eventText + "</p></div></td>";
-
-        eventRow += "<td style='' class='active-scheme' style='background-color: " + rowColor+ "'>";
-        eventRow += "<div class='input-group' scheme='" + activeSchemeKey + "' >";
-
-        if (eventObj.decorations.get(activeSchemeKey) && eventObj.decorations.get(activeSchemeKey).manual) {
-            eventRow += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox' checked></span>";
-        } else {
-            eventRow += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox'></span>";
-        }
-
-        eventRow += this.buildCodeSelectField(schemeObj, eventObj,true);
-
-        eventRow += "</td>";
-
-        eventRow += "</td>";
-        eventRow += "</tr>";
-
-        return eventRow;
-    },
 
     buildJoinedRow: function(eventObj, eventIndex, sessionId, activeSchemeKey) {
 
@@ -1761,7 +1337,6 @@ var messageViewerManager = {
 
         if (!activeSchemeKey) activeSchemeKey = messageViewerManager.activeScheme;
 
-        let schemeObj = newDataset.schemes[activeSchemeKey];
         let eventText = eventObj["data"];
         let activeDecoration = eventObj["decorations"].get(activeSchemeKey);
 
@@ -1785,7 +1360,6 @@ var messageViewerManager = {
 
             if (activeDecoration.code.regex && activeDecoration.code.regex.length === 2 && activeDecoration.code.regex[0].length > 0) {
                 try {
-                    // todo fix inefficiency in rebuilding regexes for each row
                     let customRegex = new RegExp(activeDecoration.code.regex[0], activeDecoration.code.regex[1].indexOf("g") > -1 ? activeDecoration.code.regex[1] : activeDecoration.code.regex[1] + "g");
                     eventText = regexMatcher.wrapText(eventObj["data"], customRegex, "highlight", activeDecoration.code.id);
                 } catch (e) {
@@ -1866,7 +1440,6 @@ var messageViewerManager = {
         if (typeof isActive === "undefined") isActive = false;
 
         let rowColor = "#ffffff";
-        let tdClass = isActive ? "active-scheme" : "";
         let activeDecoration = eventObj["decorations"].get(schemeId);
         if (activeDecoration && activeDecoration.code) {
             let parentSchemeCodes = activeDecoration.code.owner instanceof CodeScheme ? activeDecoration.code.owner.codes : newDataset.schemes[activeDecoration.code.owner].codes;
@@ -1955,14 +1528,11 @@ var messageViewerManager = {
         if (moveToBack) {
             demotedHeader.detach();
             messageViewerManager.messageTable.find("thead").find("tr").append(demotedHeader);
-        } else {
-           //messageViewerManager.messageTable.find("thead").find(".scheme-header:first").after(demotedHeader);
         }
 
         // pass message rows and move active cell to end of the decorations table
         $(".message-row").each((i, tr) => {
 
-            let eventId = $(tr).attr("eventid");
             let activeSchemeCell = $(tr).find(".active-scheme");
             activeSchemeCell.removeClass("active-scheme");
 
@@ -1976,8 +1546,6 @@ var messageViewerManager = {
 
             if (moveToBack) {
                 $(tr).append(activeSchemeCell);
-            } else {
-                //$(tr).find(".deco-container:first").after(activeSchemeCell);
             }
         });
 
@@ -2083,7 +1651,7 @@ var messageViewerManager = {
         build active scheme header
          */
 
-        $('#message-table').stickyTableHeaders("destroy");
+        messageViewerManager.messageTable.stickyTableHeaders("destroy");
         // IMPORTANT: clear all style set by sticky table headers...
         $(".scheme-header").css({"max-width":"", "min-width": "", "width": "auto"});
         $(".active-scheme-header").removeClass("active-scheme-header");
@@ -2116,12 +1684,9 @@ var messageViewerManager = {
         sortButton.tooltip();
         $(".edit-scheme-button").tooltip();
 
-        $('#message-table').stickyTableHeaders({scrollableArea: messageViewerManager.messageContainer, container:messageViewerManager.messageContainer, fixedOffset: 1});
+        messageViewerManager.messageTable.stickyTableHeaders({scrollableArea: messageViewerManager.messagePanel, container:messageViewerManager.messagePanel, fixedOffset: 1});
 
-
-        /*
-        add new cells to activescheme column
-         */
+        // add new cells to activescheme column
         let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
         messageTableTbodyElement.find(".message-row").each((i, row) => {
 
@@ -2133,12 +1698,9 @@ var messageViewerManager = {
             activeSchemeTd.find(".checkbox-manual").attr("disabled","");
             activeSchemeTd.css({"background-color": ""});
 
-            let newCheckbox = "";
-
             regexMatcher.unwrapHighlights($(row).find("p"));
 
             $(row).find(".message-text").after(messageViewerManager.buildSchemeRowCell(eventObj, schemeKey, true));
-            activeSchemeTd = $(row).find(".active-scheme");
 
             let eventDeco = eventObj.decorations.get(schemeKey);
             if (eventDeco) {
@@ -2170,13 +1732,11 @@ var messageViewerManager = {
 
         if ($(element).prop("tagName") === "TD") {
 
-            let highlightContext = $(element);
-            var sessionId = $(element).closest('tr').attr("sessionid");
-            var eventId = $(element).closest('tr').attr("eventid");
+            let eventId = $(element).closest('tr').attr("eventid");
 
             if (window.getSelection && window.getSelection() && window.getSelection().toString().length > 0) {
 
-                var selection = window.getSelection().toString(); // todo do we preprocess this in any way?
+                let selection = window.getSelection().toString(); // todo do we preprocess this in any way?
                 console.log(selection);
 
                 selection = selection.trim();
@@ -2185,8 +1745,6 @@ var messageViewerManager = {
                 }
 
                 // check if current row has an assigned code and if yes, add the words to the data structure
-                // todo FIX THIS - check in data structure
-
                 const code = newDataset.events.get(eventId).codeForScheme(messageViewerManager.activeScheme);
                 const isCoded = typeof code !== "undefined" && code;
 
@@ -2216,12 +1774,14 @@ var messageViewerManager = {
         // in the current setup, main container will expand for however many pixels are required to
         // give each table cell at least its min-width
         // for this to work the panel has to float left and have an assigned % width of the main container
-        $('#message-table').stickyTableHeaders("destroy");
+
+        messageViewerManager.messageTable.stickyTableHeaders("destroy");
+
         // IMPORTANT: clear all style set by sticky table headers...
-        $(".scheme-header").css({"max-width":"", "min-width": "", "width": "auto"});
+        let schemeHeaders = $(".scheme-header");
+        schemeHeaders.css({"max-width":"", "min-width": "", "width": "auto"});
 
         let messageViewer = $("#message-viewer");
-        let schemeHeaders = $(".scheme-header");
         let activeSchemeHeader = $(".active-scheme-header");
         if (schemeHeaders.length === 2) {
             activeSchemeHeader.css("width", "auto");
@@ -2230,7 +1790,6 @@ var messageViewerManager = {
             messageViewer.width(1250);
 
         } else if (schemeHeaders.length === 1) {
-
             activeSchemeHeader.css("width", "auto");
             $("#message-text-header").css("width", "auto");
             messageViewer.width(1250);
@@ -2259,7 +1818,7 @@ var messageViewerManager = {
 
         if (!allHeadersWideEnough || (!noHeadersTooWide && schemeHeaders.length > 2)) {
 
-            let totalRequiredPanelWidth = $("#message-id-header").outerWidth() + $("#message-text-header").outerWidth() + $('.active-scheme-header').outerWidth() + minWidth * (messageViewerManager.codeSchemeOrder.length-1);
+            let totalRequiredPanelWidth = $("#message-id-header").outerWidth() + $("#message-text-header").outerWidth() + activeSchemeHeader.outerWidth() + minWidth * (messageViewerManager.codeSchemeOrder.length-1);
             let difference = totalRequiredPanelWidth - $("#message-panel").width();
 
             let currentContainerWidth = messageViewer.width();
@@ -2280,7 +1839,8 @@ var messageViewerManager = {
                 scrollThumb.css("left", scrollbar.position().left + "px");
             }
         }
-        $('#message-table').stickyTableHeaders({scrollableArea: messageViewerManager.messageContainer, container:messageViewerManager.messageContainer, fixedOffset: 1})
+
+        messageViewerManager.messageTable.stickyTableHeaders({scrollableArea: messageViewerManager.messagePanel, container:messageViewerManager.messagePanel, fixedOffset: 1});
         $("body").scrollLeft(0);
 
     }

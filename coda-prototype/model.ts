@@ -662,6 +662,16 @@ class Dataset {
         return obj;
     }
 
+    findSchemeByCode(codeId: string) : CodeScheme {
+        for (let schemeId of Object.keys(this.schemes)) {
+            let schemeObj = this.schemes[schemeId];
+            if (schemeObj.codes.has(codeId)) {
+                return schemeObj;
+            }
+        }
+        return null;
+    }
+
 }
 
 class RawEvent {

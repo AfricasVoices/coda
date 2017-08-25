@@ -412,14 +412,14 @@ var codeEditorManager =  {
             messageTableTbody += messageViewerManager.createJoinedPageHTML(messageViewerManager.lastLoadedPageIndex);
 
             let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
-            let previousScrollTop = messageViewerManager.messageContainer.scrollTop();
+            let previousScrollTop = messageViewerManager.messagePanel.scrollTop();
             let previousActiveRow = activeRow.attr("eventid");
 
             messageTableTbodyElement.empty();
 
             let messageRows = $(messageTableTbody).prependTo(messageTableTbodyElement);
 
-            messageViewerManager.messageContainer.scrollTop(previousScrollTop);
+            messageViewerManager.messagePanel.scrollTop(previousScrollTop);
 
             activeRow = messageTableTbodyElement.find("tr[eventid='" + previousActiveRow + "']").addClass("active");
 

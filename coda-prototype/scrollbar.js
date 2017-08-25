@@ -128,14 +128,7 @@ var scrollbarManager = {
 
         $(this.scrollbarEl).removeLayerGroup('scrollbarlines');
 
-/*
-        $(this.scrollbarEl).scaleCanvas({ // scale it in case the stroke width doesn't fill the full element
-            x: 10, y: 1.5,
-            scaleX: 1, scaleY: (this.scrollbarEl.height-4)/colors.length,
-            layer: true
-        });
-*/
-        for (let c = 0; c < colors.length; c++) { // todo: fix this
+        for (let c = 0; c < colors.length; c++) {
 
             $(this.scrollbarEl).drawLine({
                 strokeStyle: typeof colors[c] !== "undefined" ? colors[c] : "#ffffff",
@@ -161,7 +154,7 @@ var scrollbarManager = {
         scrollThumb.drawRect({
             strokeStyle: '#black',
             strokeWidth: 1.5,
-            x: 2, y: loadedPages ? loadedPages[0] == 0 ? 1 : this.height * (loadedPages[0]/messageViewerManager.tablePages.length) : 1,
+            x: 2, y: loadedPages ? loadedPages[0] === 0 ? 1 : this.height * (loadedPages[0]/messageViewerManager.tablePages.length) : 1,
             width: context.canvas.width-4, height: scrollbarManager.thumbHeight, // set height according to dataset size vs elems on screen
             cornerRadius: 0,
             layer: true,
@@ -335,17 +328,17 @@ var scrollbarManager = {
         let ycoord = scrollthumbLayer.y;
         if (ycoord === 1) {
             // we're on very top
-            messageViewerManager.bringEventIntoView2(newDataset.eventOrder[0]);
+            messageViewerManager.bringEventIntoView(newDataset.eventOrder[0]);
 
         } else {
             if (scrollbarManager.subsamplingNum === 0) {
                 if (scrollbarManager.strokeWidth === 1) {
                     // one event per pixel
-                    messageViewerManager.bringEventIntoView2(newDataset.eventOrder[ycoord-1]);
+                    messageViewerManager.bringEventIntoView(newDataset.eventOrder[ycoord-1]);
                 } else {
                     // one event per multiple pixels
                     let eventIndex = Math.floor((ycoord-1) / scrollbarManager.strokeWidth);
-                    messageViewerManager.bringEventIntoView2(newDataset.eventOrder[eventIndex]);
+                    messageViewerManager.bringEventIntoView(newDataset.eventOrder[eventIndex]);
                 }
 
             } else {
@@ -353,7 +346,7 @@ var scrollbarManager = {
                 // in the case where scrollthumb was dragged out of bounds at the bottom, we take into account the original
                 // y coordinate (the one that makes it out of bounds) rather than the fixed one (within bounds)
                 let eventIndex = scrollbarManager.subsamplingNum * endDragEventYCoord;
-                messageViewerManager.bringEventIntoView2(newDataset.eventOrder[eventIndex]);
+                messageViewerManager.bringEventIntoView(newDataset.eventOrder[eventIndex]);
 
             }
         }

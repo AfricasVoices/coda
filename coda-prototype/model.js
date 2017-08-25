@@ -571,6 +571,15 @@ class Dataset {
         obj.schemes = this.schemes;
         return obj;
     }
+    findSchemeByCode(codeId) {
+        for (let schemeId of Object.keys(this.schemes)) {
+            let schemeObj = this.schemes[schemeId];
+            if (schemeObj.codes.has(codeId)) {
+                return schemeObj;
+            }
+        }
+        return null;
+    }
 }
 class RawEvent {
     constructor(name, owner, timestamp, number, data, decorations) {
