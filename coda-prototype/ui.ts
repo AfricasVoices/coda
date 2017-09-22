@@ -36,7 +36,8 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log("About to call ctor");
     watchdog = new Watchdog();
     console.log("ctor call done");
-    
+
+    console.log("I made a pull request!");
 
     dataDiv.addEventListener('click', function () {
         var text = "woof";
