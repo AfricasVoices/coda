@@ -67,6 +67,7 @@ $("body").hide();
 function initDataset(storageObj) {
     storage.getDataset()
         .then(dataset => {
+            // TODO: IO
             console.time("Data init");
             dataset = typeof dataset === "string" ? JSON.parse(dataset) : dataset;
             newDataset = Dataset.restoreFromTypelessDataset(dataset);//new Dataset().setFields(dataset["sessions"], dataset["schemes"], dataset["events"]);
@@ -87,6 +88,7 @@ function initDataset(storageObj) {
         .catch(error => {
             if (error) console.log(error);
             console.time("Default data init");
+            // TODO: this example file can't actually be parsed by the "load dataset" button
             $.getJSON("./data/sessions-numbered-10000.json", function (data) {
 
                 // todo ensure ALL IDs are unique
@@ -164,7 +166,7 @@ function initDataset(storageObj) {
 
 storage
     .getUUID().then(id => {
-        if(id && id.length === 36) {
+        if (id && id.length === 36) {
             // stored id is in valid format
             UUID = id;
             return initDataset(storage);
@@ -429,6 +431,7 @@ function initUI(dataset) {
         $(".tableFloatingHeaderOriginal").show();
     });
 
+    // TODO: IO
     $("#export-instrumentation").on("click", () => {
         storage.getActivity().then(activity => {
             if (!activity || activity.length === 0) {
@@ -442,6 +445,7 @@ function initUI(dataset) {
         });
     });
 
+    // TODO: IO
     $("#export-dataset").click(() => {
 
         let eventJSON = {"data": [], "fields" : ["id", "timestamp", "owner", "data", "schemeId", "schemeName", "deco_codeValue", "deco_codeId", "deco_confidence", "deco_manual", "deco_timestamp", "deco_author"]};
@@ -513,7 +517,7 @@ function initUI(dataset) {
         });
     });
 
-    $("#dataset-file").on("change", event => {
+    $("#dataset-file").on("change", event => { // Fires when the dataset file has been changed by the file chooser UI
 
         $(event.target).parents(".dropdown").removeClass("open");
 
@@ -538,6 +542,7 @@ function initUI(dataset) {
             console.log("Type: " + fileType);
             console.log("Size: " + files[0].size + " bytes");
 
+            // TODO: IO
             let read = new FileReader();
             read.readAsText(files[0]);
             read.onloadend = function(){
@@ -714,6 +719,8 @@ function initUI(dataset) {
                     });
 
                 } else {
+                    // TODO: IO
+
                     // update the activity stack
                     storage.saveActivity({
                         "category": "DATASET",
@@ -763,6 +770,7 @@ function initUI(dataset) {
             console.log("Size: " + files[0].size + " bytes");
 
 
+            // TODO: IO
             let read = new FileReader();
             read.readAsText(files[0]);
             // todo: error handling

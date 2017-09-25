@@ -289,7 +289,10 @@ var codeEditorManager =  {
         var saveSchemeButton = this.saveSchemeButton;
 
         saveSchemeButton.off("click");
+
         saveSchemeButton.on("click", function () {
+            // Updates the scheme used by the table to match the modified temporary version in the editor UI, if valid.
+            // As far as I can tell, this doesn't actually perform a persistent save.
 
             tempScheme.codes.forEach(function(codeObj) {
                 var row = editorContainer.find("tr[codeid='" + codeObj["id"] + "']");
