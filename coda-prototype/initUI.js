@@ -67,7 +67,6 @@ $("body").hide();
 function initDataset(storageObj) {
     storage.getDataset()
         .then(dataset => {
-            // TODO: IO
             console.time("Data init");
             dataset = typeof dataset === "string" ? JSON.parse(dataset) : dataset;
             newDataset = Dataset.restoreFromTypelessDataset(dataset);//new Dataset().setFields(dataset["sessions"], dataset["schemes"], dataset["events"]);
@@ -431,7 +430,6 @@ function initUI(dataset) {
         $(".tableFloatingHeaderOriginal").show();
     });
 
-    // TODO: IO
     $("#export-instrumentation").on("click", () => {
         storage.getActivity().then(activity => {
             if (!activity || activity.length === 0) {
@@ -439,6 +437,7 @@ function initUI(dataset) {
                 console.log("Exporting empty instrumentation file.");
             }
             let dataBlob = new Blob([activity], {type: 'application/json'});
+            // TODO: IO
             chrome.downloads.download({url: window.URL.createObjectURL(dataBlob), saveAs: true}, function(dlId) {
                 console.log("Downloaded activity file with id: " + dlId);
             });
@@ -505,6 +504,8 @@ function initUI(dataset) {
 
         let dataBlob = new Blob([Papa.unparse(eventJSON, {header:true, delimiter:";"})], {type: 'text/plain'});
 
+        // TODO: IO
+        // TODO: save an activity prior to attempting the download to record that an export was attempted?
         chrome.downloads.download({url: window.URL.createObjectURL(dataBlob), saveAs: true}, function(dlId) {
             console.log("Downloaded file with id: " + dlId);
             storage.saveActivity({
@@ -719,8 +720,6 @@ function initUI(dataset) {
                     });
 
                 } else {
-                    // TODO: IO
-
                     // update the activity stack
                     storage.saveActivity({
                         "category": "DATASET",
@@ -919,6 +918,7 @@ function initUI(dataset) {
             schemeJSON["data"].push(codeArr);
         }
 
+        // TODO: IO
         let dataBlob = new Blob([Papa.unparse(schemeJSON, {header:true, delimiter:";"})], {type: 'text/plain'});
         chrome.downloads.download({url: window.URL.createObjectURL(dataBlob), saveAs: true}, function(dlId) {
             console.log("Downloaded file with id: " + dlId);
@@ -991,6 +991,7 @@ function initUI(dataset) {
             console.log("Type: " + files[0].type);
             console.log("Size: " + files[0].size + " bytes");
 
+            // TODO: IO
             let read = new FileReader();
             read.readAsText(files[0]);
             // todo: error handling
