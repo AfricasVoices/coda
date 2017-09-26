@@ -1813,6 +1813,7 @@ class StorageManager {
 
 declare let Papa : any;
 declare let $ : any;
+declare let UIUtils: any;
 class FileIO {
     /**
      * Saves the given string to a file. The file is determined by a file selector UI.
@@ -1913,16 +1914,16 @@ class FileIO {
 
     /**
      * Exports the given code scheme to a file on disk.
-     * @param {CodeScheme} scheme Code scheme to save to disk.
+     * @param {CodeScheme} codeScheme Code scheme to save to disk.
      */
-    static saveScheme(scheme : CodeScheme) {
+    static saveCodeScheme(codeScheme : CodeScheme) {
         let schemeJSON = {"data": [], "fields":
             ["scheme_id", "scheme_name", "code_id", "code_value", "code_colour",
              "code_shortcut","code_words", "code_regex"]
         };
 
-        for (let [codeId, code] of scheme.codes) {
-            let codeArr = [scheme.id, scheme.name, codeId, code.value, code.color,
+        for (let [codeId, code] of codeScheme.codes) {
+            let codeArr = [codeScheme.id, codeScheme.name, codeId, code.value, code.color,
                 code.shortcut, code.words.toString(), code.regex[0]];
             schemeJSON["data"].push(codeArr);
         }
@@ -1934,14 +1935,19 @@ class FileIO {
             storage.saveActivity({
                 "category": "SCHEME",
                 "message": "Exported scheme",
-                "messageDetails": {"scheme": scheme.id},
-                "data": scheme.toJSON(),
+                "messageDetails": {"scheme": codeScheme.id},
+                "data": codeScheme.toJSON(),
                 "timestamp": new Date()
             });
         });
     }
 
-    static readFileAsText(file : File) {
+    static readFileAsText(file : File) : Promise<string> {
+        return new Promise<string>(resolve => {
+            let reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsText(file);
+        });
     }
 
     /**
@@ -1953,13 +1959,12 @@ class FileIO {
      * or rejects with the parse errors if the parse failed. FIXME: If the file doesn't load then nothing will happen.
      */
     static loadDataset(file : File, uuid : string) : Promise<Dataset> {
-        return new Promise<Dataset>((resolve, reject : (p: any /* TODO: type parse.errors */) => void) => {
+        return new Promise((resolve, reject) => {
             let reader = new FileReader();
 
             reader.onloadend = () => {
-                // Attempt to parse the result.
-                let readResult = reader.result;
-                let parse = Papa.parse(readResult, {header: true});
+                // Attempt to parse the dataset read from the file.
+                let parse = Papa.parse(reader.result, {header: true});
 
                 // If parsing failed, reject.
                 if (parse.errors.length > 0) {
@@ -1972,26 +1977,25 @@ class FileIO {
                 let events = new Map();
                 let nextEvent = null;
 
-                let schemes = Object.create(null); // TODO: this should be output from this function
-
                 // If well-formed, the data file being imported has a row for each codable data item/coding scheme pair.
                 // Loop over each of these rows to build a dataset object.
                 for (let eventRow of parsedObjects) {
-                    let id              : boolean = eventRow.hasOwnProperty("id"),
-                        timestamp       : boolean = eventRow.hasOwnProperty("timestamp"),
-                        owner           : boolean = eventRow.hasOwnProperty("owner"),
-                        data            : boolean = eventRow.hasOwnProperty("data"),
-                        schemeId        : boolean = eventRow.hasOwnProperty("schemeId"),
-                        schemeName      : boolean = eventRow.hasOwnProperty("schemeName"),
-                        deco_codevalue  : boolean = eventRow.hasOwnProperty("deco_codeValue"),
-                        deco_codeId     : boolean = eventRow.hasOwnProperty("deco_codeId"),
-                        deco_confidence : boolean = eventRow.hasOwnProperty("deco_confidence"),
-                        deco_manual     : boolean = eventRow.hasOwnProperty("deco_manual"),
-                        deco_timestamp  : boolean = eventRow.hasOwnProperty("deco_timestamp"),
-                        deco_author     : boolean = eventRow.hasOwnProperty("deco_author");
+                    let id: boolean = eventRow.hasOwnProperty("id"),
+                        timestamp: boolean = eventRow.hasOwnProperty("timestamp"),
+                        owner: boolean = eventRow.hasOwnProperty("owner"),
+                        data: boolean = eventRow.hasOwnProperty("data"),
+                        schemeId: boolean = eventRow.hasOwnProperty("schemeId"),
+                        schemeName: boolean = eventRow.hasOwnProperty("schemeName"),
+                        deco_codevalue: boolean = eventRow.hasOwnProperty("deco_codeValue"),
+                        deco_codeId: boolean = eventRow.hasOwnProperty("deco_codeId"),
+                        deco_confidence: boolean = eventRow.hasOwnProperty("deco_confidence"),
+                        deco_manual: boolean = eventRow.hasOwnProperty("deco_manual"),
+                        deco_timestamp: boolean = eventRow.hasOwnProperty("deco_timestamp"),
+                        deco_author: boolean = eventRow.hasOwnProperty("deco_author");
 
                     // If this parsed row has the minimum information set required to construct an entry in the dataset,
                     // construct that entry and add it to the dataset.
+                    // TODO: Break this into smaller functions?
                     if (id && owner && data) {
                         if (!dataset) {
                             dataset = new Dataset(); // TODO: Determine whether this check is necessary.
@@ -2000,7 +2004,7 @@ class FileIO {
                         let timestampData = timestamp ? eventRow["timestamp"] : "";
 
                         let isNewEvent = !events.has(eventRow["id"]);
-                        if (isNewEvent){
+                        if (isNewEvent) {
                             nextEvent = new RawEvent(
                                 eventRow["id"], eventRow["owner"], timestampData, eventRow["id"], eventRow["data"]
                             );
@@ -2022,8 +2026,8 @@ class FileIO {
                         // If this parsed row has the minimum information set required to construct a code scheme entry,
                         // construct that entry and add it to the dataset
                         if (schemeId && schemeName && deco_codevalue && deco_codeId && deco_manual
-                                && eventRow["schemeId"].length > 0 && eventRow["schemeName"].length > 0
-                                && eventRow["deco_codeValue"].length > 0) {
+                            && eventRow["schemeId"].length > 0 && eventRow["schemeName"].length > 0
+                            && eventRow["deco_codeValue"].length > 0) {
                             /* TODO: Understand this bit and document. It's adding a scheme if one does not exist,
                                      but this requires knowing what a scheme here represents. */
                             let newScheme;
@@ -2077,6 +2081,71 @@ class FileIO {
 
             reader.readAsText(file);
         });
+
+    }
+
+    static loadCodeScheme(file : File) : Promise<CodeScheme> {
+        return new Promise<CodeScheme>((resolve, reject) => {
+            let reader = new FileReader();
+
+            reader.onloadend = () => {
+                // Attempt to parse the scheme read from the file.
+                let parse = Papa.parse(reader.result, {header: true});
+                if (parse.errors.length > 0) {
+                    reject(parse.errors);
+                    return;
+                }
+
+                let parsedObjects = parse.data;
+                let newScheme = null;
+
+                // Each row defines a code within the code scheme.
+                // Construct a CodeScheme object by parsing each code entry in turn.
+                for (let codeRow of parsedObjects) {
+                    let id            : boolean = codeRow.hasOwnProperty("scheme_id"),
+                        name          : boolean = codeRow.hasOwnProperty("scheme_name"),
+                        code_id       : boolean = codeRow.hasOwnProperty("code_id"),
+                        code_value    : boolean = codeRow.hasOwnProperty("code_value"),
+                        code_colour   : boolean = codeRow.hasOwnProperty("code_colour"),
+                        code_shortcut : boolean = codeRow.hasOwnProperty("code_shortcut"),
+                        code_words    : boolean = codeRow.hasOwnProperty("code_words");
+
+                    // If there is sufficient information to convert this row into a code, do so, and add it to the
+                    // scheme.
+                    if (id && name && code_id && code_value) {
+                        // todo handle if loading an edit of a scheme that was already loaded in... how to deal if
+                        // todo code was deleted?
+
+                        if (!newScheme) {
+                            newScheme = new CodeScheme(codeRow["scheme_id"], codeRow["scheme_name"], false);
+                        }
+
+                        let newShortcut = codeRow["code_shortcut"];
+                        if (codeRow["code_shortcut"].length === 1 && isNaN(parseInt(codeRow["code_shortcut"]))) {
+                            newShortcut = UIUtils.ascii(codeRow["code_shortcut"]);
+                        }
+
+                        let newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"],
+                            codeRow["code_colour"], newShortcut, false);
+
+                        if (code_words) {
+                            if (codeRow["code_words"].length !== 0) {
+                                let words = codeRow["code_words"].split(",");
+                                if (words.length > 0) {
+                                    newCode.addWords(words);
+                                }
+                            }
+                        }
+
+                        newScheme.codes.set(codeRow["code_id"], newCode);
+                    }
+                }
+
+                resolve(newScheme);
+            };
+
+            reader.readAsText(file);
+        })
     }
 }
 

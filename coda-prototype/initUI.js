@@ -588,85 +588,14 @@ function initUI(dataset) {
         $(".tableFloatingHeaderOriginal").show();
 
         let files = $("#scheme-file")[0].files;
-        let len = files.length;
 
-        if (len) {
-            console.log("Filename: " + files[0].name);
-            console.log("Type: " + files[0].type);
-            console.log("Size: " + files[0].size + " bytes");
+        if (files.length > 0) {
+            let file = files[0];
+            console.log("Filename: " + file.name);
+            console.log("Type: " + files.type);
+            console.log("Size: " + files.size + " bytes");
 
-
-            // TODO: IO
-            let read = new FileReader();
-            read.readAsText(files[0]);
-            // todo: error handling
-
-            read.onloadend = function(){
-                let csvResult = read.result;
-                let parse = Papa.parse(csvResult, {header: true});
-                if (parse.errors.length > 0) {
-                    let failAlert = $("#alert");
-                    failAlert.removeClass("alert-sucess").addClass("alert-danger");
-                    let errorMessage = document.createTextNode("Something is wrong with the scheme data format. Change a few things up, refresh and try again.");
-                    failAlert.append(errorMessage);
-                    $(".tableFloatingHeaderOriginal").hide();
-                    failAlert.show();
-
-
-                    var errors = parse.errors;
-                    if (errors.length > 100) { // only report first 30 wrong lines
-                        errors = parse.errors.slice(0,100);
-                    }
-
-                    console.log("ERROR: CANNOT PARSE CSV");
-                    console.log(JSON.stringify(errors));
-
-                    return;
-                }
-
-                let parsedObjs = parse.data;
-                let newScheme = null;
-
-                for (let codeRow of parsedObjs) {
-
-                    let id = codeRow.hasOwnProperty("scheme_id"),
-                        name = codeRow.hasOwnProperty("scheme_name"),
-                        code_id = codeRow.hasOwnProperty("code_id"),
-                        code_value = codeRow.hasOwnProperty("code_value"),
-                        code_colour = codeRow.hasOwnProperty("code_colour"),
-                        code_shortcut = codeRow.hasOwnProperty("code_shortcut"),
-                        code_words = codeRow.hasOwnProperty("code_words");
-
-                    if (id && name && code_id && code_value) {
-
-                        // todo handle if loading an edit of a scheme that was already loaded in... how to deal if code was deleted?
-
-                        if (!newScheme) {
-                            newScheme = new CodeScheme(codeRow["scheme_id"], codeRow["scheme_name"], false);
-                        }
-
-                        let newShortcut = codeRow["code_shortcut"];
-                        if (codeRow["code_shortcut"].length === 1 && Number.isNaN(parseInt(codeRow["code_shortcut"]))) {
-                            newShortcut = UIUtils.ascii(codeRow["code_shortcut"]);
-                        }
-
-                        let newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"], codeRow["code_colour"], newShortcut, false);
-
-                        if (code_words) {
-
-                            if (codeRow["code_words"].length !== 0) {
-                                let words = codeRow["code_words"].split(",");
-                                if (words.length > 0) {
-                                    newCode.addWords(words);
-                                }
-                            }
-                        }
-
-                        newScheme.codes.set(codeRow["code_id"], newCode);
-
-                    }
-                }
-
+            function handleSchemeParsed(newScheme) {
                 if (newScheme == null || newScheme.codes.size === 0 || newDataset.schemes[newScheme["id"]] != undefined) {
 
                     let isDuplicate = newDataset.schemes[newScheme["id"]] != undefined;
@@ -687,7 +616,7 @@ function initUI(dataset) {
                     } else {
                         err = "scheme contains no codes.";
                     }
-                    console.log("ERROR: Can't create scheme object - %s" %err);
+                    console.log("ERROR: Can't create scheme object - %s" % err);
 
                 } else {
                     // todo: what is the behaviour when scheme id is a duplicate - overwrite??
@@ -719,13 +648,29 @@ function initUI(dataset) {
                     });
                 }
             }
+
+            function handleSchemeParseError(parseErrors) {
+                let failAlert = $("#alert");
+                failAlert.removeClass("alert-sucess").addClass("alert-danger");
+                let errorMessage = document.createTextNode("Something is wrong with the scheme data format. " +
+                    "Change a few things up, refresh and try again.");
+                failAlert.append(errorMessage);
+                $(".tableFloatingHeaderOriginal").hide();
+                failAlert.show();
+
+                if (parseErrors.length > 100) { // only report first 100 wrong lines
+                    parseErrors = parseErrors.slice(0, 100);
+                }
+
+                console.log("ERROR: CANNOT PARSE CSV");
+                console.log(JSON.stringify(parseErrors));
+            }
+
+            FileIO.loadCodeScheme(file).then(handleSchemeParsed, handleSchemeParseError);
         }
-
-
     });
 
     $("#quit").on("click", () => {
-
         storage.saveDataset(newDataset);
 
         // todo: prompt to export all files with dialog box
@@ -736,7 +681,7 @@ function initUI(dataset) {
 
     });
 
-    $("#scheme-download").on("click", () => FileIO.saveScheme(tempScheme));
+    $("#scheme-download").on("click", () => FileIO.saveCodeScheme(tempScheme));
 
     /*
     TOOLTIPS
