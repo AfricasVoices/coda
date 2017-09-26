@@ -446,7 +446,7 @@ function initUI(dataset) {
     $("#dataset-file").on("change", event => { // Fires when the dataset file has been changed by the file picker UI
         $(event.target).parents(".dropdown").removeClass("open");
 
-        // hide alert. TODO: Determine what this actually does.
+        // Hide the existing alert.
         let alert = $("#alert");
         alert[0].childNodes.forEach(node => {
             if (node.nodeName === "#text") {
@@ -463,13 +463,23 @@ function initUI(dataset) {
             console.log("Type: " + file.type);
             console.log("Size: " + file.size + " bytes");
 
+            /**
+             * Loads the parsed dataset into the UI if it has data; displays an error message to the user otherwise.
+             * @param dataset Dataset which was correctly parsed.
+             */
             function handleDatasetParsed(dataset) {
                 messageViewerManager.codeSchemeOrder = []; // TODO: What does this line do?
 
                 if (dataset && dataset.events.size !== 0) {
                     if (Object.keys(dataset.schemes).length === 0) {
                         let defaultScheme = new CodeScheme("1", "default", false);
-                        defaultScheme.codes.set(defaultScheme.id + "-" + "01", new Code(defaultScheme,defaultScheme.id + "-" + "01","Test", "#ffffff", UIUtils.ascii("t"), false));
+                        defaultScheme.codes.set(
+                            defaultScheme.id + "-" + "01",
+                            new Code(
+                                defaultScheme, defaultScheme.id + "-" + "01","Test", "#ffffff",
+                                UIUtils.ascii("t"), false
+                            )
+                        );
                         dataset.schemes[defaultScheme["id"]] = defaultScheme;
                     }
                     newDataset = dataset;
@@ -477,7 +487,6 @@ function initUI(dataset) {
                     messageViewerManager.buildTable(newDataset, messageViewerManager.rowsInTable, true);
                     $("body").show();
                     messageViewerManager.resizeViewport();
-
 
                     undoManager.pointer = 0;
                     undoManager.schemaUndoStack  = [];
@@ -508,9 +517,9 @@ function initUI(dataset) {
                             successAlert.empty();
                             successAlert.append($('<a href="#" class="close" data-hide="alert" aria-label="close">&times;</a>'));
                             $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed. FIXME
+                                                                      // Also, what header bug?
                         });
                     });
-
                 } else {
                     // update the activity stack
                     storage.saveActivity({
@@ -518,7 +527,8 @@ function initUI(dataset) {
                         "message": "Failed to import dataset",
                         "messageDetails": {"dataset": file.name},
                         "data": "",
-                        "timestamp": new Date()});
+                        "timestamp": new Date()
+                    });
 
                     // TODO: There is duplication between here and handleParseError.
                     // TODO: There should therefore be a function for displaying errors.
@@ -532,7 +542,6 @@ function initUI(dataset) {
 
                     console.log("ERROR: Dataset object is empty or has no events.");
                     console.log(dataset);
-
                 }
             }
 
@@ -540,7 +549,7 @@ function initUI(dataset) {
              * Notifies the user that parsing the dataset file failed, via the alert banner.
              * Prints the first 100 parse errors to the console.
              */
-            function handleParseError(parseErrors) {
+            function handleDatasetParseError(parseErrors) {
                 let errorMessage = document.createTextNode("Something is wrong with the data format. " +
                     "Change a few things up, refresh and try again.");
                 let failAlert = $("#alert");
@@ -558,7 +567,7 @@ function initUI(dataset) {
                 console.log(JSON.stringify(errors));
             }
 
-            FileIO.loadDataset(file, UUID).then(handleDatasetParsed, handleParseError);
+            FileIO.loadDataset(file, UUID).then(handleDatasetParsed, handleDatasetParseError);
         }
 
        $("#dataset-file")[0].value = ""; // need to reset so the 'onchange' listener will catch reloading the same file
@@ -566,10 +575,9 @@ function initUI(dataset) {
     });
 
     $("#scheme-file").on("change", event => {
-
         $(event.target).parents(".dropdown").removeClass("open");
 
-        // hide alert
+        // Hide the currently displayed alert.
         let alert = $("#alert");
         alert[0].childNodes.forEach(node => {
             if (node.nodeName === "#text") {
