@@ -437,89 +437,13 @@ function initUI(dataset) {
                 console.log("Exporting empty instrumentation file.");
             }
             let dataBlob = new Blob([activity], {type: 'application/json'});
-            // TODO: IO
-            chrome.downloads.download({url: window.URL.createObjectURL(dataBlob), saveAs: true}, function(dlId) {
-                console.log("Downloaded activity file with id: " + dlId);
-            });
+            FileIO.saveFile(dataBlob, downloadId => console.log("Downloaded activity file with id: " + downloadId));
         });
     });
 
-    // TODO: IO
-    $("#export-dataset").click(() => {
+    $("#export-dataset").click(() => FileIO.saveDataset(newDataset));
 
-        let eventJSON = {"data": [], "fields" : ["id", "timestamp", "owner", "data", "schemeId", "schemeName", "deco_codeValue", "deco_codeId", "deco_confidence", "deco_manual", "deco_timestamp", "deco_author"]};
-        for (let event of newDataset.events.values()) {
-            for (let schemeKey of Object.keys(newDataset.schemes)) {
-                let newEventData = [];
-                newEventData.push(event.name);
-                newEventData.push(event.timestamp);
-                newEventData.push(event.owner);
-                newEventData.push(event.data);
-                newEventData.push(schemeKey);
-                newEventData.push(newDataset.schemes[schemeKey].name);
-
-                if (event.decorations.has(schemeKey)) {
-                    let deco = event.decorations.get(schemeKey);
-                    if (deco.code != null) {
-                        newEventData.push(deco.code.value);
-                        newEventData.push(deco.code.id);
-                    } else {
-                        newEventData.push("");
-                        newEventData.push("");
-                    }
-                    newEventData.push(deco.confidence);
-                    newEventData.push(deco.manual);
-                    newEventData.push((deco.timestamp) ? deco.timestamp : "");
-                    newEventData.push("");
-                } else {
-                    newEventData.push("");
-                    newEventData.push("");
-                    newEventData.push("");
-                    newEventData.push("");
-                    newEventData.push("");
-                    newEventData.push("");
-                }
-                eventJSON["data"].push(newEventData);
-            }
-
-            if (Object.keys(newDataset.schemes).length === 0) {
-                let newEventData = [];
-                newEventData.push(event.name);
-                newEventData.push(event.timestamp);
-                newEventData.push(event.owner);
-                newEventData.push(event.data);
-                newEventData.push("");
-                newEventData.push("");
-                newEventData.push("");
-                newEventData.push("");
-                newEventData.push("");
-                newEventData.push("");
-                newEventData.push("");
-                newEventData.push("");
-
-                eventJSON["data"].push(newEventData);
-            }
-
-        }
-
-        let dataBlob = new Blob([Papa.unparse(eventJSON, {header:true, delimiter:";"})], {type: 'text/plain'});
-
-        // TODO: IO
-        // TODO: save an activity prior to attempting the download to record that an export was attempted?
-        chrome.downloads.download({url: window.URL.createObjectURL(dataBlob), saveAs: true}, function(dlId) {
-            console.log("Downloaded file with id: " + dlId);
-            storage.saveActivity({
-                "category": "DATASET",
-                "message": "Exported dataset",
-                "messageDetails": "", //todo identifier
-                "data": "",
-                "timestamp": new Date()
-            });
-        });
-    });
-
-    $("#dataset-file").on("change", event => { // Fires when the dataset file has been changed by the file chooser UI
-
+    $("#dataset-file").on("change", event => { // Fires when the dataset file has been changed by the file picker UI
         $(event.target).parents(".dropdown").removeClass("open");
 
         // hide alert
@@ -909,30 +833,7 @@ function initUI(dataset) {
 
     });
 
-
-    $("#scheme-download").on("click", () => {
-
-        let schemeJSON = {"data": [], "fields":["scheme_id", "scheme_name", "code_id", "code_value", "code_colour", "code_shortcut","code_words", "code_regex"]};
-        for (let [codeId, code] of tempScheme.codes) {
-            let codeArr = [tempScheme.id, tempScheme.name, codeId, code.value, code.color, code.shortcut, code.words.toString(), code.regex[0]];
-            schemeJSON["data"].push(codeArr);
-        }
-
-        // TODO: IO
-        let dataBlob = new Blob([Papa.unparse(schemeJSON, {header:true, delimiter:";"})], {type: 'text/plain'});
-        chrome.downloads.download({url: window.URL.createObjectURL(dataBlob), saveAs: true}, function(dlId) {
-            console.log("Downloaded file with id: " + dlId);
-
-            storage.saveActivity({
-                "category": "SCHEME",
-                "message": "Exported scheme",
-                "messageDetails": {"scheme": tempScheme.id},
-                "data": tempScheme.toJSON(),
-                "timestamp": new Date()
-            });
-
-        });
-    });
+    $("#scheme-download").on("click", () => FileIO.saveScheme(tempScheme));
 
     /*
     TOOLTIPS

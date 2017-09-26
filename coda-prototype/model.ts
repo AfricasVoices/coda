@@ -1810,6 +1810,135 @@ class StorageManager {
     }
 }
 
+class FileIO {
+    /**
+     * Saves the given string to a file. The file is determined by a file selector UI.
+     * @param {Blob} fileContents Data to write to the file.
+     * @param {(downloadId: number) => void} onDownloadStartedHandler Function to run once the download has started
+     *                                                                successfully.
+     */
+    static saveFile(fileContents : Blob, onDownloadStartedHandler ?: (downloadId : number) => void) {
+        let url = window.URL.createObjectURL(fileContents);
+        console.log("Saving file from URL", url);
+
+        chrome.downloads.download({
+            url: url,
+            saveAs: true
+        }, onDownloadStartedHandler)
+    }
+
+    /**
+     * Exports the given dataset to file on disk.
+     * @param {Dataset} dataset Dataset to save to disk.
+     */
+    static saveDataset(dataset : Dataset) {
+        let eventJSON = {"data": [], "fields":
+            ["id", "timestamp", "owner", "data", "schemeId", "schemeName", "deco_codeValue", "deco_codeId",
+                "deco_confidence", "deco_manual", "deco_timestamp", "deco_author"]
+        }; // TODO: why are rows being referred to as 'events'?
+
+        // For each 'event', add a row to the output for each scheme if schemes exist, or a single row if not.
+        // TODO: Write this in a less-yucky way such that pushing many empty strings is not required
+        for (let event of dataset.events.values()) {
+            if (Object.keys(dataset.schemes).length === 0) { // If there are no schemes:
+                let newEventData = [];
+                newEventData.push(event.name);
+                newEventData.push(event.timestamp);
+                newEventData.push(event.owner);
+                newEventData.push(event.data);
+                newEventData.push(""); // schemeId
+                newEventData.push(""); // schemeName
+                newEventData.push(""); // deco_codeValue
+                newEventData.push(""); // deco_codeId
+                newEventData.push(""); // deco_confidence
+                newEventData.push(""); // deco_manual
+                newEventData.push(""); // deco_timestamp
+                newEventData.push(""); // deco_author
+
+                eventJSON["data"].push(newEventData);
+            } else { // Append this row with data for each scheme.
+                for (let schemeKey of Object.keys(dataset.schemes)) {
+                    let newEventData = [];
+                    newEventData.push(event.name);
+                    newEventData.push(event.timestamp);
+                    newEventData.push(event.owner);
+                    newEventData.push(event.data);
+                    newEventData.push(schemeKey);
+                    newEventData.push(dataset.schemes[schemeKey].name);
+
+                    if (event.decorations.has(schemeKey)) {
+                        // If this row has been coded under this scheme, include its coding
+                        let decoration = event.decorations.get(schemeKey);
+                        if (decoration.code != null) {
+                            newEventData.push(decoration.code.value);
+                            newEventData.push(decoration.code.id);
+                        } else {
+                            newEventData.push(""); // deco_codeValue
+                            newEventData.push(""); // deco_codeId
+                        }
+                        newEventData.push(decoration.confidence);
+                        newEventData.push(decoration.manual);
+                        newEventData.push((decoration.timestamp) ? decoration.timestamp : "");
+                        newEventData.push(""); // deco_author
+                    } else { // append a blank coding.
+                        newEventData.push(""); // deco_codeValue
+                        newEventData.push(""); // deco_codeId
+                        newEventData.push(""); // deco_confidence
+                        newEventData.push(""); // deco_manual
+                        newEventData.push(""); // deco_timestamp
+                        newEventData.push(""); // deco_author
+                    }
+
+                    eventJSON["data"].push(newEventData);
+                }
+            }
+        }
+
+        let dataBlob = new Blob([Papa.unparse(eventJSON, {header: true, delimiter: ";"})], {type: 'text/plain'});
+
+        FileIO.saveFile(dataBlob, downloadId => {
+            console.log("Downloaded file with id: " + downloadId);
+            storage.saveActivity({
+                "category": "DATASET",
+                "message": "Exported dataset",
+                "messageDetails": "", //todo identifier
+                "data": "",
+                "timestamp": new Date()
+            });
+        });
+    }
+
+    /**
+     * Exports the given code scheme to a file on disk.
+     * @param {CodeScheme} scheme Code scheme to save to disk.
+     */
+    static saveScheme(scheme : CodeScheme) {
+        let schemeJSON = {"data": [], "fields":
+            ["scheme_id", "scheme_name", "code_id", "code_value", "code_colour",
+             "code_shortcut","code_words", "code_regex"]
+        };
+
+        for (let [codeId, code] of scheme.codes) {
+            let codeArr = [scheme.id, scheme.name, codeId, code.value, code.color,
+                code.shortcut, code.words.toString(), code.regex[0]];
+            schemeJSON["data"].push(codeArr);
+        }
+
+        let dataBlob = new Blob([Papa.unparse(schemeJSON, {header:true, delimiter:";"})], {type: 'text/plain'});
+        FileIO.saveFile(dataBlob, downloadId => {
+            console.log("Downloaded file with id: " + downloadId);
+
+            storage.saveActivity({
+                "category": "SCHEME",
+                "message": "Exported scheme",
+                "messageDetails": {"scheme": scheme.id},
+                "data": scheme.toJSON(),
+                "timestamp": new Date()
+            });
+        });
+    }
+}
+
 
 class UndoManager {
 
