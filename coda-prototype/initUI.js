@@ -446,7 +446,7 @@ function initUI(dataset) {
     $("#dataset-file").on("change", event => { // Fires when the dataset file has been changed by the file picker UI
         $(event.target).parents(".dropdown").removeClass("open");
 
-        // hide alert
+        // hide alert. TODO: Determine what this actually does.
         let alert = $("#alert");
         alert[0].childNodes.forEach(node => {
             if (node.nodeName === "#text") {
@@ -456,147 +456,15 @@ function initUI(dataset) {
         alert.hide();
         $(".tableFloatingHeaderOriginal").show();
 
-
         let files = $("#dataset-file")[0].files;
-        let len = files.length;
+        if (files.length > 0) {
+            let file = files[0];
+            console.log("Filename: " + file.name);
+            console.log("Type: " + file.type);
+            console.log("Size: " + file.size + " bytes");
 
-        if (len) {
-            var fileName = files[0].name;
-            var fileType = files[0].type;
-            console.log("Filename: " + fileName);
-            console.log("Type: " + fileType);
-            console.log("Size: " + files[0].size + " bytes");
-
-            // TODO: IO
-            let read = new FileReader();
-            read.readAsText(files[0]);
-            read.onloadend = function(){
-                let readResult = read.result;
-
-                let parse = Papa.parse(readResult, {header: true});
-                if (parse.errors.length > 0) {
-                    let failAlert = $("#alert");
-                    failAlert.addClass("alert-danger");
-                    let errorMessage = document.createTextNode("Something is wrong with the data format. Change a few things up, refresh and try again.");
-                    $("#alert").append(errorMessage);
-                    $(".tableFloatingHeaderOriginal").hide();
-                    failAlert.show();
-
-                    var errors = parse.errors;
-                    if (errors.length > 100) { // only report first 30 wrong lines
-                        errors = parse.errors.slice(0,100);
-                    }
-
-                    console.log("ERROR: CANNOT PARSE CSV");
-                    console.log(JSON.stringify(errors));
-                    return;
-                }
-
-                let parsedObjs = parse.data;
-                let dataset = new Dataset();
-                let events = new Map();
-                let newEvent = null;
-
-                schemes = Object.create(null);
-                messageViewerManager.codeSchemeOrder = [];
-
-                for (let eventRow of parsedObjs) {
-
-                    //id	timestamp	owner	data	schemeId	schemeName	deco_codevalue	deco_codeId	deco_confidence	deco_manual	deco_timestamp	deco_author
-
-                    let id = eventRow.hasOwnProperty("id"),
-                        timestamp = eventRow.hasOwnProperty("timestamp"),
-                        owner = eventRow.hasOwnProperty("owner"),
-                        data = eventRow.hasOwnProperty("data"),
-                        schemeId = eventRow.hasOwnProperty("schemeId"),
-                        schemeName = eventRow.hasOwnProperty("schemeName"),
-                        deco_codevalue = eventRow.hasOwnProperty("deco_codeValue"),
-                        deco_codeId = eventRow.hasOwnProperty("deco_codeId"),
-                        deco_confidence = eventRow.hasOwnProperty("deco_confidence"),
-                        deco_manual = eventRow.hasOwnProperty("deco_manual"),
-                        deco_timestamp = eventRow.hasOwnProperty("deco_timestamp"),
-                        deco_author = eventRow.hasOwnProperty("deco_author");
-
-                    if (id && owner && data) {
-
-                        if (!dataset) {
-                            dataset = new Dataset();
-                        }
-
-                        let timestampData = timestamp ? eventRow["timestamp"] : "";
-                        let isEventNew;
-
-                        if (!events.has(eventRow["id"])){
-                            newEvent = new RawEvent(eventRow["id"], eventRow["owner"], timestampData, eventRow["id"], eventRow["data"]);
-                            events.set(eventRow["id"], newEvent);
-                            isEventNew = true;
-                        } else {
-                            newEvent = events.get(eventRow["id"]);
-                            isEventNew = false;
-                        }
-
-                        if (!dataset.sessions.has(eventRow["owner"])) {
-                            let newSession = new Session(eventRow["owner"], [newEvent]);
-                            dataset.sessions.set(eventRow["owner"], newSession);
-                        } else {
-                            let session = dataset.sessions.get(eventRow["owner"]);
-                            if (session.events.has(newEvent["name"])) {
-                                session.events.set(newEvent["name"], newEvent);
-                            }
-                        }
-
-                        if (schemeId & schemeName && deco_codevalue && deco_codeId && deco_manual) {
-                            if (eventRow["schemeId"].length > 0 && eventRow["schemeName"].length > 0 && eventRow["deco_codeValue"].length > 0) {
-                                let newScheme;
-                                if (!dataset.schemes[eventRow["schemeId"]]) {
-                                    newScheme = new CodeScheme(eventRow["schemeId"], eventRow["schemeName"], false);
-                                    dataset.schemes[newScheme.id] = newScheme;
-                                } else {
-                                    newScheme = dataset.schemes[eventRow["schemeId"]];
-                                }
-
-                                if (!newScheme.codes.has(eventRow["deco_codeId"])) {
-                                    newScheme.codes.set(eventRow["deco_codeId"], new Code(newScheme, eventRow["deco_codeId"], eventRow["deco_codeValue"], "", "", false));
-                                }
-
-                                let manual;
-                                if (eventRow["deco_manual"].toLocaleLowerCase() === "true") {
-                                    manual = true;
-                                } else if (eventRow["deco_manual"].toLocaleLowerCase() === "false") {
-                                    manual = false;
-                                } else {
-                                    manual = true
-                                }
-
-                                let confidence;
-                                if (deco_confidence) {
-                                    if (eventRow["deco_confidence"].length === 0) {
-                                        confidence = 0.95;
-                                    } else {
-                                        let float = parseFloat(eventRow["deco_confidence"]);
-                                        if (!isNaN(float)) {
-                                            confidence = float;
-                                        } else {
-                                            confidence = 0.95;
-                                        }
-                                    }
-                                } else {
-                                    confidence = undefined;
-                                }
-
-                                newEvent.decorate(newScheme.id, manual, UUID, newScheme.codes.get(eventRow["deco_codeId"]), confidence);
-                            }
-
-                        }
-
-                        if (isEventNew) {
-                            dataset.eventOrder.push(newEvent.name);
-                            dataset.events.set(newEvent.name, newEvent);
-                        }
-
-                    }
-
-                }
+            function handleDatasetParsed(dataset) {
+                messageViewerManager.codeSchemeOrder = []; // TODO: What does this line do?
 
                 if (dataset && dataset.events.size !== 0) {
                     if (Object.keys(dataset.schemes).length === 0) {
@@ -621,7 +489,7 @@ function initUI(dataset) {
                     storage.saveActivity({
                         "category": "DATASET",
                         "message": "Imported dataset",
-                        "messageDetails": {"dataset": fileName},
+                        "messageDetails": {"dataset": file.name},
                         "data": "",
                         "timestamp": new Date()
                     });
@@ -639,7 +507,7 @@ function initUI(dataset) {
                             successAlert.removeClass("alert-success");
                             successAlert.empty();
                             successAlert.append($('<a href="#" class="close" data-hide="alert" aria-label="close">&times;</a>'));
-                            $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
+                            $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed. FIXME
                         });
                     });
 
@@ -648,13 +516,16 @@ function initUI(dataset) {
                     storage.saveActivity({
                         "category": "DATASET",
                         "message": "Failed to import dataset",
-                        "messageDetails": {"dataset": fileName},
+                        "messageDetails": {"dataset": file.name},
                         "data": "",
                         "timestamp": new Date()});
 
+                    // TODO: There is duplication between here and handleParseError.
+                    // TODO: There should therefore be a function for displaying errors.
                     let failAlert = $("#alert");
                     failAlert.removeClass("alert-success").addClass("alert-danger");
-                    let errorMessage = document.createTextNode("Something is wrong with the data format. Change a few things up, refresh and try again.");
+                    let errorMessage = document.createTextNode("Something is wrong with the data format. " +
+                        "Change a few things up, refresh and try again.");
                     failAlert.append(errorMessage);
                     $(".tableFloatingHeaderOriginal").hide();
                     failAlert.show();
@@ -664,6 +535,30 @@ function initUI(dataset) {
 
                 }
             }
+
+            /**
+             * Notifies the user that parsing the dataset file failed, via the alert banner.
+             * Prints the first 100 parse errors to the console.
+             */
+            function handleParseError(parseErrors) {
+                let errorMessage = document.createTextNode("Something is wrong with the data format. " +
+                    "Change a few things up, refresh and try again.");
+                let failAlert = $("#alert");
+                failAlert.addClass("alert-danger");
+                failAlert.append(errorMessage);
+                failAlert.show();
+                $(".tableFloatingHeaderOriginal").hide();
+
+                let errors = parseErrors;
+                if (errors.length > 100) { // only report first 100 wrong lines
+                    errors = parseErrors.slice(0, 100);
+                }
+
+                console.log("ERROR: CANNOT PARSE CSV");
+                console.log(JSON.stringify(errors));
+            }
+
+            FileIO.loadDataset(file, UUID).then(handleDatasetParsed, handleParseError);
         }
 
        $("#dataset-file")[0].value = ""; // need to reset so the 'onchange' listener will catch reloading the same file

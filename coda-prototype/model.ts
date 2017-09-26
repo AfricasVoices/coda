@@ -58,6 +58,7 @@ const VALID_NAME_FORMAT = /(^[a-zA-Z0-9]+([" "]?[a-zA-Z0-9])*)([/\-_][a-zA-Z0-9]
 })();
 
 class Dataset {
+    // TODO: understand and document what each of these things does.
     sessions: Map<string, Session> = new Map();
     schemes = {};
     events: Map<string, RawEvent> = new Map();
@@ -1810,6 +1811,8 @@ class StorageManager {
     }
 }
 
+declare let Papa : any;
+declare let $ : any;
 class FileIO {
     /**
      * Saves the given string to a file. The file is determined by a file selector UI.
@@ -1937,8 +1940,145 @@ class FileIO {
             });
         });
     }
-}
 
+    static readFileAsText(file : File) {
+    }
+
+    /**
+     * Loads a file from disk and parses this into a Dataset.
+     * Note that a successfully parsed Dataset object is not necessarily valid.
+     * @param {File} file File to be read and parsed.
+     * @param {string} uuid TODO
+     * @returns {Promise<Dataset>} Resolves with a parsed dataset if the file was successfully loaded and parsed,
+     * or rejects with the parse errors if the parse failed. FIXME: If the file doesn't load then nothing will happen.
+     */
+    static loadDataset(file : File, uuid : string) : Promise<Dataset> {
+        return new Promise<Dataset>((resolve, reject : (p: any /* TODO: type parse.errors */) => void) => {
+            let reader = new FileReader();
+
+            reader.onloadend = () => {
+                // Attempt to parse the result.
+                let readResult = reader.result;
+                let parse = Papa.parse(readResult, {header: true});
+
+                // If parsing failed, reject.
+                if (parse.errors.length > 0) {
+                    reject(parse.errors);
+                    return;
+                }
+
+                let parsedObjects = parse.data;
+                let dataset = new Dataset();
+                let events = new Map();
+                let nextEvent = null;
+
+                let schemes = Object.create(null); // TODO: this should be output from this function
+
+                // If well-formed, the data file being imported has a row for each codable data item/coding scheme pair.
+                // Loop over each of these rows to build a dataset object.
+                for (let eventRow of parsedObjects) {
+                    let id              : boolean = eventRow.hasOwnProperty("id"),
+                        timestamp       : boolean = eventRow.hasOwnProperty("timestamp"),
+                        owner           : boolean = eventRow.hasOwnProperty("owner"),
+                        data            : boolean = eventRow.hasOwnProperty("data"),
+                        schemeId        : boolean = eventRow.hasOwnProperty("schemeId"),
+                        schemeName      : boolean = eventRow.hasOwnProperty("schemeName"),
+                        deco_codevalue  : boolean = eventRow.hasOwnProperty("deco_codeValue"),
+                        deco_codeId     : boolean = eventRow.hasOwnProperty("deco_codeId"),
+                        deco_confidence : boolean = eventRow.hasOwnProperty("deco_confidence"),
+                        deco_manual     : boolean = eventRow.hasOwnProperty("deco_manual"),
+                        deco_timestamp  : boolean = eventRow.hasOwnProperty("deco_timestamp"),
+                        deco_author     : boolean = eventRow.hasOwnProperty("deco_author");
+
+                    // If this parsed row has the minimum information set required to construct an entry in the dataset,
+                    // construct that entry and add it to the dataset.
+                    if (id && owner && data) {
+                        if (!dataset) {
+                            dataset = new Dataset(); // TODO: Determine whether this check is necessary.
+                        }
+
+                        let timestampData = timestamp ? eventRow["timestamp"] : "";
+
+                        let isNewEvent = !events.has(eventRow["id"]);
+                        if (isNewEvent){
+                            nextEvent = new RawEvent(
+                                eventRow["id"], eventRow["owner"], timestampData, eventRow["id"], eventRow["data"]
+                            );
+                            events.set(eventRow["id"], nextEvent);
+                        } else {
+                            nextEvent = events.get(eventRow["id"]);
+                        }
+
+                        if (!dataset.sessions.has(eventRow["owner"])) {
+                            let newSession = new Session(eventRow["owner"], [nextEvent]);
+                            dataset.sessions.set(eventRow["owner"], newSession);
+                        } else {
+                            let session = dataset.sessions.get(eventRow["owner"]);
+                            if (session.events.has(nextEvent["name"])) {
+                                session.events.set(nextEvent["name"], nextEvent);
+                            }
+                        }
+
+                        // If this parsed row has the minimum information set required to construct a code scheme entry,
+                        // construct that entry and add it to the dataset
+                        if (schemeId && schemeName && deco_codevalue && deco_codeId && deco_manual
+                                && eventRow["schemeId"].length > 0 && eventRow["schemeName"].length > 0
+                                && eventRow["deco_codeValue"].length > 0) {
+                            /* TODO: Understand this bit and document. It's adding a scheme if one does not exist,
+                                     but this requires knowing what a scheme here represents. */
+                            let newScheme;
+                            if (!dataset.schemes[eventRow["schemeId"]]) {
+                                newScheme = new CodeScheme(eventRow["schemeId"], eventRow["schemeName"], false);
+                                dataset.schemes[newScheme.id] = newScheme;
+                            } else {
+                                newScheme = dataset.schemes[eventRow["schemeId"]];
+                            }
+
+                            if (!newScheme.codes.has(eventRow["deco_codeId"])) {
+                                newScheme.codes.set(
+                                    eventRow["deco_codeId"],
+                                    new Code(newScheme, eventRow["deco_codeId"], eventRow["deco_codeValue"], "", "", false)
+                                );
+                            }
+
+                            let manual = eventRow["deco_manual"].toLocaleLowerCase() !== "false"; // manually coded
+
+                            let confidence;
+                            if (deco_confidence) {
+                                let defaultConfidence = 0.95; // TODO: log a warning when this default is used?
+                                if (eventRow["deco_confidence"].length === 0) {
+                                    confidence = defaultConfidence;
+                                } else {
+                                    let float = parseFloat(eventRow["deco_confidence"]);
+                                    if (isNaN(float)) {
+                                        confidence = defaultConfidence;
+                                    } else {
+                                        confidence = float;
+                                    }
+                                }
+                            } else {
+                                confidence = undefined;
+                            }
+
+                            nextEvent.decorate(
+                                newScheme.id, manual, uuid, newScheme.codes.get(eventRow["deco_codeId"]), confidence
+                            );
+                        }
+
+                        if (isNewEvent) {
+                            dataset.eventOrder.push(nextEvent.name);
+                            dataset.events.set(nextEvent.name, nextEvent);
+                        }
+                    }
+                }
+
+                resolve(dataset);
+            };
+
+            reader.readAsText(file);
+        });
+    }
+}
 
 class UndoManager {
 
