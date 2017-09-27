@@ -1960,11 +1960,9 @@ class FileIO {
      */
     static loadDataset(file : File, uuid : string) : Promise<Dataset> {
         return new Promise((resolve, reject) => {
-            let reader = new FileReader();
-
-            reader.onloadend = () => {
+            FileIO.readFileAsText(file).then(readResult => {
                 // Attempt to parse the dataset read from the file.
-                let parse = Papa.parse(reader.result, {header: true});
+                let parse = Papa.parse(readResult, {header: true});
 
                 // If parsing failed, reject.
                 if (parse.errors.length > 0) {
@@ -2077,20 +2075,16 @@ class FileIO {
                 }
 
                 resolve(dataset);
-            };
-
-            reader.readAsText(file);
+            });
         });
 
     }
 
     static loadCodeScheme(file : File) : Promise<CodeScheme> {
         return new Promise<CodeScheme>((resolve, reject) => {
-            let reader = new FileReader();
-
-            reader.onloadend = () => {
+             FileIO.readFileAsText(file).then(readResult => {
                 // Attempt to parse the scheme read from the file.
-                let parse = Papa.parse(reader.result, {header: true});
+                let parse = Papa.parse(readResult, {header: true});
                 if (parse.errors.length > 0) {
                     reject(parse.errors);
                     return;
@@ -2142,9 +2136,7 @@ class FileIO {
                 }
 
                 resolve(newScheme);
-            };
-
-            reader.readAsText(file);
+            });
         })
     }
 }
