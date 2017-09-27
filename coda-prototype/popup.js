@@ -20,7 +20,7 @@
  SOFTWARE.
  */
 /*
-POPUP.TS/JS
+POPUP.TS/JS // TODO: ChromeExtensionButton might be a better name
 Handles the interactions with the extension via the toolbar popup.
 
 - Opens Coda, either directly or by first clearing the storage if expired
@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', function () {
     checkPageButton.addEventListener('click', function () {
         // on every startup of CODA, check if storage is expired, i.e. more than 30 days have passed since last edit
         // if yes, clear storage
+        // TODO: Possible duplicate of isExpired in model.ts
         function isExpired(a, b) {
             // http://stackoverflow.com/a/15289883
             var _MS_PER_DAY = 1000 * 60 * 60 * 24;
@@ -129,7 +130,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                     if (!doFlag) {
                         // already open, so close the open tab first
-                        // todo PROMPT TO EXPORT data before wiping cache in the existing tab
                         chrome.tabs.remove([tabs[i].id], () => {
                             chrome.tabs.create({ url: chrome.extension.getURL("ui.html") });
                         });

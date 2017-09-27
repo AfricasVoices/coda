@@ -53,37 +53,267 @@ class Dataset {
         this.events = new Map();
         this.eventOrder = [];
     }
+    static validate(dataset) {
+        let sessions = dataset.sessions;
+        let sessionsObjValid = sessions && sessions instanceof Map;
+        let sessionsHaveValidEntries = true;
+        for (let session of sessions.values()) {
+            if (!(session instanceof Session)) {
+                sessionsHaveValidEntries = false;
+            }
+        }
+        sessionsObjValid = sessionsObjValid && sessionsHaveValidEntries;
+        let hasSchemes = dataset.schemes && Object.keys(dataset.schemes).length > 0 && dataset.schemes.constructor === Object;
+        let events = dataset.events;
+        let eventsObjValid = events && events instanceof Map;
+        let eventsHaveValidEntries = true;
+        for (let event of events.values()) {
+            if (!(event instanceof RawEvent)) {
+                eventsHaveValidEntries = false;
+                console.log(event);
+                console.log("Invalid event: not an instance of RawEvent");
+            }
+            else if (!sessions.has(event.owner)) {
+                eventsHaveValidEntries = false;
+                console.log("Invalid event: doesn't point to a valid Session");
+            }
+            else if (hasSchemes) {
+                for (let deco of event.decorations.values()) {
+                    // allow for undefined codes
+                    if (deco.code && deco.code.owner != dataset.schemes[deco.code.owner.id]) {
+                        eventsHaveValidEntries = false;
+                        console.log("Invalid event: decoration doesn't point to a valid CodeScheme");
+                    }
+                    else if (deco.code && deco.code != dataset.schemes[deco.code.owner.id].codes.get(deco.code.id)) {
+                        eventsHaveValidEntries = false;
+                        console.log("Invalid event: decoration doesn't point to a valid Code");
+                    }
+                }
+            }
+        }
+        eventsObjValid = eventsObjValid && eventsHaveValidEntries;
+        let hasEventOrder = dataset.eventOrder && dataset.eventOrder.length > 0;
+        return sessionsObjValid && eventsObjValid && hasEventOrder && hasSchemes;
+    }
     static clone(old) {
         let newSchemes = {};
-        let sess = {};
+        // clone schemes
         Object.keys(old.schemes).forEach(scheme => {
             newSchemes[scheme] = CodeScheme.clone(old.schemes[scheme]);
         });
+        let newSessions = new Map();
+        // clone events and redecorate them with newly created codes (from cloning the schemes above)
         let newEvents = new Map();
         for (let event of old.events.values()) {
             let newEvent = new RawEvent(event.name, event.owner, event.timestamp, event.number, event.data);
             for (let [schemeId, deco] of event.decorations.entries()) {
                 let code = deco.code ? newSchemes[schemeId].codes.get(deco.code.id) : null;
-                newEvent.decorate(schemeId, deco.manual, code, deco.confidence, deco.timestamp);
+                newEvent.decorate(schemeId, deco.manual, deco.author, code, deco.confidence, deco.timestamp);
             }
             newEvents.set(newEvent.name, newEvent);
-            if (!sess.hasOwnProperty(event.owner)) {
-                sess[event.owner] = new Session(event.owner, [newEvent]);
+            // clone sessions!
+            if (!newSessions.has(event.owner)) {
+                newSessions.set(event.owner, new Session(event.owner, [newEvent]));
             }
             else {
-                sess[event.owner].events.set(newEvent.name, newEvent);
+                // session obj already exists, so just add new event to it
+                let session = newSessions.get(event.owner);
+                session.events.set(newEvent.name, newEvent);
             }
         }
-        return new Dataset().setFields(sess, newSchemes, newEvents, old.eventOrder);
+        let newEventOrder = old.eventOrder.slice();
+        let clonedDataset = new Dataset();
+        clonedDataset.events = newEvents;
+        clonedDataset.sessions = newSessions;
+        clonedDataset.schemes = newSchemes;
+        clonedDataset.eventOrder = newEventOrder;
+        return clonedDataset;
+    }
+    static areClones(d1, d2) {
+        function checkEvents(e1, e2) {
+            if (e1 == e2) {
+                return true;
+            }
+            for (let [eventKey, eventObj] of e1) {
+                if (eventObj == e2.get(eventKey)) {
+                    return true;
+                }
+                for (let [decoKey, decoObj] of eventObj.decorations) {
+                    if (decoObj == e2.get(eventKey).decorations.get(decoKey)) {
+                        return true;
+                    }
+                    if (decoObj.code == e2.get(eventKey).decorations.get(decoKey).code) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        function checkSessions(s1, s2) {
+            if (s1 == s2) {
+                return true;
+            }
+            for (let [sessionKey, sessionObj] of s1) {
+                if (sessionObj == s2.get(sessionKey)) {
+                    return true;
+                }
+                for (let [decoKey, decoObj] of sessionObj.decorations) {
+                    if (decoObj == s2.get(sessionKey).decorations.get(decoKey)) {
+                        return true;
+                    }
+                }
+                for (let [eventKey, eventObj] of sessionObj.events) {
+                    if (eventObj == s2.get(sessionKey).events.get(eventKey)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        function checkEventOrder(o1, o2) {
+            return o1 == o2;
+        }
+        function checkSchemes(s1, s2) {
+            // check scheme reference
+            if (s1 == s2) {
+                return true;
+            }
+            // check codes
+            for (let [codeKey, codeObj] of s1.codes) {
+                if (codeObj == s2.codes.get(codeKey)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return checkEvents(d1.events, d2.events) && checkSessions(d1.sessions, d2.sessions) && checkEventOrder(d1.eventOrder, d2.eventOrder) && checkSchemes(d1.schemes, d2.schemes);
+    }
+    static restoreFromTypelessDataset(dataset) {
+        function fixEventObjectProperties(eventToFix, schms, eventOwner) {
+            // Ensure event decoration references are restored
+            if (eventToFix.decorations instanceof Map) {
+                console.log("Warning: event decorations are a Map.");
+                for (let [key, deco] of eventToFix.decorations.entries()) {
+                    let code = deco.code;
+                    if (deco.owner == null && eventToFix instanceof RawEvent) {
+                        deco.owner = eventToFix;
+                    }
+                    if (code) {
+                        deco.code = schms[key].codes.get(code.id);
+                        if (deco.code instanceof Code && deco.manual) {
+                            deco.code.addEvent(eventToFix);
+                        }
+                    }
+                }
+            }
+            else {
+                Object.keys(eventToFix.decorations).forEach(schemeKey => {
+                    let code = eventToFix.decorations[schemeKey].code;
+                    if (code) {
+                        eventToFix.decorations[schemeKey].code = schms[schemeKey].codes.get(code.id); // Code object has been initialised within scheme
+                        if (!(eventToFix.decorations[schemeKey].code instanceof Code)) {
+                            if (!(typeof (eventToFix.decorations[schemeKey].code) === "undefined")) {
+                                // undefined Codes in a decoration are a valid case as decorations can be initialised with no codes
+                                console.log("Warning: Code object hasn't been initialised properly");
+                                console.log(eventToFix.decorations[schemeKey]);
+                                console.log("---------------");
+                            }
+                        }
+                        if (eventToFix.decorations[schemeKey].code instanceof Code && eventToFix.decorations[schemeKey].manual) {
+                            eventToFix.decorations[schemeKey].code.addEvent(eventToFix);
+                        }
+                    }
+                });
+            }
+            // Create/adjust event objects with Session objs
+            if (eventToFix instanceof RawEvent) {
+                let owner = eventToFix.owner;
+                let session = eventOwner;
+                if (session.events.has(eventToFix.name)) {
+                    session.events.set(eventToFix.name, eventToFix);
+                }
+                return eventToFix;
+            }
+            else {
+                let newEvent = new RawEvent(eventToFix.name, eventToFix.owner, eventToFix.timestamp, eventToFix.number, eventToFix.data, eventToFix.decorations);
+                let owner = eventToFix.owner;
+                let session = eventOwner;
+                if (session.events.has(eventToFix.name)) {
+                    session.events.set(eventToFix.name, newEvent);
+                }
+                return newEvent;
+            }
+        }
+        var sessions = dataset.sessions;
+        var schemes = dataset.schemes;
+        var events = dataset.events;
+        var order = dataset.order;
+        let restoredOrder = [];
+        let restoredSchemes = {};
+        let restoredSessions = new Map();
+        let restoredEvents = new Map();
+        let restoredDataset = new Dataset();
+        if (order) {
+            restoredOrder = order.slice();
+        }
+        Object.keys(schemes).forEach(schemeKey => {
+            // restore code scheme
+            let scheme = schemes[schemeKey];
+            if (scheme instanceof CodeScheme) {
+                // should never happen
+                console.log("Warning: scheme object is unexpectedly a CodeScheme obj.");
+                console.log(scheme);
+                console.log("------------");
+                restoredSchemes[schemeKey] = scheme;
+            }
+            else {
+                console.log("Is scheme key an integer? " + JSON.stringify(typeof scheme.id === 'number'));
+                console.log(typeof schemeKey);
+                restoredSchemes[schemeKey] = new CodeScheme(scheme.id, scheme.name, scheme.isNew, scheme.codes);
+            }
+        });
+        Object.keys(sessions).forEach(sessionKey => {
+            // restores sessions
+            let session = sessions[sessionKey];
+            restoredSessions.set(sessionKey, new Session(session.id, session.events));
+        });
+        let eventList = (events instanceof Map) ? Array.from(events.values()) : Object.keys(events).map(eventKey => events[eventKey]);
+        if (!order) {
+            eventList.forEach(eventObj => {
+                let fixedEvent = fixEventObjectProperties(eventObj, restoredSchemes, restoredSessions.get(eventObj.owner));
+                restoredEvents.set(eventObj.name, fixedEvent);
+                restoredOrder.push(eventObj.name);
+            });
+        }
+        else {
+            order.forEach(eventKey => {
+                let eventObj = (events instanceof Map) ? events.get(eventKey) : events[eventKey];
+                let fixedEvent = fixEventObjectProperties(eventObj, restoredSchemes, restoredSessions.get(eventObj.owner));
+                restoredEvents.set(eventKey, fixedEvent);
+            });
+        }
+        restoredDataset.eventOrder = restoredOrder;
+        restoredDataset.schemes = restoredSchemes;
+        restoredDataset.sessions = restoredSessions;
+        restoredDataset.events = restoredEvents;
+        return restoredDataset;
     }
     setFields(sessions, schemes, events, order) {
+        /*
+        Restores Dataset after loading from storage (which loses all type information)
+         */
+        console.log("sessions:" + (sessions instanceof Map));
         Object.keys(sessions).forEach(sessionKey => {
+            // restores sessions
             let session = sessions[sessionKey];
             this.sessions.set(sessionKey, new Session(session.id, session.events));
         });
         Object.keys(schemes).forEach(schemeKey => {
+            // restore code scheme
             let scheme = schemes[schemeKey];
             if (scheme instanceof CodeScheme) {
+                // should never happen
+                console.log("Warning: Scheme object is a CodeScheme! (should be plain Object)");
                 this.schemes[schemeKey] = scheme;
             }
             else {
@@ -91,33 +321,38 @@ class Dataset {
             }
         });
         if (order) {
-            this.eventOrder = order;
+            this.eventOrder = order.slice();
         }
-        function fixEventObject(event, data) {
+        function fixEventObject(eventToFix, data) {
             /*
              Ensure decoration references are correct
              */
-            if (event.decorations instanceof Map) {
-                for (let [key, deco] of event.decorations.entries()) {
+            if (eventToFix.decorations instanceof Map) {
+                // shouldn't be reached
+                console.log("Warning: Event decorations are a Map! (should be plain Object)");
+                for (let [key, deco] of eventToFix.decorations.entries()) {
                     let code = deco.code;
-                    if (deco.owner == null && event instanceof RawEvent) {
-                        deco.owner = event;
+                    if (deco.owner == null && eventToFix instanceof RawEvent) {
+                        deco.owner = eventToFix;
                     }
                     if (code) {
                         deco.code = schm[key].codes.get(code.id);
                         if (deco.code instanceof Code && deco.manual) {
-                            deco.code.addEvent(event);
+                            deco.code.addEvent(eventToFix);
                         }
                     }
                 }
             }
             else {
-                Object.keys(event.decorations).forEach(schemeKey => {
-                    let code = event.decorations[schemeKey].code;
+                Object.keys(eventToFix.decorations).forEach(schemeKey => {
+                    let code = eventToFix.decorations[schemeKey].code;
                     if (code) {
-                        event.decorations[schemeKey].code = schm[schemeKey].codes.get(code.id);
-                        if (event.decorations[schemeKey].code instanceof Code && event.decorations[schemeKey].manual) {
-                            event.decorations[schemeKey].code.addEvent(event);
+                        eventToFix.decorations[schemeKey].code = schm[schemeKey].codes.get(code.id); // Code object has been initialised within scheme
+                        if (!(eventToFix.decorations[schemeKey].code instanceof Code)) {
+                            // shouldn't happen as Codes are initialised when restoring
+                        }
+                        if (eventToFix.decorations[schemeKey].code instanceof Code && eventToFix.decorations[schemeKey].manual) {
+                            eventToFix.decorations[schemeKey].code.addEvent(eventToFix);
                         }
                     }
                 });
@@ -125,20 +360,20 @@ class Dataset {
             /*
              Create/adjust event objects
              */
-            if (event instanceof RawEvent) {
-                let owner = event.owner;
+            if (eventToFix instanceof RawEvent) {
+                let owner = eventToFix.owner;
                 let session = data.sessions.get(owner);
-                if (session.events.has(event.name)) {
-                    session.events.set(event.name, event);
+                if (session.events.has(eventToFix.name)) {
+                    session.events.set(eventToFix.name, eventToFix);
                 }
-                return event;
+                return eventToFix;
             }
             else {
-                let newEvent = new RawEvent(event.name, event.owner, event.timestamp, event.number, event.data, event.decorations);
-                let owner = event.owner;
+                let newEvent = new RawEvent(eventToFix.name, eventToFix.owner, eventToFix.timestamp, eventToFix.number, eventToFix.data, eventToFix.decorations);
+                let owner = eventToFix.owner;
                 let session = data.sessions.get(owner);
-                if (session.events.has(event.name)) {
-                    session.events.set(event.name, event);
+                if (session.events.has(eventToFix.name)) {
+                    session.events.set(eventToFix.name, newEvent);
                 }
                 return newEvent;
             }
@@ -182,9 +417,28 @@ class Dataset {
     */
     restoreDefaultSort() {
         this.eventOrder.sort((e1, e2) => {
-            let name1 = parseInt(this.events.get(e1).name, 10);
-            let name2 = parseInt(this.events.get(e2).name, 10);
-            return name1 - name2;
+            let name1, name2;
+            let intParse1 = parseInt(this.events.get(e1).name, 10);
+            let intParse2 = parseInt(this.events.get(e2).name, 10);
+            if (isNaN(intParse1)) {
+                name1 = this.events.get(e1).name.toLowerCase();
+            }
+            else {
+                name1 = intParse1;
+            }
+            if (isNaN(intParse2)) {
+                name2 = this.events.get(e2).name.toLowerCase();
+            }
+            else {
+                name2 = intParse2;
+            }
+            if (name1 < name2) {
+                return -1;
+            }
+            if (name2 < name1) {
+                return 1;
+            }
+            return 0;
         });
         return this.eventOrder;
     }
@@ -212,27 +466,123 @@ class Dataset {
                 if (code1 == code2) {
                     if (code1 == -1) {
                         // neither event has a code assigned
-                        return parseInt(e1.name) - parseInt(e2.name);
+                        let intParse1 = parseInt(e1.name);
+                        let intParse2 = parseInt(e2.name);
+                        let name1, name2;
+                        if (isNaN(intParse1)) {
+                            name1 = e1.name.toLowerCase();
+                        }
+                        else {
+                            name1 = intParse1;
+                        }
+                        if (isNaN(intParse2)) {
+                            name1 = e2.name.toLowerCase();
+                        }
+                        else {
+                            name1 = intParse2;
+                        }
+                        if (name1 < name2) {
+                            return -1;
+                        }
+                        if (name2 < name1) {
+                            return 1;
+                        }
+                        return 0;
                     }
                     // same codes, now sort by manual/automatic & confidence
-                    if (deco1.confidence != null && deco1.confidence != undefined && deco2 != null && deco2.confidence != undefined) {
-                        if (deco1.manual != undefined && deco1.manual) {
-                            if (deco2.manual != undefined && deco2.manual) {
-                                return deco1.confidence - deco2.confidence || parseInt(e1.name) - parseInt(e2.name);
+                    if (deco1.confidence != null && typeof deco1.confidence !== "undefined" && deco2 != null && typeof deco2.confidence !== "undefined") {
+                        if (typeof deco1.manual !== "undefined" && deco1.manual) {
+                            if (typeof deco2.manual !== "undefined" && deco2.manual) {
+                                let decoDifference = deco1.confidence - deco2.confidence;
+                                if (decoDifference === 0) {
+                                    let intParse1 = parseInt(e1.name);
+                                    let intParse2 = parseInt(e2.name);
+                                    let name1, name2;
+                                    if (isNaN(intParse1)) {
+                                        name1 = e1.name.toLowerCase();
+                                    }
+                                    else {
+                                        name1 = intParse1;
+                                    }
+                                    if (isNaN(intParse2)) {
+                                        name1 = e2.name.toLowerCase();
+                                    }
+                                    else {
+                                        name1 = intParse2;
+                                    }
+                                    if (name1 < name2) {
+                                        return -1;
+                                    }
+                                    if (name2 < name1) {
+                                        return 1;
+                                    }
+                                    return 0;
+                                }
+                                else {
+                                    return decoDifference;
+                                }
                             }
                             else {
                                 return 1;
                             }
                         }
-                        else if (deco2.manual != undefined && deco2.manual) {
+                        else if (typeof deco2.manual !== "undefined" && deco2.manual) {
                             return -1;
                         }
                         else {
-                            return deco1.confidence - deco2.confidence || parseInt(e1.name) - parseInt(e2.name);
+                            let decoDifference = deco1.confidence - deco2.confidence;
+                            if (decoDifference === 0) {
+                                let intParse1 = parseInt(e1.name);
+                                let intParse2 = parseInt(e2.name);
+                                let name1, name2;
+                                if (isNaN(intParse1)) {
+                                    name1 = e1.name.toLowerCase();
+                                }
+                                else {
+                                    name1 = intParse1;
+                                }
+                                if (isNaN(intParse2)) {
+                                    name1 = e2.name.toLowerCase();
+                                }
+                                else {
+                                    name1 = intParse2;
+                                }
+                                if (name1 < name2) {
+                                    return -1;
+                                }
+                                if (name2 < name1) {
+                                    return 1;
+                                }
+                                return 0;
+                            }
+                            else {
+                                return decoDifference;
+                            }
                         }
                     }
                     else if (deco1.confidence == null && deco2.confidence == null) {
-                        return parseInt(e1.name) - parseInt(e2.name);
+                        let intParse1 = parseInt(e1.name);
+                        let intParse2 = parseInt(e2.name);
+                        let name1, name2;
+                        if (isNaN(intParse1)) {
+                            name1 = e1.name.toLowerCase();
+                        }
+                        else {
+                            name1 = intParse1;
+                        }
+                        if (isNaN(intParse2)) {
+                            name1 = e2.name.toLowerCase();
+                        }
+                        else {
+                            name1 = intParse2;
+                        }
+                        if (name1 < name2) {
+                            return -1;
+                        }
+                        if (name2 < name1) {
+                            return 1;
+                        }
+                        return 0;
                     }
                     else if (deco1.confidence == null) {
                         return -1;
@@ -259,23 +609,115 @@ class Dataset {
                 let deco1 = e1.decorationForName(schemeId);
                 let deco2 = e2.decorationForName(schemeId);
                 if (deco1 == undefined && deco2 == undefined) {
-                    returnResult = parseInt(e1.name) - parseInt(e2.name);
+                    let intParse1 = parseInt(e1.name);
+                    let intParse2 = parseInt(e2.name);
+                    let name1, name2;
+                    if (isNaN(intParse1)) {
+                        name1 = e1.name.toLowerCase();
+                    }
+                    else {
+                        name1 = intParse1;
+                    }
+                    if (isNaN(intParse2)) {
+                        name1 = e2.name.toLowerCase();
+                    }
+                    else {
+                        name1 = intParse2;
+                    }
+                    if (name1 < name2) {
+                        returnResult = -1;
+                    }
+                    if (name2 < name1) {
+                        returnResult = 1;
+                    }
+                    returnResult = 0;
                 }
                 else if (deco1 == undefined) {
-                    let hasManual2 = deco2.manual != undefined || deco2.manual != null;
-                    returnResult = hasManual2 ? -1 : parseInt(e1.name) - parseInt(e2.name);
+                    let hasManual2 = typeof deco2.manual !== "undefined" || deco2.manual != null;
+                    if (hasManual2)
+                        returnResult = -1;
+                    else {
+                        let intParse1 = parseInt(e1.name);
+                        let intParse2 = parseInt(e2.name);
+                        let name1, name2;
+                        if (isNaN(intParse1)) {
+                            name1 = e1.name.toLowerCase();
+                        }
+                        else {
+                            name1 = intParse1;
+                        }
+                        if (isNaN(intParse2)) {
+                            name1 = e2.name.toLowerCase();
+                        }
+                        else {
+                            name1 = intParse2;
+                        }
+                        if (name1 < name2) {
+                            returnResult = -1;
+                        }
+                        if (name2 < name1) {
+                            returnResult = 1;
+                        }
+                        returnResult = 0;
+                    }
                 }
                 else if (deco2 == undefined) {
-                    let hasManual1 = deco1.manual != undefined || deco1.manual != null;
-                    returnResult = hasManual1 ? 1 : parseInt(e1.name) - parseInt(e2.name);
+                    let hasManual1 = typeof deco1.manual !== "undefined" || deco1.manual != null;
+                    if (hasManual1)
+                        returnResult = 1;
+                    else {
+                        let intParse1 = parseInt(e1.name);
+                        let intParse2 = parseInt(e2.name);
+                        let name1, name2;
+                        if (isNaN(intParse1)) {
+                            name1 = e1.name.toLowerCase();
+                        }
+                        else {
+                            name1 = intParse1;
+                        }
+                        if (isNaN(intParse2)) {
+                            name1 = e2.name.toLowerCase();
+                        }
+                        else {
+                            name1 = intParse2;
+                        }
+                        if (name1 < name2) {
+                            returnResult = -1;
+                        }
+                        if (name2 < name1) {
+                            returnResult = 1;
+                        }
+                        returnResult = 0;
+                    }
                 }
                 else {
-                    let hasManual1 = deco1.manual != undefined || deco1.manual != null;
-                    let hasManual2 = deco2.manual != undefined || deco2.manual != null;
+                    let hasManual1 = typeof deco1.manual !== "undefined" || deco1.manual != null;
+                    let hasManual2 = typeof deco2.manual !== "undefined" || deco2.manual != null;
                     if (hasManual1 && hasManual2) {
                         if (deco1.manual) {
                             if (deco2.manual) {
-                                returnResult = parseInt(e1.name) - parseInt(e2.name);
+                                let intParse1 = parseInt(e1.name);
+                                let intParse2 = parseInt(e2.name);
+                                let name1, name2;
+                                if (isNaN(intParse1)) {
+                                    name1 = e1.name.toLowerCase();
+                                }
+                                else {
+                                    name1 = intParse1;
+                                }
+                                if (isNaN(intParse2)) {
+                                    name1 = e2.name.toLowerCase();
+                                }
+                                else {
+                                    name1 = intParse2;
+                                }
+                                if (name1 < name2) {
+                                    returnResult = -1;
+                                }
+                                if (name2 < name1) {
+                                    returnResult = 1;
+                                }
+                                returnResult = 0;
                             }
                             else {
                                 // deco2 is before deco1, automatic always before manual
@@ -289,14 +731,62 @@ class Dataset {
                             }
                             else {
                                 //both are automatic in which case compare confidence!
-                                returnResult = deco1.confidence - deco2.confidence || parseInt(e1.name, 10) - parseInt(e2.name, 10);
+                                let decoDifference = deco1.confidence - deco2.confidence;
+                                if (decoDifference === 0) {
+                                    let intParse1 = parseInt(e1.name);
+                                    let intParse2 = parseInt(e2.name);
+                                    let name1, name2;
+                                    if (isNaN(intParse1)) {
+                                        name1 = e1.name.toLowerCase();
+                                    }
+                                    else {
+                                        name1 = intParse1;
+                                    }
+                                    if (isNaN(intParse2)) {
+                                        name1 = e2.name.toLowerCase();
+                                    }
+                                    else {
+                                        name1 = intParse2;
+                                    }
+                                    if (name1 < name2) {
+                                        returnResult = -1;
+                                    }
+                                    if (name2 < name1) {
+                                        returnResult = 1;
+                                    }
+                                    returnResult = 0;
+                                }
+                                else {
+                                    returnResult = decoDifference;
+                                }
                             }
                         }
                     }
                     else {
                         if (hasManual1 == hasManual2) {
                             // both are uncoded
-                            returnResult = parseInt(e1.name) - parseInt(e2.name); // todo replace with ids
+                            let intParse1 = parseInt(e1.name);
+                            let intParse2 = parseInt(e2.name);
+                            let name1, name2;
+                            if (isNaN(intParse1)) {
+                                name1 = e1.name.toLowerCase();
+                            }
+                            else {
+                                name1 = intParse1;
+                            }
+                            if (isNaN(intParse2)) {
+                                name1 = e2.name.toLowerCase();
+                            }
+                            else {
+                                name1 = intParse2;
+                            }
+                            if (name1 < name2) {
+                                returnResult = -1;
+                            }
+                            if (name2 < name1) {
+                                returnResult = 1;
+                            }
+                            returnResult = 0;
                         }
                         else if (hasManual1) {
                             // uncoded e2 before coded e1
@@ -311,8 +801,8 @@ class Dataset {
                         }
                     }
                 }
-                if ((returnResult < 0 && (deco1 && deco1.confidence > 0 && (deco2 == undefined))) ||
-                    (returnResult > 0 && (deco2 && deco2.confidence > 0 && (deco1 == undefined))) ||
+                if ((returnResult < 0 && (deco1 && deco1.confidence > 0 && (typeof deco2 === "undefined"))) ||
+                    (returnResult > 0 && (deco2 && deco2.confidence > 0 && (typeof deco1 === "undefined"))) ||
                     (returnResult > 0 && (deco2 && deco1 && deco2.confidence > deco1.confidence && deco2.code != null)) ||
                     (returnResult < 0 && (deco2 && deco1 && deco1.confidence > deco2.confidence && deco1.code != null))) {
                     console.log(e1.name + ", " + e2.name);
@@ -349,17 +839,20 @@ class RawEvent {
             this.codes = new Map(); // string is code scheme id todo not necessary?
         }
         else {
-            if (typeof decorations == 'object') {
+            if (!(decorations instanceof Map)) {
                 let decors = new Map();
                 let codes = new Map();
-                Object.keys(decorations).forEach(deco => {
-                    let d = decorations[deco];
-                    let owner = this;
-                    decors.set(deco, new EventDecoration(this, d.scheme_id, d.manual, d.code, d.confidence, d.timestamp));
+                Object.keys(decorations).forEach(decoKey => {
+                    let d = decorations[decoKey];
+                    let author = (d.author && d.author.length > 0) ? d.author : "";
+                    decors.set(decoKey, new EventDecoration(this, d.scheme_id, d.manual, author, d.code, d.confidence, d.timestamp));
                     codes.set(d.scheme_id, d.code);
                 });
                 this.decorations = decors;
                 this.codes = codes;
+            }
+            else {
+                // decorations are a map already
             }
         }
     }
@@ -381,10 +874,9 @@ class RawEvent {
     assignedCodes() {
         return Array.from(this.codes.values()); // todo
     }
-    decorate(schemeId, manual, code, confidence, timestamp) {
-        // if (this.decorations.has(schemeId)) this.uglify(schemeId);
+    decorate(schemeId, manual, author, code, confidence, timestamp) {
         let stringSchemeId = "" + schemeId;
-        this.decorations.set(stringSchemeId, new EventDecoration(this, stringSchemeId, manual, code, confidence, timestamp));
+        this.decorations.set(stringSchemeId, new EventDecoration(this, stringSchemeId, manual, author, code, confidence, timestamp));
     }
     uglify(schemeId) {
         let deco = this.decorations.get(schemeId);
@@ -401,6 +893,22 @@ class RawEvent {
     decorationNames() {
         return Array.from(this.decorations.keys());
     }
+    isUncoded(schemeKeys) {
+        for (let schemeKey of schemeKeys) {
+            let hasValidCode = this.decorations.has(schemeKey) && this.decorations.get(schemeKey).code;
+            if (!hasValidCode)
+                return true;
+        }
+        return false;
+    }
+    firstUncodedScheme(schemeKeyOrder) {
+        for (let schemeKey of schemeKeyOrder) {
+            let hasValidCode = this.decorations.has(schemeKey) && this.decorations.get(schemeKey).code;
+            if (!hasValidCode)
+                return schemeKey;
+        }
+        return "";
+    }
     toJSON() {
         let obj = Object.create(null);
         obj.owner = this.owner;
@@ -416,11 +924,12 @@ class RawEvent {
     }
 }
 class EventDecoration {
-    constructor(owner, id, manual, code, confidence, timestamp) {
+    constructor(owner, id, manual, author, code, confidence, timestamp) {
         this.owner = owner;
         this.scheme_id = id;
         this.manual = manual;
-        (confidence == undefined) ? this.confidence = 0 : this.confidence = confidence; // not sure this is a good idea
+        this.author = author;
+        (confidence == undefined) ? this.confidence = 0 : this.confidence = confidence;
         if (code) {
             if (code instanceof Code) {
                 if (manual)
@@ -430,6 +939,7 @@ class EventDecoration {
             }
             else {
                 // occurs when reading from storage... type is lost
+                console.log(code);
                 /*this._code = new Code(code.owner, code.id, code.value, code.color, code.shortcut, false);
                 this._timestamp = timestamp ? timestamp : null;*/
             }
@@ -440,7 +950,7 @@ class EventDecoration {
         }
     }
     static clone(oldDeco, newOwner, newCode) {
-        return new EventDecoration(newOwner, oldDeco.scheme_id, oldDeco.manual, newCode, oldDeco.confidence, oldDeco.timestamp);
+        return new EventDecoration(newOwner, oldDeco.scheme_id, oldDeco.manual, oldDeco.author, newCode, oldDeco.confidence, oldDeco.timestamp);
     }
     toJSON() {
         let obj = Object.create(null);
@@ -479,7 +989,7 @@ class Session {
         });
         this.decorations = new Map();
     }
-    decorate(decorationName, decorationValue) {
+    decorate(decorationName, decorationValue, author) {
         this.decorations.set(decorationName, new SessionDecoration(this, decorationName, decorationValue));
     }
     decorationForName(decorationName) {
@@ -525,8 +1035,8 @@ class SessionDecoration {
 }
 class CodeScheme {
     constructor(id, name, isNew, codes) {
-        this.id = id;
-        this.name = name;
+        this.id = id + "";
+        this.name = name + "";
         if (!codes) {
             this.codes = new Map();
         }
@@ -538,7 +1048,7 @@ class CodeScheme {
                     if (typeof code.owner == "string" || typeof code.owner == "number") {
                         code.owner = this;
                     }
-                    c.set(codeId, new Code(code.owner, code.id, code.value, code.color, code.shortcut, false));
+                    c.set(codeId, new Code(code.owner, code.id, code.value, code.color, code.shortcut, false, code.regex));
                     c.get(codeId).addWords(code.words);
                 });
                 this.codes = c;
@@ -623,9 +1133,10 @@ class CodeScheme {
             if (this.codes.has(codeId)) {
                 let code = this.codes.get(codeId);
                 code.value = otherCodeObj.value;
-                code.words = otherCodeObj.words.slice(0); // todo take care to deep clone if necessary
+                code.words = otherCodeObj.words.slice(0);
                 code.color = otherCodeObj.color;
                 code.shortcut = otherCodeObj.shortcut;
+                code.setRegexFromArray(otherCodeObj.regex);
             }
             else {
                 this.codes.set(codeId, otherCodeObj);
@@ -694,7 +1205,10 @@ class Code {
     get eventsWithCode() {
         return this._eventsWithCode;
     }
-    constructor(owner, id, value, color, shortcut, isEdited) {
+    get regex() {
+        return this._regex;
+    }
+    constructor(owner, id, value, color, shortcut, isEdited, regex) {
         this._owner = owner;
         this._id = id;
         this._value = value;
@@ -703,6 +1217,20 @@ class Code {
         this._words = [];
         this._isEdited = isEdited;
         this._eventsWithCode = new Map();
+        if (regex && regex[0] && regex[0].length > 0) {
+            try {
+                let regEXP = new RegExp(regex[0], regex[1]);
+                this._regex = regex;
+            }
+            catch (e) {
+                console.log("Error: invalid regex given to Code constructor.");
+                console.log(e);
+                this._regex = ["", ""];
+            }
+        }
+        else {
+            this._regex = ["", ""];
+        }
     }
     toJSON() {
         let obj = Object.create(null);
@@ -712,6 +1240,7 @@ class Code {
         obj.color = this.color;
         obj.shortcut = this.shortcut;
         obj.words = this.words;
+        obj.regex = this.regex && this.regex[0].length > 0 ? JSON.stringify(this.regex[0]) : []; // only export regex, not flags
         return obj;
     }
     set owner(value) {
@@ -778,7 +1307,7 @@ class Code {
         return this;
     }
     static clone(original) {
-        let newCode = new Code(original["_owner"], original["_id"], original["_value"], original["_color"], original["_shortcut"], false);
+        let newCode = new Code(original["_owner"], original["_id"], original["_value"], original["_color"], original["_shortcut"], false, original["_regex"]);
         newCode._words = original["_words"].slice(0);
         return newCode;
     }
@@ -794,6 +1323,19 @@ class Code {
     }
     removeEvent(event) {
         this._eventsWithCode.delete(event.name);
+    }
+    setRegexFromRegExpObj(regExp) {
+        if (regExp && regExp instanceof RegExp) {
+            this._regex = [regExp.source, regExp.flags];
+        }
+    }
+    setRegexFromArray(regex) {
+        if (regex && regex.length === 2) {
+            this._regex = regex;
+        }
+    }
+    clearRegex() {
+        this._regex = ["", ""];
     }
 }
 // Services
@@ -853,7 +1395,8 @@ class StorageManager {
         return new Promise(function (resolve, reject) {
             chrome.storage.local.get("dataset", (data) => {
                 if (chrome.runtime.lastError) {
-                    reject(new Error("Error reading from storage!"));
+                    console.log("Runtime error: Chrome failed reading from storage!");
+                    reject(chrome.runtime.lastError);
                 }
                 let dataset = data.hasOwnProperty("dataset") ? data["dataset"] : {};
                 if (typeof dataset == "string") {
@@ -861,11 +1404,11 @@ class StorageManager {
                 }
                 if (data == null || dataset == null || typeof data == 'undefined' ||
                     typeof dataset == 'undefined' || Object.keys(dataset).length == 0) {
-                    reject();
+                    reject(new Error("No valid dataset available in storage!"));
                 }
                 if (!dataset.hasOwnProperty("schemes") || !dataset.hasOwnProperty("sessions") ||
                     !dataset.hasOwnProperty("events") || Object.keys(dataset["events"]).length == 0) {
-                    reject(new Error("Error reading from storage: dataset format is corrupt."));
+                    reject(new Error("Reading from storage failed - dataset format is corrupt."));
                 }
                 resolve(dataset);
             });
@@ -875,7 +1418,8 @@ class StorageManager {
         return new Promise(function (resolve, reject) {
             chrome.storage.local.get("instrumentation", data => {
                 if (chrome.runtime.lastError) {
-                    reject(new Error("Error reading from storage!"));
+                    console.log("Runtime error: Chrome failed reading from storage!");
+                    reject(chrome.runtime.lastError);
                 }
                 console.log(data);
                 resolve(data["instrumentation"]);
@@ -886,8 +1430,8 @@ class StorageManager {
         return new Promise(function (resolve, reject) {
             chrome.storage.local.remove("instrumentation", () => {
                 if (chrome.runtime.lastError) {
-                    console.log(chrome.runtime.lastError);
-                    reject();
+                    console.log("Runtime error: Chrome failed reading from storage!");
+                    reject(chrome.runtime.lastError);
                 }
                 else {
                     console.log("Cleared activity log!");
@@ -914,7 +1458,7 @@ class StorageManager {
             });
         });
     }
-    saveActivity(logEvent) {
+    saveActivity(logEvent, uid) {
         // save user activity in storage for instrumentation
         if (logEvent.category.length != 0 && (logEvent.message.length > 0 || logEvent.data.length > 0) && logEvent.timestamp instanceof Date) {
             activity.push(logEvent);
@@ -932,7 +1476,7 @@ class StorageManager {
                         else {
                             instr = activity;
                         }
-                        chrome.storage.local.set({ "instrumentation": JSON.stringify(instr) }, () => {
+                        chrome.storage.local.set({ "instrumentation": JSON.stringify(instr), }, () => {
                             if (chrome.runtime.lastError) {
                                 console.log(chrome.runtime.lastError);
                             }
@@ -967,8 +1511,154 @@ class StorageManager {
             });
         });
     }
+    saveUUID(id) {
+        return new Promise(function (resolve, reject) {
+            chrome.storage.local.set({ 'userId': id }, () => {
+                if (chrome.runtime.lastError) {
+                    console.log(chrome.runtime.lastError);
+                    reject(new Error('Failed to save uuid:' + id));
+                }
+                console.log("Saved user ID: " + id);
+                resolve(id);
+            });
+        });
+    }
+    getUUID() {
+        return new Promise(function (resolve, reject) {
+            chrome.storage.local.get('userId', data => {
+                if (chrome.runtime.lastError) {
+                    console.log("Runtime error: Chrome failed reading from storage!");
+                    reject(chrome.runtime.lastError);
+                }
+                let id = data.hasOwnProperty('userId') ? data['userId'] : null;
+                if (id && id.length == 36) {
+                    resolve(id);
+                }
+                else {
+                    resolve("");
+                }
+            });
+        });
+    }
 }
 StorageManager._MAX_ACTIVITY_SAVE_FREQ = 3;
+class FileIO {
+    /**
+     * Saves the given string to a file. The file is determined by a file selector UI.
+     * @param {Blob} fileContents Data to write to the file.
+     * @param {(downloadId: number) => void} onDownloadStartedHandler Function to run once the download has started
+     *                                                                successfully.
+     */
+    static saveFile(fileContents, onDownloadStartedHandler) {
+        let url = window.URL.createObjectURL(fileContents);
+        console.log("Saving file from URL", url);
+        chrome.downloads.download({
+            url: url,
+            saveAs: true
+        }, onDownloadStartedHandler);
+    }
+    /**
+     * Exports the given dataset to file on disk.
+     * @param {Dataset} dataset Dataset to save to disk.
+     */
+    static saveDataset(dataset) {
+        let eventJSON = { "data": [], "fields": ["id", "timestamp", "owner", "data", "schemeId", "schemeName", "deco_codeValue", "deco_codeId",
+                "deco_confidence", "deco_manual", "deco_timestamp", "deco_author"]
+        }; // TODO: why are rows being referred to as 'events'?
+        // For each 'event', add a row to the output for each scheme if schemes exist, or a single row if not.
+        // TODO: Write this in a less-yucky way such that pushing many empty strings is not required
+        for (let event of dataset.events.values()) {
+            if (Object.keys(dataset.schemes).length === 0) {
+                let newEventData = [];
+                newEventData.push(event.name);
+                newEventData.push(event.timestamp);
+                newEventData.push(event.owner);
+                newEventData.push(event.data);
+                newEventData.push(""); // schemeId
+                newEventData.push(""); // schemeName
+                newEventData.push(""); // deco_codeValue
+                newEventData.push(""); // deco_codeId
+                newEventData.push(""); // deco_confidence
+                newEventData.push(""); // deco_manual
+                newEventData.push(""); // deco_timestamp
+                newEventData.push(""); // deco_author
+                eventJSON["data"].push(newEventData);
+            }
+            else {
+                for (let schemeKey of Object.keys(dataset.schemes)) {
+                    let newEventData = [];
+                    newEventData.push(event.name);
+                    newEventData.push(event.timestamp);
+                    newEventData.push(event.owner);
+                    newEventData.push(event.data);
+                    newEventData.push(schemeKey);
+                    newEventData.push(dataset.schemes[schemeKey].name);
+                    if (event.decorations.has(schemeKey)) {
+                        // If this row has been coded under this scheme, include its coding
+                        let decoration = event.decorations.get(schemeKey);
+                        if (decoration.code != null) {
+                            newEventData.push(decoration.code.value);
+                            newEventData.push(decoration.code.id);
+                        }
+                        else {
+                            newEventData.push(""); // deco_codeValue
+                            newEventData.push(""); // deco_codeId
+                        }
+                        newEventData.push(decoration.confidence);
+                        newEventData.push(decoration.manual);
+                        newEventData.push((decoration.timestamp) ? decoration.timestamp : "");
+                        newEventData.push(""); // deco_author
+                    }
+                    else {
+                        newEventData.push(""); // deco_codeValue
+                        newEventData.push(""); // deco_codeId
+                        newEventData.push(""); // deco_confidence
+                        newEventData.push(""); // deco_manual
+                        newEventData.push(""); // deco_timestamp
+                        newEventData.push(""); // deco_author
+                    }
+                    eventJSON["data"].push(newEventData);
+                }
+            }
+        }
+        let dataBlob = new Blob([Papa.unparse(eventJSON, { header: true, delimiter: ";" })], { type: 'text/plain' });
+        FileIO.saveFile(dataBlob, downloadId => {
+            console.log("Downloaded file with id: " + downloadId);
+            storage.saveActivity({
+                "category": "DATASET",
+                "message": "Exported dataset",
+                "messageDetails": "",
+                "data": "",
+                "timestamp": new Date()
+            });
+        });
+    }
+    /**
+     * Exports the given code scheme to a file on disk.
+     * @param {CodeScheme} scheme Code scheme to save to disk.
+     */
+    static saveScheme(scheme) {
+        let schemeJSON = { "data": [], "fields": ["scheme_id", "scheme_name", "code_id", "code_value", "code_colour",
+                "code_shortcut", "code_words", "code_regex"]
+        };
+        for (let [codeId, code] of scheme.codes) {
+            let codeArr = [scheme.id, scheme.name, codeId, code.value, code.color,
+                code.shortcut, code.words.toString(), code.regex[0]];
+            schemeJSON["data"].push(codeArr);
+        }
+        let dataBlob = new Blob([Papa.unparse(schemeJSON, { header: true, delimiter: ";" })], { type: 'text/plain' });
+        FileIO.saveFile(dataBlob, downloadId => {
+            console.log("Downloaded file with id: " + downloadId);
+            storage.saveActivity({
+                "category": "SCHEME",
+                "message": "Exported scheme",
+                "messageDetails": { "scheme": scheme.id },
+                "data": scheme.toJSON(),
+                "timestamp": new Date()
+            });
+        });
+    }
+}
 class UndoManager {
     constructor() {
         this.pointer = 0;

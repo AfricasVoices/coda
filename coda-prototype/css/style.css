@@ -293,7 +293,17 @@ tr.active.code-row > td {
   overflow-y: scroll;
 }
 
+#deco-table > thead > tr {
+  height: 61px;
+}
 
+#deco-table-col {
+  padding-left: 0px;
+}
+
+#message-table-col {
+  padding-right: 0px;
+}
 
 #word-list > .panel-heading {
   padding: 5px 15px;
@@ -304,8 +314,12 @@ tr.active.code-row > td {
   margin-bottom: 0;
 }
 
-#regex-edit {
+#regex-user, #regex-edit, #word-list {
   margin-bottom: 5px;
+}
+
+#regex-input-error {
+  color: red;
 }
 
 #word-textarea {
@@ -377,6 +391,8 @@ TODO prevent code header column wrapping to next row - keep button always on top
 
 i.scheme-name {
   cursor: pointer;
+  border: solid #ffffff 1px;
+  border-radius: 3px;
 }
 
 i.scheme-name:hover {
@@ -393,50 +409,66 @@ i.scheme-name.active-scheme {
 
 }
 
-.table tbody tr:hover td,
-.table tbody tr:hover th {
-  background-color: transparent;
+.five-cols .col-md-1,
+.five-cols .col-sm-1,
+.five-cols .col-xs-1,
+.five-cols .col-lg-1 {
+  width: 20%;
 }
 
+.seven-cols .col-md-1,
+.seven-cols .col-sm-1,
+.seven-cols .col-xs-1,
+.seven-cols .col-lg-1 {
+  width: 14.285714285714285714285714285714%;
+}
 
-  .five-cols .col-md-1,
-  .five-cols .col-sm-1,
-  .five-cols .col-xs-1,
-  .five-cols .col-lg-1 {
-    width: 20%;
-  }
+.eight-cols .col-md-1,
+.eight-cols .col-sm-1,
+.eight-cols .col-xs-1,
+.eight-cols .col-lg-1 {
+  width: 12.5%;
+}
 
-  .seven-cols .col-md-1,
-  .seven-cols .col-sm-1,
-  .seven-cols .col-xs-1,
-  .seven-cols .col-lg-1 {
-    width: 14.285714285714285714285714285714%;
-  }
+.nine-cols .col-md-1,
+.nine-cols .col-sm-1,
+.nine-cols .col-xs-1,
+.nine-cols .col-lg-1 {
+  width: 11.11111111111111%;
+}
 
-  .eight-cols .col-md-1,
-  .eight-cols .col-sm-1,
-  .eight-cols .col-xs-1,
-  .eight-cols .col-lg-1 {
-    width: 12.5%;
-  }
+.ten-cols .col-md-1,
+.ten-cols .col-sm-1,
+.ten-cols .col-xs-1,
+.ten-cols .col-lg-1 {
+  width: 10%;
+}
 
-  .nine-cols .col-md-1,
-  .nine-cols .col-sm-1,
-  .nine-cols .col-xs-1,
-  .nine-cols .col-lg-1 {
-    width: 11.11111111111111%;
-  }
+.eleven-cols .col-md-1,
+.eleven-cols .col-sm-1,
+.eleven-cols .col-xs-1,
+.eleven-cols .col-lg-1 {
+  width: 9.090909090909092%;
+}
 
-  .ten-cols .col-md-1,
-  .ten-cols .col-sm-1,
-  .ten-cols .col-xs-1,
-  .ten-cols .col-lg-1 {
-    width: 10%;
-  }
+.deco-container .input-group {
+  width: 100%;
+}
 
-  .eleven-cols .col-md-1,
-  .eleven-cols .col-sm-1,
-  .eleven-cols .col-xs-1,
-  .eleven-cols .col-lg-1 {
-    width: 9.090909090909092%;
-  }
+.active-scheme .input-group {
+  width: 100%;
+}
+
+#active-scheme-header, #active-scheme-header > .scheme-header {
+  max-width: none !important;
+}
+/*
+.scheme-name{
+  width: 100%
+}
+*/
+.scheme-header {
+  max-width: 266px !important;
+  min-width: 266px;
+  /* HAVE TO KEEP MIN-WIDTH AS SET BY STICKYTABLEHEADERS */
+}

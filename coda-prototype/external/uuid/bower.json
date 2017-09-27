@@ -1,0 +1,17 @@
+{
+  "name": "js-uuids",
+  "description": "An browser wrapper for a rigorous implementation of RFC4122 (v1 and v4) UUIDs.",
+  "main": "js-uuid.js",
+  "license": "MIT",
+  "keywords": [
+    "uuid",
+    "guid",
+    "rfc4122",
+    "javascript",
+    "library"
+  ],
+  "ignore": [
+    "**/.*",
+    "bower_components"
+  ]
+}

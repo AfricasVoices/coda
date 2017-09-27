@@ -23,6 +23,7 @@ SOFTWARE.
 
 /*
 INITUI.JS
+Checks UUID
 Loads the initial data - either from storage or the default dataset.
 Handles data I/O
 Handles interaction via navbar menus and buttons - undo/redo, export, load...
@@ -30,6 +31,7 @@ Handles interaction via navbar menus and buttons - undo/redo, export, load...
 
 
 //UI globals
+var UUID;
 var editorOpen;
 var UIUtils = UIUtils;
 var codeEditorPanel = $("#code-editor-panel");
@@ -42,7 +44,7 @@ var activeSchemeId;
 
 var state = {
     activeMessageRow: {},
-    activeEditorRow: {},
+    activeEditorRow: "",
 };
 
 storage = StorageManager.instance;
@@ -62,6 +64,232 @@ $("body").hide();
 
  */
 
+function initDataset(storageObj) {
+    storage.getDataset()
+        .then(dataset => {
+            console.time("Data init");
+            dataset = typeof dataset === "string" ? JSON.parse(dataset) : dataset;
+            newDataset = Dataset.restoreFromTypelessDataset(dataset);//new Dataset().setFields(dataset["sessions"], dataset["schemes"], dataset["events"]);
+            console.log("LOG - Dataset restored is valid: " + JSON.stringify(Dataset.validate(newDataset)));
+            console.timeEnd("Data init");
+
+            // update the activity stack
+            storage.saveActivity({
+                "category": "DATASET",
+                "message": "Resuming coding dataset",
+                "messageDetails": "", // todo add identifier
+                "data": {"events": newDataset["events"].size, "schemes": Object.keys(newDataset["schemes"]).length, "sessions": newDataset["sessions"].size},
+                "timestamp": new Date()
+            });
+            initUI(newDataset);
+            undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
+        })
+        .catch(error => {
+            if (error) console.log(error);
+            console.time("Default data init");
+            // TODO: this example file can't actually be parsed by the "load dataset" button
+            $.getJSON("./data/sessions-numbered-10000.json", function (data) {
+
+                // todo ensure ALL IDs are unique
+
+                newDataset = function (data) {
+                    var decorations = {};
+                    var eventCount = 0;
+                    var schemes = {};
+
+                    var properDataset = new Dataset();
+                    Object.keys(data).forEach(function (sessionKey) {
+                        var events = [];
+                        data[sessionKey]["events"].forEach(function (event) {
+                            var newEventObj = new RawEvent(eventCount + "", sessionKey, event["timestamp"], "", event["data"]);
+                            properDataset.eventOrder.push(newEventObj.name);
+                            properDataset.events.set(newEventObj.name, newEventObj);
+                            eventCount += 1;
+
+                            Object.keys(event["decorations"]).forEach(function (d) {
+
+                                var decorationValue = event["decorations"][d];
+
+                                if (!decorations.hasOwnProperty(d)) {
+                                    // TODO: how to do scheme ids
+                                    let newSchemeId = UIUtils.randomId(Object.keys(schemes));
+                                    schemes[newSchemeId] = new CodeScheme(newSchemeId, d, true);
+                                    decorations[d] = newSchemeId;
+                                }
+
+                                if (decorationValue.length > 0) {
+                                    var scheme = schemes[decorations[d]];
+                                    if (!schemes[decorations[d]].getCodeValues().has(decorationValue)) {
+                                        var newCodeId = decorations[d] + "-" + UIUtils.randomId(Array.from(scheme.codes.keys()));
+                                        scheme.codes.set(newCodeId, new Code(scheme, newCodeId, decorationValue, "#ffffff", "", false));
+                                    }
+
+                                    var code = scheme.getCodeByValue(decorationValue);
+                                    newEventObj.decorate(decorations[d], true, UUID, code, 0.95); // has to use decorations[d] as scheme key
+                                }
+                            });
+                            events.push(newEventObj);
+                        });
+                        var session = new Session(sessionKey, events);
+                        properDataset.sessions.set(sessionKey, session);
+                    });
+
+                    properDataset.schemes = schemes;
+                    properDataset.eventCount = eventCount;
+                    console.log(properDataset);
+                    return properDataset;
+
+                }(data);
+
+                console.timeEnd("Default data init");
+
+                //dataset = data;
+                //newDataset = buildDataset;
+                // update the activity stack
+                storage.saveActivity({
+                    "category": "DATASET",
+                    "message": "Loaded default dataset",
+                    "messageDetails": "",
+                    "data": "sessions-numbered-1000.txt",
+                    "timestamp": new Date()
+                });
+                initUI(newDataset);
+                undoManager.modelUndoStack = [];
+                undoManager.schemaUndoStack = [];
+                undoManager.pointer = 0;
+                undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
+
+            });
+        });
+}
+
+storage
+    .getUUID().then(id => {
+        if (id && id.length === 36) {
+            // stored id is in valid format
+            UUID = id;
+            return initDataset(storage);
+        } else {
+            // create and save UUID
+            UUID = uuid.v4();
+            return storage.saveUUID(UUID)
+                .then(id => {
+                    return initDataset(storage);
+                })
+                .catch(err => {
+                    // set UUID object anyway, try to save again at first logging action
+                    console.log(err);
+                    UUID = uuid.v4();
+                    return initDataset(storage);
+                });
+        }
+    }).catch(err => {
+        // will catch errors at getting UUID
+        // set UUID object anyway, try to save again at first logging action
+        console.log(err);
+        UUID = uuid.v4();
+        return storage.saveUUID(UUID)
+            .then(id => {
+                return initDataset(storage);
+            })
+            .catch(err => {
+                console.log(err);
+                return initDataset(storage);
+            });
+    })/*.then(dataset => {
+        console.time("Data init");
+        dataset = typeof dataset === "string" ? JSON.parse(dataset) : dataset;
+        newDataset = Dataset.restoreFromTypelessDataset(dataset);//new Dataset().setFields(dataset["sessions"], dataset["schemes"], dataset["events"]);
+        console.log("LOG - Dataset restored is valid: " + JSON.stringify(Dataset.validate(newDataset)));
+        console.timeEnd("Data init");
+
+        // update the activity stack
+        storage.saveActivity({
+            "category": "DATASET",
+            "message": "Resuming coding dataset",
+            "messageDetails": "", // todo add identifier
+            "data": {"events": newDataset["events"].size, "schemes": Object.keys(newDataset["schemes"]).length, "sessions": newDataset["sessions"].size},
+            "timestamp": new Date()
+        });
+        initUI(newDataset);
+        undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
+    }).catch(error => {
+        if (error) console.log(error);
+        console.time("Default data init");
+        $.getJSON("./data/sessions-numbered-10000.json", function (data) {
+
+            // todo ensure ALL IDs are unique
+
+            newDataset = function (data) {
+                var decorations = {};
+                var eventCount = 0;
+                var schemes = {};
+
+                var properDataset = new Dataset();
+                Object.keys(data).forEach(function (sessionKey) {
+                    var events = [];
+                    data[sessionKey]["events"].forEach(function (event) {
+                        var newEventObj = new RawEvent(eventCount + "", sessionKey, event["timestamp"], "", event["data"]);
+                        properDataset.eventOrder.push(newEventObj.name);
+                        properDataset.events.set(newEventObj.name, newEventObj);
+                        eventCount += 1;
+
+                        Object.keys(event["decorations"]).forEach(function (d) {
+
+                            var decorationValue = event["decorations"][d];
+
+                            if (!decorations.hasOwnProperty(d)) {
+                                // TODO: how to do scheme ids
+                                let newSchemeId = UIUtils.randomId(Object.keys(schemes));
+                                schemes[newSchemeId] = new CodeScheme(newSchemeId, d, true);
+                                decorations[d] = newSchemeId;
+                            }
+
+                            if (decorationValue.length > 0) {
+                                var scheme = schemes[decorations[d]];
+                                if (!schemes[decorations[d]].getCodeValues().has(decorationValue)) {
+                                    var newCodeId = decorations[d] + "-" + UIUtils.randomId(Array.from(scheme.codes.keys()));
+                                    scheme.codes.set(newCodeId, new Code(scheme, newCodeId, decorationValue, "#ffffff", "", false));
+                                }
+
+                                var code = scheme.getCodeByValue(decorationValue);
+                                newEventObj.decorate(decorations[d], true, UUID, code, 0.95); // has to use decorations[d] as scheme key
+                            }
+                        });
+                        events.push(newEventObj);
+                    });
+                    var session = new Session(sessionKey, events);
+                    properDataset.sessions.set(sessionKey, session);
+                });
+
+                properDataset.schemes = schemes;
+                properDataset.eventCount = eventCount;
+                console.log(properDataset);
+                return properDataset;
+
+            }(data);
+
+            console.timeEnd("Default data init");
+
+            //dataset = data;
+            //newDataset = buildDataset;
+            // update the activity stack
+            storage.saveActivity({
+                "category": "DATASET",
+                "message": "Loaded default dataset",
+                "messageDetails": "",
+                "data": "sessions-numbered-1000.txt",
+                "timestamp": new Date()
+            });
+            initUI(newDataset);
+            undoManager.modelUndoStack = [];
+            undoManager.schemaUndoStack = [];
+            undoManager.pointer = 0;
+            undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
+
+        });
+    }); */
+/*
 storage.getDataset().then(dataset => {
     console.time("Data init");
     dataset = typeof dataset === "string" ? JSON.parse(dataset) : dataset;
@@ -155,6 +383,8 @@ storage.getDataset().then(dataset => {
 
     });
 });
+*/
+
 
 function initUI(dataset) {
     console.time("TOTAL UI INITIALISATION TIME");
@@ -171,7 +401,10 @@ function initUI(dataset) {
     console.timeEnd("total messageview init");
 
     console.time("stickyheaders init");
-    $('#message-table').stickyTableHeaders({scrollableArea: messagePanel, container:messagePanel});
+    $('#deco-table').stickyTableHeaders({scrollableArea: messagePanel, container:messagePanel, fixedOffset: 1});
+
+    $('#message-table').stickyTableHeaders({scrollableArea: messagePanel, container:messagePanel, fixedOffset: 1});
+
     $('#code-table').stickyTableHeaders({scrollableArea: editorRow});
     console.timeEnd("stickyheaders init");
 
@@ -204,85 +437,13 @@ function initUI(dataset) {
                 console.log("Exporting empty instrumentation file.");
             }
             let dataBlob = new Blob([activity], {type: 'application/json'});
-            chrome.downloads.download({url: window.URL.createObjectURL(dataBlob), saveAs: true}, function(dlId) {
-                console.log("Downloaded activity file with id: " + dlId);
-            });
+            FileIO.saveFile(dataBlob, downloadId => console.log("Downloaded activity file with id: " + downloadId));
         });
     });
 
-    $("#export-dataset").click(() => {
+    $("#export-dataset").click(() => FileIO.saveDataset(newDataset));
 
-        let eventJSON = {"data": [], "fields" : ["id", "timestamp", "owner", "data", "schemeId", "schemeName", "deco_codeValue", "deco_codeId", "deco_confidence", "deco_manual", "deco_timestamp", "deco_author"]};
-        for (let event of newDataset.events.values()) {
-            for (let schemeKey of Object.keys(newDataset.schemes)) {
-                let newEventData = [];
-                newEventData.push(event.name);
-                newEventData.push(event.timestamp);
-                newEventData.push(event.owner);
-                newEventData.push(event.data);
-                newEventData.push(schemeKey);
-                newEventData.push(newDataset.schemes[schemeKey].name);
-
-                if (event.decorations.has(schemeKey)) {
-                    let deco = event.decorations.get(schemeKey);
-                    if (deco.code != null) {
-                        newEventData.push(deco.code.value);
-                        newEventData.push(deco.code.id);
-                    } else {
-                        newEventData.push("");
-                        newEventData.push("");
-                    }
-                    newEventData.push(deco.confidence);
-                    newEventData.push(deco.manual);
-                    newEventData.push((deco.timestamp) ? deco.timestamp : "");
-                    newEventData.push("");
-                } else {
-                    newEventData.push("");
-                    newEventData.push("");
-                    newEventData.push("");
-                    newEventData.push("");
-                    newEventData.push("");
-                    newEventData.push("");
-                }
-                eventJSON["data"].push(newEventData);
-            }
-
-            if (Object.keys(newDataset.schemes).length === 0) {
-                let newEventData = [];
-                newEventData.push(event.name);
-                newEventData.push(event.timestamp);
-                newEventData.push(event.owner);
-                newEventData.push(event.data);
-                newEventData.push("");
-                newEventData.push("");
-                newEventData.push("");
-                newEventData.push("");
-                newEventData.push("");
-                newEventData.push("");
-                newEventData.push("");
-                newEventData.push("");
-
-                eventJSON["data"].push(newEventData);
-            }
-
-        }
-
-        let dataBlob = new Blob([Papa.unparse(eventJSON, {header:true, delimiter:";"})], {type: 'text/plain'});
-
-        chrome.downloads.download({url: window.URL.createObjectURL(dataBlob), saveAs: true}, function(dlId) {
-            console.log("Downloaded file with id: " + dlId);
-            storage.saveActivity({
-                "category": "DATASET",
-                "message": "Exported dataset",
-                "messageDetails": "", //todo identifier
-                "data": tempScheme.toJSON(),
-                "timestamp": new Date()
-            });
-        });
-    });
-
-    $("#dataset-file").on("change", event => {
-
+    $("#dataset-file").on("change", event => { // Fires when the dataset file has been changed by the file picker UI
         $(event.target).parents(".dropdown").removeClass("open");
 
         // hide alert
@@ -306,6 +467,7 @@ function initUI(dataset) {
             console.log("Type: " + fileType);
             console.log("Size: " + files[0].size + " bytes");
 
+            // TODO: IO
             let read = new FileReader();
             read.readAsText(files[0]);
             read.onloadend = function(){
@@ -365,7 +527,7 @@ function initUI(dataset) {
                         let isEventNew;
 
                         if (!events.has(eventRow["id"])){
-                            newEvent = new RawEvent(events.size + "", eventRow["owner"], timestampData, eventRow["id"], eventRow["data"]);
+                            newEvent = new RawEvent(eventRow["id"], eventRow["owner"], timestampData, eventRow["id"], eventRow["data"]);
                             events.set(eventRow["id"], newEvent);
                             isEventNew = true;
                         } else {
@@ -422,7 +584,7 @@ function initUI(dataset) {
                                     confidence = undefined;
                                 }
 
-                                newEvent.decorate(newScheme.id, manual, newScheme.codes.get(eventRow["deco_codeId"]), confidence);
+                                newEvent.decorate(newScheme.id, manual, UUID, newScheme.codes.get(eventRow["deco_codeId"]), confidence);
                             }
 
                         }
@@ -443,9 +605,11 @@ function initUI(dataset) {
                         dataset.schemes[defaultScheme["id"]] = defaultScheme;
                     }
                     newDataset = dataset;
-                    //newDataset.schemes = schemes;
+                    newDataset.restoreDefaultSort();
                     messageViewerManager.buildTable(newDataset, messageViewerManager.rowsInTable, true);
                     $("body").show();
+                    messageViewerManager.resizeViewport();
+
 
                     undoManager.pointer = 0;
                     undoManager.schemaUndoStack  = [];
@@ -529,6 +693,7 @@ function initUI(dataset) {
             console.log("Size: " + files[0].size + " bytes");
 
 
+            // TODO: IO
             let read = new FileReader();
             read.readAsText(files[0]);
             // todo: error handling
@@ -668,29 +833,7 @@ function initUI(dataset) {
 
     });
 
-
-    $("#scheme-download").on("click", () => {
-
-        let schemeJSON = {"data": [], "fields":["scheme_id", "scheme_name", "code_id", "code_value", "code_colour", "code_shortcut","code_words"]};
-        for (let [codeId, code] of tempScheme.codes) {
-            let codeArr = [tempScheme.id, tempScheme.name, codeId, code.value, code.color, code.shortcut, code.words.toString()];
-            schemeJSON["data"].push(codeArr);
-        }
-
-        let dataBlob = new Blob([Papa.unparse(schemeJSON, {header:true, delimiter:";"})], {type: 'text/plain'});
-        chrome.downloads.download({url: window.URL.createObjectURL(dataBlob), saveAs: true}, function(dlId) {
-            console.log("Downloaded file with id: " + dlId);
-
-            storage.saveActivity({
-                "category": "SCHEME",
-                "message": "Exported scheme",
-                "messageDetails": {"scheme": tempScheme.id},
-                "data": tempScheme.toJSON(),
-                "timestamp": new Date()
-            });
-
-        });
-    });
+    $("#scheme-download").on("click", () => FileIO.saveScheme(tempScheme));
 
     /*
     TOOLTIPS
@@ -749,6 +892,7 @@ function initUI(dataset) {
             console.log("Type: " + files[0].type);
             console.log("Size: " + files[0].size + " bytes");
 
+            // TODO: IO
             let read = new FileReader();
             read.readAsText(files[0]);
             // todo: error handling
@@ -772,7 +916,8 @@ function initUI(dataset) {
                         code_value = codeRow.hasOwnProperty("code_value"),
                         code_colour = codeRow.hasOwnProperty("code_colour"),
                         code_shortcut = codeRow.hasOwnProperty("code_shortcut"),
-                        code_words = codeRow.hasOwnProperty("code_words");
+                        code_words = codeRow.hasOwnProperty("code_words"),
+                        code_regex = codeRow.hasOwnProperty("code_regex");
 
                     if (id && name && code_id && code_value) {
 
@@ -791,7 +936,13 @@ function initUI(dataset) {
                             newShortcut = UIUtils.ascii(codeRow["code_shortcut"]);
                         }
 
-                        let newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"], codeRow["code_colour"], newShortcut, false);
+                        let newCode;
+                        if (code_regex && typeof codeRow["code_regex"] === "string") {
+                            newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"], codeRow["code_colour"], newShortcut, false, [codeRow["code_regex"], "g"]);
+                        } else {
+                            newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"], codeRow["code_colour"], newShortcut, false);
+                        }
+
 
                         if (code_words) {
 
@@ -809,23 +960,37 @@ function initUI(dataset) {
                 /*
                 Update the currently loaded scheme
                  */
+
+                let oldActiveRowCodeId = $(".code-row.active").attr("codeid");
+
                 for (let [codeId, code] of tempScheme.codes.entries()) {
                     // update existing codes
-                    let codeRow = $(".code-row[id='" + codeId + "']");
+                    let codeRow = $(".code-row[codeid='" + codeId + "']");
                     if (newScheme.codes.has(codeId)) {
                         let newCode = newScheme.codes.get(codeId);
                         newCode.owner = tempScheme;
                         codeRow.find(".code-input").attr("value", newCode.value);
-                        codeRow.find(".shortcut-input").attr("value", String.fromCharCode(newCode.shortcut));
+
+                        if (newCode.length > 0) {
+                            // don't set value to empty string, it still counts as value, fails validation and loses placeholder text
+                            codeRow.find(".shortcut-input").attr("value", String.fromCharCode(newCode.shortcut));
+                        }
+
                         codeRow.find("td").attr("style", "background-color: " + (newCode.color ? newCode.color : "#ffffff"));
                         tempScheme.codes.set(codeId, newCode);
                         newScheme.codes.delete(codeId);
                     } else {
+                        // not in the new scheme, remove row and set a new active row if necessary
+                        /*
                         let isActive = codeRow.hasClass("active");
-                        codeRow.remove();
                         if (isActive) {
-                            $(".code-row:first").addClass("active");
+                            let newActiveRow = $(".code-row:last");
+                            newActiveRow.addClass("active");
+                            codeEditorManager.activeCode = newActiveRow.attr("code-id");
                         }
+                        */
+
+                        codeRow.remove();
                         tempScheme.codes.delete(codeId);
                     }
                 }
@@ -838,8 +1003,28 @@ function initUI(dataset) {
                 }
 
                 $("#scheme-name-input").val(newScheme.name);
-                let activeCode = tempScheme.codes.get($(".code-row.active").attr("id"));
-                if (activeCode) codeEditorManager.updateCodePanel(activeCode);
+
+                let newActiveRowCodeId = $(".code-row.active").attr("codeid");
+                if (newActiveRowCodeId !== oldActiveRowCodeId) {
+                    let newActiveRow = $(".code-row:last");
+                    newActiveRow.addClass('active');
+                }
+
+                codeEditorManager.activeCode = newActiveRowCodeId;
+                codeEditorManager.updateCodePanel(tempScheme.codes.get(codeEditorManager.activeCode));
+
+                /*
+                let activeCode = tempScheme.codes.get($(".code-row.active").attr("code-id"));
+                if (activeCode) {
+                    codeEditorManager.updateCodePanel(activeCode);
+                } else {
+                    // make a row active and update the code panel accordingly
+                    let newActiveRow = $(".code-row:last");
+                    newActiveRow.addClass('active');
+                    codeEditorManager.activeCode = newActiveRow.attr("code-id");
+                    codeEditorManager.updateCodePanel(tempScheme.codes.get(codeEditorManager.activeCode.id));
+                }
+                */
 
                 // update the activity stack
                 storage.saveActivity({
@@ -890,10 +1075,32 @@ function initUI(dataset) {
         });
     });
 
+    $("#horizontal-coding").on("click", () => {
+        messageViewerManager.horizontal = true;
+        storage.saveActivity({
+            "category": "CODING",
+            "message": "changed coding style to horizontal",
+            "messageDetails": "",
+            "data": {} ,
+            "timestamp": new Date()
+        });
+    });
+
+    $("#vertical-coding").on("click", () => {
+        messageViewerManager.horizontal = false;
+        storage.saveActivity({
+            "category": "CODING",
+            "message": "changed coding style to vertical",
+            "messageDetails": "",
+            "data": {} ,
+            "timestamp": new Date()
+        });
+    });
+
     $("#code-now-button").on("click", () => {
 
         // code and re-sort dataset
-        regexMatcher.codeDataset(activeSchemeId);
+        regexMatcher.codeDataset(messageViewerManager.activeScheme);
 
         if (messageViewerManager.currentSort === messageViewerManager.sortUtils.sortEventsByConfidenceOnly) {
             newDataset.sortEventsByConfidenceOnly(tempScheme["id"]);
@@ -914,6 +1121,7 @@ function initUI(dataset) {
             "timestamp": new Date()
         });
 
+        /*
         // redraw rows
         var tbody = "";
 
@@ -938,10 +1146,142 @@ function initUI(dataset) {
         messagesTbody.append(tbody);
         messageViewerManager.messageContainer.scrollTop(previousScrollTop);
         activeRow = $("#" + previousActiveRow).addClass("active");
+        */
+
+        // redraw body, PRESERVE ACTIVE ROW
+        messageViewerManager.messageTable.find("tbody").empty();
+        messageViewerManager.decorationTable.find("tbody").empty();
+
+        if (!activeRow) {
+            activeRow = $(".message-row:first");
+        }
+
+        messageViewerManager.bringEventIntoView2(activeRow.attr("eventid"));
+
+        // redraw scrollbar
+        scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);
+        scrollbarManager.redrawThumbAtEvent(newDataset.eventOrder.indexOf(activeRow.attr("eventid")));
+
+    });
+
+    $("#submit").on("click", event => {
+        let regex = $('#regexModal-user-input').val();
+        if (regex && regex.length > 0) {
+            try {
+                let flags = "";
+                $(".form-check-input").each((index, checkbox) => {
+                    let flag = $(checkbox).attr("name");
+                    switch(flag) {
+                        case "case-insensitive":
+                            if ($(checkbox).prop("checked")) {
+                                flags += "i";
+                            }
+                            break;
+
+                        case "multi-line":
+                            if ($(checkbox).prop("checked")) {
+                                flags += "m";
+                            }
+                            break;
+
+                        case "sticky":
+                            if ($(checkbox).prop("checked")) {
+                                flags += "s";
+                            }
+                            break;
+
+                        case "unicode":
+                            if ($(checkbox).prop("checked")) {
+                                flags += "u";
+                            }
+                            break;
+                    }
+
+                });
+
+                flags += "g";
+
+                let regExp = new RegExp(regex, flags);
+                $("#regex-user").find("input").val(regExp);
+                tempScheme.codes.get(state.activeEditorRow).setRegexFromRegExpObj(regExp);
+                $("#regexModal").modal('hide');
+
+                // update the activity stack
+                storage.saveActivity({
+                    "category": "REGEX",
+                    "message": "Entered new regex",
+                    "messageDetails": {"scheme": tempScheme["id"], "code": state.activeEditorRow, "regex": regExp.source},
+                    "data": tempScheme.toJSON(),
+                    "timestamp": new Date()
+                });
+            } catch(e) {
+                $("#regex-input-error").text(e);
+                // update the activity stack
+                storage.saveActivity({
+                    "category": "REGEX",
+                    "message": "Invalid regex entered",
+                    "messageDetails": {"error": e},
+                    "data": tempScheme.toJSON(),
+                    "timestamp": new Date()
+                });
+            }
+        } else {
+            $("#regex-user").find("input").val("");
+            tempScheme.codes.get(state.activeEditorRow).clearRegex();
+            $("#regexModal").modal('hide');
+            // update the activity stack
+            storage.saveActivity({
+                "category": "REGEX",
+                "message": "Cleared custom regex",
+                "messageDetails": {"code": state.activeEditorRow ,"scheme": tempScheme["id"]},
+                "data": tempScheme.toJSON(),
+                "timestamp": new Date()
+            });
+        }
+    });
+
+    $("#regex-user").find(".input-group-btn").on("click", () => {
+        $("#regex-input-error").text("");
+        $(".modal-title").find("span").text(tempScheme.codes.get(state.activeEditorRow).value);
+
+        let regex = tempScheme.codes.get(state.activeEditorRow).regex;
+        $("#regexModal-user-input").val(regex && regex[0] ? regex[0] : "");
+
+        // set flags options
+        let checkBoxes = $("#regexModal").find(".form-check-input");
+        checkBoxes.each((index, checkbox) => {
+            let name = $(checkbox).prop("name");
+            switch(name) {
+                case "case-insensitive":
+                    $("checkbox").prop("checked", regex[1].indexOf("i") > -1);
+                    break;
+
+                case "multi-line":
+                    $("checkbox").prop("checked", regex[1].indexOf("m") > -1);
+                    break;
+
+                case "sticky":
+                    $("checkbox").prop("checked", regex[1].indexOf("s") > -1);
+                    break;
+
+                case "unicode":
+                    $("checkbox").prop("checked", regex[1].indexOf("c") > -1);
+                    break;
+            }
+        });
+
+        // try constructing the regex to see if what was loaded is valid!
+        try {
+            new RegExp(regex[0], regex[1]);
+        } catch (e) {
+            $("#regex-input-error").text(e);
+            //return false;
+        }
     });
 
     console.time("body.show()");
     $("body").show();
+    messageViewerManager.resizeViewport();
     console.timeEnd("body.show()");
     console.timeEnd("TOTAL UI INITIALISATION TIME");
 }
