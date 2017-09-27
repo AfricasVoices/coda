@@ -30,14 +30,14 @@ Handles the initialisation, drawing of, and the interaction with the coloured sc
 var scrollbarManager = {
     // scrollbar as high as the table is // TODO: Well that's the claim, but the scrollbar doesn't resize with the table
 
-    scrollbarEl : {},
+    scrollbarEl: {},
     subsamplingNum: 0,
     thumbWidth: 2,
     thumbHeight: 20,
     scale: 1,
     scrollThumb: $("#scrollthumb"),
 
-    init : function(sessionData, scrollbarEl, subsamplingNum){
+    init: function(sessionData, scrollbarEl, subsamplingNum) {
 
         console.time("scrollbar init");
 
@@ -49,8 +49,8 @@ var scrollbarManager = {
 
         $(scrollbarEl).empty();
 
-        var scrollContext = scrollbarEl.getContext('2d');
-        var scrollContext2 = document.getElementById("scrollthumb").getContext('2d');
+        var scrollContext = scrollbarEl.getContext("2d");
+        var scrollContext2 = document.getElementById("scrollthumb").getContext("2d");
         $("body").show(); // todo this is nasty
         scrollContext.canvas.height = $("#table-col").height()
             - parseInt(messageViewerManager.messageContainer.css("margin-bottom"))
@@ -60,25 +60,24 @@ var scrollbarManager = {
         scrollContext2.canvas.height = scrollContext.canvas.height;
         scrollContext2.canvas.width = scrollContext.canvas.width;
 
-        $("#scrollthumb").css({position: 'absolute', top: '0px', left: $(scrollbarEl).position().left + 'px'});
+        $("#scrollthumb").css({position: "absolute", top: "0px", left: $(scrollbarEl).position().left + "px"});
 
         $("body").hide();
 
         //this.subsamplingNum = Math.ceil(newDataset.eventOrder.length/(scrollbarEl.height-4));
-        this.subsamplingNum = Math.floor(newDataset.eventOrder.length/(scrollbarEl.height-4));
+        this.subsamplingNum = Math.floor(newDataset.eventOrder.length / (scrollbarEl.height - 4));
 
         $("#scrollbar").drawRect({
             //strokeStyle: '#ddd',
-            strokeStyle: 'black',
+            strokeStyle: "black",
             strokeWidth: 1, // same as panel border width
             x: 9.5, y: 0.5,
-            width: scrollContext.canvas.width-20, height: scrollContext.canvas.height-1,
+            width: scrollContext.canvas.width - 20, height: scrollContext.canvas.height - 1,
             cornerRadius: 2,
             layer: true,
-            groups: ['scrollbar'],
+            groups: ["scrollbar"],
             fromCenter: false
         });
-
 
         // todo make schemes an array not object so there is a concept of order
 
@@ -89,7 +88,7 @@ var scrollbarManager = {
 
     },
 
-    redraw : function (dataset, activeSchemeId, loadedPages) {
+    redraw: function(dataset, activeSchemeId, loadedPages) {
         activeSchemeId = activeSchemeId + "";
 
         var colors = [];
@@ -110,13 +109,13 @@ var scrollbarManager = {
             });
         }
 
-        $(this.scrollbarEl).removeLayerGroup('scrollbarlines');
+        $(this.scrollbarEl).removeLayerGroup("scrollbarlines");
 
-        var strokeWidth = Math.floor((this.scrollbarEl.height-4)/colors.length);
+        var strokeWidth = Math.floor((this.scrollbarEl.height - 4) / colors.length);
 
         $(this.scrollbarEl).scaleCanvas({ // scale it in case the stroke width doesn't fill the full element
             x: 10, y: 1.5,
-            scaleX: 1, scaleY: (this.scrollbarEl.height-4)/colors.length,
+            scaleX: 1, scaleY: (this.scrollbarEl.height - 4) / colors.length,
             layer: true
         });
 
@@ -128,7 +127,7 @@ var scrollbarManager = {
                 x1: 10, y1: c * strokeWidth + 1.5,
                 x2: this.scrollbarEl.width - 11.5, y2: c * strokeWidth + 1.5,
                 layer: true,
-                groups: ['scrollbarlines'],
+                groups: ["scrollbarlines"],
                 fromCenter: false
                 //scaleY : this.scale
             });
@@ -139,23 +138,24 @@ var scrollbarManager = {
             layer: true
         });
 
-
-        var context = this.scrollbarEl.getContext('2d');
+        var context = this.scrollbarEl.getContext("2d");
         var scrollThumb = $("#scrollthumb");
-        scrollThumb.removeLayer('scrollthumb');
+        scrollThumb.removeLayer("scrollthumb");
         scrollThumb.drawRect({
-            strokeStyle: '#black',
+            strokeStyle: "#black",
             strokeWidth: 1.5,
-            x: 2, y: loadedPages ? loadedPages[0] == 0 ? 2 : this.height * (loadedPages[0]/messageViewerManager.tablePages.length) : 2,
-            width: context.canvas.width-4, height: scrollbarManager.thumbHeight, // set height according to dataset size vs elems on screen
+            x: 2,
+            y: loadedPages ? loadedPages[0] == 0 ? 2 : this.height * (loadedPages[0] / messageViewerManager.tablePages.length) : 2,
+            width: context.canvas.width - 4,
+            height: scrollbarManager.thumbHeight, // set height according to dataset size vs elems on screen
             cornerRadius: 0,
             layer: true,
-            name: 'scrollthumb',
-            groups: ['scrollbar'],
-            draggableGroups: ['scrollthumb'],
+            name: "scrollthumb",
+            groups: ["scrollbar"],
+            draggableGroups: ["scrollthumb"],
             fromCenter: false,
             draggable: true,
-            restrictDragToAxis: 'y',
+            restrictDragToAxis: "y",
             dragstop: function(layer) {
 
                 if (layer.dy + layer.y < 0) {
@@ -197,7 +197,7 @@ var scrollbarManager = {
                 }
 
                 //else if (layer.dy + layer.y + layer.height + layer.strokeWidth > context.canvas.height) {
-                else if (layer.dy + layer.y + layer.height + layer.strokeWidth > $("#scrollbar").getLayerGroup('scrollbar')[0].height) {
+                else if (layer.dy + layer.y + layer.height + layer.strokeWidth > $("#scrollbar").getLayerGroup("scrollbar")[0].height) {
 
                     event.stopPropagation();
                     event.cancelBubble = true;
@@ -219,9 +219,9 @@ var scrollbarManager = {
             },
             cursors: {
                 // show move cursor when dragging
-                mouseover: 'pointer',
-                mousedown: 'move',
-                mouseup: 'pointer'
+                mouseover: "pointer",
+                mousedown: "move",
+                mouseup: "pointer"
             }
         });
 
@@ -229,7 +229,7 @@ var scrollbarManager = {
         scrollThumb.drawLayers();
     },
 
-    subsample : function(dataset, activeSchemeId) {
+    subsample: function(dataset, activeSchemeId) {
 
         // make sure activeSchemeId is a string
         activeSchemeId = activeSchemeId + "";
@@ -245,12 +245,12 @@ var scrollbarManager = {
             let event = dataset.events.get(eventKey);
             if (event) {
                 if (colors.length === this.subsamplingNum) {
-                    sampleColours.push(colors[UIUtils.randomInteger(0, colors.length-1)]);
+                    sampleColours.push(colors[UIUtils.randomInteger(0, colors.length - 1)]);
                     colors = [];
                 } else {
                     if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code) {
                         let code = event.decorations.get(activeSchemeId).code;
-                        let codeHasColor = code.color &&  code.color.length !== 0;
+                        let codeHasColor = code.color && code.color.length !== 0;
                         if (codeHasColor) colors.push(this.adjustSaturation(event.decorations.get(activeSchemeId)));
                         else colors.push("#ffffff");
                     } else {
@@ -270,8 +270,8 @@ var scrollbarManager = {
         let confidence = decoration.confidence;
 
         if (confidence < 0.95) {
-            if (confidence <  0.1) {
-                let interpolate = UIUtils.interpolator(0,0.1, 0.2,0.4);
+            if (confidence < 0.1) {
+                let interpolate = UIUtils.interpolator(0, 0.1, 0.2, 0.4);
                 confidence = interpolate(confidence);
 
             } else {
@@ -292,24 +292,24 @@ var scrollbarManager = {
 
     },
 
-    scrolling : function(scrollthumbLayer) {
+    scrolling: function(scrollthumbLayer) {
 
-        let thumbMid = scrollthumbLayer.y + scrollbarManager.thumbWidth + Math.floor(scrollbarManager.thumbHeight/2); // for stroke width of the scrollthumb
+        let thumbMid = scrollthumbLayer.y + scrollbarManager.thumbWidth + Math.floor(scrollbarManager.thumbHeight / 2); // for stroke width of the scrollthumb
 
         // todo need to take scaling into account
-        let percentage = scrollthumbLayer.y + scrollbarManager.thumbWidth === 6 ? 0 : Math.round(((thumbMid - 10) / (scrollbarManager.scrollbarEl.height-20) * 100 )) / 100; // force it to 0 if top is 6px displaced, 2px for border, 4px for scrollthumb
+        let percentage = scrollthumbLayer.y + scrollbarManager.thumbWidth === 6 ? 0 : Math.round(((thumbMid - 10) / (scrollbarManager.scrollbarEl.height - 20) * 100 )) / 100; // force it to 0 if top is 6px displaced, 2px for border, 4px for scrollthumb
         let eventIndexToLoad = scrollthumbLayer.y > 2 ? Math.floor(newDataset.eventOrder.length * percentage) : 0;
-        const halfPage = Math.floor(messageViewerManager.rowsInTable/2);
+        const halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
         let pagesToLoad = Math.floor(eventIndexToLoad / halfPage);
 
         if ((pagesToLoad * halfPage + halfPage) >= newDataset.eventOrder.length) {
-            pagesToLoad = pagesToLoad-2;
+            pagesToLoad = pagesToLoad - 2;
         }
 
         let messageTablePage1 = messageViewerManager.createMessagePageHTML(pagesToLoad);
-        let messageTablePage2 = messageViewerManager.createMessagePageHTML(pagesToLoad+1);
+        let messageTablePage2 = messageViewerManager.createMessagePageHTML(pagesToLoad + 1);
         let decoTablePage1 = messageViewerManager.createDecorationPageHTML(pagesToLoad);
-        let decoTablePage2 = messageViewerManager.createDecorationPageHTML(pagesToLoad+1);
+        let decoTablePage2 = messageViewerManager.createDecorationPageHTML(pagesToLoad + 1);
         messageViewerManager.lastLoadedPageIndex = pagesToLoad + 1;
 
         let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
@@ -344,11 +344,10 @@ var scrollbarManager = {
         scrollbarManager.redrawThumb(indexToPixel);
     },
 
-    redrawThumb : function(ycoord) {
+    redrawThumb: function(ycoord) {
         let scrollthumbLayer = this.scrollThumb.getLayer(0);
         if (ycoord < 2) ycoord = 2;
-        if (ycoord > scrollbarManager.scrollbarEl - scrollbarManager.thumbHeight -2) ycoord = scrollbarManager.scrollbarEl - scrollbarManager.thumbHeight -2;
-
+        if (ycoord > scrollbarManager.scrollbarEl - scrollbarManager.thumbHeight - 2) ycoord = scrollbarManager.scrollbarEl - scrollbarManager.thumbHeight - 2;
 
         scrollthumbLayer.y = ycoord;
         this.scrollThumb.drawLayers();

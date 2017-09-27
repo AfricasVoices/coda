@@ -21,9 +21,9 @@ SOFTWARE.
 */
 
 // Globals
-var watchdog : Watchdog;
-var model : Model;
-var schema : Schema;
+var watchdog: Watchdog;
+var model: Model;
+var schema: Schema;
 
 
 var accText = "";
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log("About to call ctor");
     watchdog = new Watchdog();
     console.log("ctor call done");
-    
+
 
     dataDiv.addEventListener('click', function () {
         var text = "woof";
@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function () {
         dataDiv.innerText = text;
 
         accText += text;
-        chrome.storage.local.set({"text" : accText}, () => {
+        chrome.storage.local.set({"text": accText}, () => {
             chrome.storage.local.get((items) => {
                 console.log("Items: " + items["text"]);
             });
@@ -54,8 +54,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         chrome.storage.local.getBytesInUse((bytesUnUse: number) => {
             console.log(accText.length);
-        console.log("Bytes in use: " + bytesUnUse);
-        console.log("QUOTA_BYTES: " + chrome.storage.local.QUOTA_BYTES);
+            console.log("Bytes in use: " + bytesUnUse);
+            console.log("QUOTA_BYTES: " + chrome.storage.local.QUOTA_BYTES);
         });
     }, false);
 });
@@ -64,27 +64,27 @@ document.addEventListener('DOMContentLoaded', function () {
 // Data model
 
 class Model {
-    schema : Schema;
+    schema: Schema;
 
-    serialise() : string {
+    serialise(): string {
         return "modelJSON";
     }
 
 }
 
 class Schema {
-    codingSchemes : Array<SchemaEntry>;
+    codingSchemes: Array<SchemaEntry>;
 
     constructor() {
         this.codingSchemes = [];
     }
 
-    serialise() : string {
+    serialise(): string {
         return JSON.stringify(this.codingSchemes);
     }
 
-    static deserialise(jsonData : string) : Schema {
-        let s : Schema = new Schema();
+    static deserialise(jsonData: string): Schema {
+        let s: Schema = new Schema();
 
         var decode = JSON.parse(jsonData);
         for (var entry of decode) {
@@ -101,12 +101,12 @@ class Schema {
 }
 
 class SchemaEntry {
-    codingSchemeName : string;
-    codes : Array<string>;
-    shortcuts : Array<string>;
+    codingSchemeName: string;
+    codes: Array<string>;
+    shortcuts: Array<string>;
 
-    constructor(codingSchemeName : string,
-        codes : Array<string>, shortcuts : Array<string>) {
+    constructor(codingSchemeName: string,
+                codes: Array<string>, shortcuts: Array<string>) {
         this.codingSchemeName = codingSchemeName;
         this.codes = codes;
         this.shortcuts = shortcuts;

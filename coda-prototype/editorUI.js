@@ -38,7 +38,7 @@ Handles events related to, and happening within, the editor:
 
  */
 
-var codeEditorManager =  {
+var codeEditorManager = {
 
     editorContainer: {},
     editorPanel: {},
@@ -85,8 +85,8 @@ var codeEditorManager =  {
             }
         }, 1000, false);
 
-        $('#color-pick').colorpicker({component: $("#colorpicker-trigger"), container:editorContainer});
-        $('#color-pick').on("changeColor", function(event) {
+        $("#color-pick").colorpicker({component: $("#colorpicker-trigger"), container: editorContainer});
+        $("#color-pick").on("changeColor", function(event) {
 
             if (state.activeEditorRow && state.activeEditorRow.length > 0) {
                 $(".code-row[codeid='" + state.activeEditorRow + "']").css("background-color", event.color.toHex());
@@ -100,7 +100,7 @@ var codeEditorManager =  {
             logColorChange(code, event.color); // will only run every N ms in order not to flood the activity log
         });
         $("#color-pick").on("showPicker", (event) => {
-            $(".colorpicker").offset({top:511, left:1080 + $("body").scrollLeft()});
+            $(".colorpicker").offset({top: 511, left: 1080 + $("body").scrollLeft()});
         });
 
         $("#code-details-panel").on("scroll", () => {
@@ -108,28 +108,27 @@ var codeEditorManager =  {
         });
 
         $("#delete-scheme-button").on("click", () => {
-           let nextActiveSchemeId = codeEditorManager.deleteScheme(tempScheme.id + "");
-           activeSchemeId = nextActiveSchemeId;
-           messageViewerManager.activeScheme = nextActiveSchemeId;
+            let nextActiveSchemeId = codeEditorManager.deleteScheme(tempScheme.id + "");
+            activeSchemeId = nextActiveSchemeId;
+            messageViewerManager.activeScheme = nextActiveSchemeId;
 
-           codeEditorManager.editorContainer.hide();
-           codeEditorManager.editorContainer.find("tbody").empty();
-           codeEditorManager.bindAddCodeButtonListener();
-           codeEditorManager.editorContainer.find("#scheme-name-input").val("");
-           editorOpen = false;
+            codeEditorManager.editorContainer.hide();
+            codeEditorManager.editorContainer.find("tbody").empty();
+            codeEditorManager.bindAddCodeButtonListener();
+            codeEditorManager.editorContainer.find("#scheme-name-input").val("");
+            editorOpen = false;
 
-           messageViewerManager.resizeViewport();
-
+            messageViewerManager.resizeViewport();
 
             // update the activity stack
-           storage.saveActivity({
-               "category": "SCHEME",
-               "message": "Deleted scheme",
-               "messageDetails": {"scheme": tempScheme["id"]},
-               "data": tempScheme.toJSON(),
-               "timestamp": new Date()
-           });
-           tempScheme = {};
+            storage.saveActivity({
+                "category": "SCHEME",
+                "message": "Deleted scheme",
+                "messageDetails": {"scheme": tempScheme["id"]},
+                "data": tempScheme.toJSON(),
+                "timestamp": new Date()
+            });
+            tempScheme = {};
         });
     },
 
@@ -157,13 +156,12 @@ var codeEditorManager =  {
         var saveSchemeButton = this.saveSchemeButton;
         var headerDecoColumn = $("#header-decoration-column");
 
-
         addSchemeButton.on("click", function() {
 
             // TODO: cleverly assign scheme ids
             var newId = UIUtils.randomId(Object.keys(newDataset.schemes));
             tempScheme = new CodeScheme(newId, "", true);
-            $("#color-pick").colorpicker('setValue', "#ffffff");
+            $("#color-pick").colorpicker("setValue", "#ffffff");
 
             saveSchemeButton.off("click");
             saveSchemeButton.on("click", function() {
@@ -256,7 +254,7 @@ var codeEditorManager =  {
                     .removeClass("has-error");
 
                 newDataset.schemes[newId] = tempScheme;
-                messageViewerManager.codeSchemeOrder = [newId+""].concat(messageViewerManager.codeSchemeOrder);
+                messageViewerManager.codeSchemeOrder = [newId + ""].concat(messageViewerManager.codeSchemeOrder);
                 activeSchemeId = newId + "";
                 messageViewerManager.activeScheme = newId + "";
 
@@ -290,7 +288,7 @@ var codeEditorManager =  {
 
         saveSchemeButton.off("click");
 
-        saveSchemeButton.on("click", function () {
+        saveSchemeButton.on("click", function() {
             // Updates the scheme used by the table to match the modified temporary version in the editor UI, if valid.
             // As far as I can tell, this doesn't actually perform a persistent save.
 
@@ -351,7 +349,6 @@ var codeEditorManager =  {
                 }
             });
 
-
             // turn on error on the right code value field(s)
             $("#code-table").find(".code-row").each((index, codeRow) => {
                 let codeId = $(codeRow).attr("codeid");
@@ -366,7 +363,6 @@ var codeEditorManager =  {
                         .removeClass("has-feedback");
                 }
             });
-
 
             if (hasError) {
                 return;
@@ -397,7 +393,6 @@ var codeEditorManager =  {
             if (messageViewerManager.currentSort === messageViewerManager.sortUtils.restoreDefaultSort) {
                 newDataset.restoreDefaultSort();
             }
-
 
             // update the activity stack
             storage.saveActivity({
@@ -483,7 +478,7 @@ var codeEditorManager =  {
 
             // update the activity stack
             storage.saveActivity({
-                "category" : "SCHEME",
+                "category": "SCHEME",
                 "message": "Closed editor for scheme",
                 "messageDetails": {"scheme": tempScheme["id"]},
                 "data": tempScheme.toJSON(),
@@ -522,19 +517,19 @@ var codeEditorManager =  {
 
         let addCodeInputRow = codeEditorManager.addCodeInputRow;
 
-        this.editorContainer.find("tbody").append('<tr class="row add-code-row">' +
-            '<td class="col-md-6">' +
-            '<button id="add-code" class="btn btn-default">' +
-            '<i class="glyphicon glyphicon-plus">' +
-            '</i>' +
-            '</button>' +
-            '</td>' +
-            '<td class="col-md-5"></td>' +
-            '<td class="col-md-1"></td>' +
-            '</tr>');
+        this.editorContainer.find("tbody").append("<tr class=\"row add-code-row\">" +
+            "<td class=\"col-md-6\">" +
+            "<button id=\"add-code\" class=\"btn btn-default\">" +
+            "<i class=\"glyphicon glyphicon-plus\">" +
+            "</i>" +
+            "</button>" +
+            "</td>" +
+            "<td class=\"col-md-5\"></td>" +
+            "<td class=\"col-md-1\"></td>" +
+            "</tr>");
 
         $(".add-code-row").on("click", function() {
-            let newCode = addCodeInputRow("","", "#ffffff", "", []); // todo will return codeObject
+            let newCode = addCodeInputRow("", "", "#ffffff", "", []); // todo will return codeObject
             codeEditorManager.updateCodePanel(newCode);
 
             // update the activity stack
@@ -543,7 +538,8 @@ var codeEditorManager =  {
                 "message": "Added new code to scheme",
                 "messageDetails": {"scheme": tempScheme["id"], "code": newCode.id},
                 "data": tempScheme.toJSON(),
-                "timestamp": new Date()});
+                "timestamp": new Date()
+            });
         });
     },
 
@@ -563,7 +559,9 @@ var codeEditorManager =  {
 
         state.activeEditorRow = newId;
 
-        $(".code-row").each(function(i,row) {$(row).removeClass("active")});
+        $(".code-row").each(function(i, row) {
+            $(row).removeClass("active");
+        });
 
         var row = $("<tr class='row active code-row' codeid='" + newId + "'></tr>").insertBefore($(".add-code-row"));
 
@@ -571,14 +569,13 @@ var codeEditorManager =  {
         var shortcutCell = $("<td class='col-md-5' style='background-color:" + color + "'></td>").appendTo(row);
         var buttonCell = $("<td class='col-md-1' style='background-color:" + color + "'></td>").appendTo(row);
 
-
         var codeInputWithFeedback =
             $("<div class='feedback-input-field code'>" +
-            "<i class='glyphicon glyphicon-exclamation-sign'></i>" +
-            "<input type='text' class='form-control code-input' placeholder='enter code...' value='" + code + "'/>" +
-            "<small class='help-block' result='INVALID'>Invalid code name format<sup data-toggle='tooltip' data-placement='top'" +
+                "<i class='glyphicon glyphicon-exclamation-sign'></i>" +
+                "<input type='text' class='form-control code-input' placeholder='enter code...' value='" + code + "'/>" +
+                "<small class='help-block' result='INVALID'>Invalid code name format<sup data-toggle='tooltip' data-placement='top'" +
                 "data-container='body' data-original-title='Valid characters: a-zA-Z0-9 and -/ or whitespace in between, max length 50'>?</sup></small>" +
-            "</div>")
+                "</div>")
                 .appendTo(codeCell);
 
         codeInputWithFeedback.find("sup").tooltip();
@@ -602,7 +599,7 @@ var codeEditorManager =  {
             "</button>").appendTo(buttonCell);
 
         [codeCell, shortcutCell, buttonCell].forEach(function(td) {
-           $(td).css({"background-color": color});
+            $(td).css({"background-color": color});
         });
 
         row.on("click", function() {
@@ -638,26 +635,26 @@ var codeEditorManager =  {
         var regexField = $("#regex-edit").find("input");
         var userRegexField = $("#regex-user").find("input");
         colorPicker.find("input").attr("value", color);
-        colorPicker.colorpicker('setValue', color);
+        colorPicker.colorpicker("setValue", color);
 
         if (color === "#ffffff") color = "#9e9e9e"; // set the tags to a darker grey color
-        let selectObj= wordTextarea.find("select");
-        selectObj.tagsinput('removeAll');
+        let selectObj = wordTextarea.find("select");
+        selectObj.tagsinput("removeAll");
 
-        $(selectObj).off('itemAdded');
-        $(selectObj).off('itemRemoved');
+        $(selectObj).off("itemAdded");
+        $(selectObj).off("itemRemoved");
 
         for (let word of words) {
-            selectObj.tagsinput('add', word);
+            selectObj.tagsinput("add", word);
         }
 
-        $("span.tag").css({'background-color': color});
+        $("span.tag").css({"background-color": color});
 
-        $(selectObj).on('itemAdded', function(event) {
+        $(selectObj).on("itemAdded", function(event) {
             // event.item: contains the item
             // event.cancel: set to true to prevent the item getting added
             let color = (codeObj["color"] === "#ffffff" ? "#9e9e9e" : codeObj["color"]);
-            wordTextarea.find(".tag").css({'background-color': color});
+            wordTextarea.find(".tag").css({"background-color": color});
             codeObj.addWords(event.item);
             regexField.val(regexMatcher.generateOrRegex(codeObj["words"]));
             // update the activity stack
@@ -666,10 +663,11 @@ var codeEditorManager =  {
                 "message": "Added word to code in scheme",
                 "messageDetails": {"word": event.item, "scheme": tempScheme["id"], "code": codeObj["id"]},
                 "data": tempScheme.toJSON(),
-                "timestamp": new Date()});
+                "timestamp": new Date()
+            });
         });
 
-        $(selectObj).on('itemRemoved', function(event) {
+        $(selectObj).on("itemRemoved", function(event) {
             // event.item: contains the item
             codeObj.deleteWords([event.item]);
             regexField.val(regexMatcher.generateOrRegex(codeObj["words"]));
@@ -679,7 +677,8 @@ var codeEditorManager =  {
                 "message": "Deleted word from code in scheme",
                 "messageDetails": {"word": event.item, "scheme": tempScheme["id"], "code": codeObj["id"]},
                 "data": tempScheme.toJSON(),
-                "timestamp": new Date()});
+                "timestamp": new Date()
+            });
         });
 
         let wordsRegex = regexMatcher.generateOrRegex(codeObj["words"]);
@@ -711,7 +710,7 @@ var codeEditorManager =  {
         var shortcutInput = inputRow.find(".shortcut-input");
         var deleteButton = inputRow.find(".delete-code");
 
-        codeInput.on("keydown", function(event){
+        codeInput.on("keydown", function(event) {
             if (event.keyCode === 13) {
                 // save and move to shortcut field
 
@@ -728,7 +727,7 @@ var codeEditorManager =  {
             }
         });
 
-        shortcutInput.on("keydown", function(event){
+        shortcutInput.on("keydown", function(event) {
             if (event.keyCode === 13) {
                 $(this).attr("value", $(this).val());
 
@@ -746,7 +745,7 @@ var codeEditorManager =  {
             }
         });
 
-        codeInput.on("focusout", function(){
+        codeInput.on("focusout", function() {
 
             var codeId = $(this).parents("tr").attr("codeid");
             var codeObj = tempScheme.codes.get(codeId);
@@ -756,7 +755,7 @@ var codeEditorManager =  {
             }
         });
 
-        shortcutInput.on("focusout", function(){
+        shortcutInput.on("focusout", function() {
 
             var codeId = $(this).parents("tr").attr("codeid");
             var codeObj = tempScheme.codes.get(codeId);
@@ -764,7 +763,7 @@ var codeEditorManager =  {
             if (codeObj) {
                 let ascii = UIUtils.ascii($(this).val());
 
-                if ($(this).val().length === 0 || isNaN(ascii) ) {
+                if ($(this).val().length === 0 || isNaN(ascii)) {
                     codeObj["shortcut"] = "";
                 } else {
                     codeObj["shortcut"] = ascii;
@@ -789,7 +788,7 @@ var codeEditorManager =  {
                 state.activeEditorRow = $(next).attr("codeid");
                 codeEditorManager.updateCodePanel(tempScheme.codes.get(state.activeEditorRow));
 
-            } else if (prev.length != 0){
+            } else if (prev.length != 0) {
                 $(prev).addClass("active");
                 state.activeEditorRow = $(prev).attr("codeid");
                 codeEditorManager.updateCodePanel(tempScheme.codes.get($(prev).attr("codeid")));
@@ -802,7 +801,7 @@ var codeEditorManager =  {
             storage.saveActivity({
                 "category": "SCHEME",
                 "message": "Deleted code from scheme",
-                "messageDetails": {"code": id ,"scheme": tempScheme["id"]},
+                "messageDetails": {"code": id, "scheme": tempScheme["id"]},
                 "data": tempScheme.toJSON(),
                 "timestamp": new Date()
             });
@@ -841,7 +840,7 @@ var codeEditorManager =  {
             // update the activity stack
             storage.saveActivity({
                 "category": "SCHEME",
-                "message": "Deleted scheme " +  schemeId,
+                "message": "Deleted scheme " + schemeId,
                 "data": schemeSnapshot.toJSON(),
                 "timestamp": new Date()
             });
@@ -857,7 +856,7 @@ var codeEditorManager =  {
             // update the activity stack
             storage.saveActivity({
                 "category": "SCHEME",
-                "message": "Deleted scheme " +  schemeId,
+                "message": "Deleted scheme " + schemeId,
                 "data": schemeSnapshot.toJSON(),
                 "timestamp": new Date()
             });

@@ -22,14 +22,14 @@ SOFTWARE.
 
 class SortUtils {
 
-    restoreDefaultSort(events: Array<RawEvent>) : Array<RawEvent> {
+    restoreDefaultSort(events: Array<RawEvent>): Array<RawEvent> {
 
-        events.sort((e1,e2) => {
+        events.sort((e1, e2) => {
 
-            let name1 = parseInt(e1.name,10);
-            let name2 = parseInt(e2.name,10);
+            let name1 = parseInt(e1.name, 10);
+            let name2 = parseInt(e2.name, 10);
 
-            return name1-name2;
+            return name1 - name2;
 
         });
 
@@ -40,17 +40,19 @@ class SortUtils {
     sortEventsByScheme(events: Array<RawEvent>, scheme: CodeScheme, isToDoList: boolean): Array<RawEvent> {
 
         let schemeId = scheme.id + "";
-        let codes = Array.from(scheme.codes.values()).map((code:Code) => {return code.value;});
+        let codes = Array.from(scheme.codes.values()).map((code: Code) => {
+            return code.value;
+        });
 
         events.sort((e1, e2) => {
 
             const deco1 = e1.decorationForName(schemeId);
             const deco2 = e2.decorationForName(schemeId);
-            const hasCode1 =  deco1 ? e1.decorationForName(schemeId).code != null : false;
+            const hasCode1 = deco1 ? e1.decorationForName(schemeId).code != null : false;
             const hasCode2 = deco2 ? e2.decorationForName(schemeId).code != null : false;
 
-            let code1 = hasCode1 ? codes.indexOf(e1.decorationForName(schemeId).code.value ) : -1;
-            let code2 = hasCode2 ? codes.indexOf(e2.decorationForName(schemeId).code.value ) : -1;
+            let code1 = hasCode1 ? codes.indexOf(e1.decorationForName(schemeId).code.value) : -1;
+            let code2 = hasCode2 ? codes.indexOf(e2.decorationForName(schemeId).code.value) : -1;
 
             if (code1 == -1 && code2 != -1) {
                 // one assigned, one unassigned
@@ -98,11 +100,13 @@ class SortUtils {
         return events;
     }
 
-    sortEventsByConfidenceOnly(events: Array<RawEvent>, scheme: CodeScheme) : Array<RawEvent> {
+    sortEventsByConfidenceOnly(events: Array<RawEvent>, scheme: CodeScheme): Array<RawEvent> {
 
         let schemeId = scheme.id + "";
 
-        let codes = Array.from(scheme.codes.values()).map((code:Code) => {return code.value;});
+        let codes = Array.from(scheme.codes.values()).map((code: Code) => {
+            return code.value;
+        });
 
         events.sort((e1, e2) => {
 
