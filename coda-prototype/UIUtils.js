@@ -463,7 +463,6 @@ var UIUtils = (function() {
         },
 
         scrollRowToTop: function(row, container) {
-
             // TODO: be given the offsetHeight of the row with biggest height
 
             var boundingBoxTop = row.getBoundingClientRect().top;
@@ -491,7 +490,15 @@ var UIUtils = (function() {
         isScrolledToTop: function(tableContainer) {
             return UIUtils.checkVisible($(".message-row").first()[0]);
             //return $("#message-panel").scrollTop() === 0;
-        }
+        },
 
+        displayErrorAlert(message) {
+            let failAlert = $("#alert");
+            failAlert.removeClass("alert-success").addClass("alert-danger");
+            let errorMessage = document.createTextNode(message);
+            failAlert.append(errorMessage);
+            $(".tableFloatingHeaderOriginal").hide();
+            failAlert.show();
+        }
     };
 })();

@@ -532,15 +532,8 @@ function initUI(dataset) {
                         "timestamp": new Date()
                     });
 
-                    // TODO: There is duplication between here and handleParseError.
-                    // TODO: There should therefore be a function for displaying errors.
-                    let failAlert = $("#alert");
-                    failAlert.removeClass("alert-success").addClass("alert-danger");
-                    let errorMessage = document.createTextNode("Something is wrong with the data format. " +
+                    UIUtils.displayErrorAlert("Something is wrong with the data format. " +
                         "Change a few things up, refresh and try again.");
-                    failAlert.append(errorMessage);
-                    $(".tableFloatingHeaderOriginal").hide();
-                    failAlert.show();
 
                     console.log("ERROR: Dataset object is empty or has no events.");
                     console.log(dataset);
@@ -552,13 +545,8 @@ function initUI(dataset) {
              * Prints the first 100 parse errors to the console.
              */
             function handleDatasetParseError(parseErrors) {
-                let errorMessage = document.createTextNode("Something is wrong with the data format. " +
+                UIUtils.displayErrorAlert("Something is wrong with the data format. " +
                     "Change a few things up, refresh and try again.");
-                let failAlert = $("#alert");
-                failAlert.addClass("alert-danger");
-                failAlert.append(errorMessage);
-                failAlert.show();
-                $(".tableFloatingHeaderOriginal").hide();
 
                 let errors = parseErrors;
                 if (errors.length > 100) { // only report first 100 wrong lines
@@ -599,15 +587,12 @@ function initUI(dataset) {
 
             function handleSchemeParsed(newScheme) {
                 if (newScheme == null || newScheme.codes.size === 0 || newDataset.schemes[newScheme["id"]] != undefined) {
-
                     let isDuplicate = newDataset.schemes[newScheme["id"]] != undefined;
-                    let errorText = (isDuplicate) ? "Can't import duplicate coding scheme (ID: '" + newScheme["id"] + "'). To update an existing coding scheme access it via code editor." : "Something is wrong with the data format. Change a few things up, refresh and try again.";
-
-                    let failAlert = $("#alert");
-                    failAlert.addClass("alert-danger");
-                    failAlert.append(errorText);
-                    $(".tableFloatingHeaderOriginal").hide();
-                    failAlert.show();
+                    let errorText = (isDuplicate)
+                        ? "Can't import duplicate coding scheme (ID: '" + newScheme["id"] + "')." +
+                        " To update an existing coding scheme access it via code editor."
+                        : "Something is wrong with the data format. Change a few things up, refresh and try again.";
+                    UIUtils.displayErrorAlert(errorText);
 
                     let err;
                     if (isDuplicate) {
@@ -652,13 +637,8 @@ function initUI(dataset) {
             }
 
             function handleSchemeParseError(parseErrors) {
-                let failAlert = $("#alert");
-                failAlert.removeClass("alert-sucess").addClass("alert-danger");
-                let errorMessage = document.createTextNode("Something is wrong with the scheme data format. " +
+                UIUtils.displayErrorAlert("Something is wrong with the scheme data format. " +
                     "Change a few things up, refresh and try again.");
-                failAlert.append(errorMessage);
-                $(".tableFloatingHeaderOriginal").hide();
-                failAlert.show();
 
                 if (error.name === "ParseError") {
                     console.log("ERROR: Cannot parse scheme file");
@@ -749,7 +729,8 @@ function initUI(dataset) {
                 // If the uploaded scheme is not a new version of the scheme to be updated, fail.
                 if (newScheme.id !== tempScheme.id) {
                     console.log("ERROR: Trying to upload scheme with a wrong ID");
-                    return; // todo UI error message
+                    UIUtils.displayErrorAlert("Data scheme format error - wrong id");
+                    return;
                 }
 
                 // Update the current scheme with the scheme just uploaded
