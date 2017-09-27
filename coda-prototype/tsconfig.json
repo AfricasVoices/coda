@@ -10,6 +10,8 @@
     "popup.ts",
     "typings/chrome/chrome.d.ts",
     "model.ts",
+    "src/io/FileUtils.ts",
+    "src/io/StorageUtils.ts",
     "sortUtils.ts"
   ]
 }
