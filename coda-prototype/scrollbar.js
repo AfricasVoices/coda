@@ -28,7 +28,7 @@ Handles the initialisation, drawing of, and the interaction with the coloured sc
  */
 
 var scrollbarManager = {
-    // scrollbar as high as the table is
+    // scrollbar as high as the table is // TODO: Well that's the claim, but the scrollbar doesn't resize with the table
 
     scrollbarEl : {},
     subsamplingNum: 0,
