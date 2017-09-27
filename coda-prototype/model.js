@@ -1787,20 +1787,35 @@ class FileIO {
                 // Attempt to parse the scheme read from the file.
                 let parse = Papa.parse(readResult, { header: true });
                 if (parse.errors.length > 0) {
-                    reject(parse.errors);
+                    reject({
+                        name: "ParseError",
+                        parseErrors: parse.errors
+                    });
                     return;
                 }
                 let parsedObjects = parse.data;
                 let newScheme = null;
+                let schemeId = null;
                 // Each row defines a code within the code scheme.
                 // Construct a CodeScheme object by parsing each code entry in turn.
                 for (let codeRow of parsedObjects) {
-                    let id = codeRow.hasOwnProperty("scheme_id"), name = codeRow.hasOwnProperty("scheme_name"), code_id = codeRow.hasOwnProperty("code_id"), code_value = codeRow.hasOwnProperty("code_value"), code_colour = codeRow.hasOwnProperty("code_colour"), code_shortcut = codeRow.hasOwnProperty("code_shortcut"), code_words = codeRow.hasOwnProperty("code_words");
+                    let id = codeRow.hasOwnProperty("scheme_id"), name = codeRow.hasOwnProperty("scheme_name"), code_id = codeRow.hasOwnProperty("code_id"), code_value = codeRow.hasOwnProperty("code_value"), code_colour = codeRow.hasOwnProperty("code_colour"), code_shortcut = codeRow.hasOwnProperty("code_shortcut"), code_words = codeRow.hasOwnProperty("code_words"), code_regex = codeRow.hasOwnProperty("code_regex");
                     // If there is sufficient information to convert this row into a code, do so, and add it to the
                     // scheme.
                     if (id && name && code_id && code_value) {
                         // todo handle if loading an edit of a scheme that was already loaded in... how to deal if
                         // todo code was deleted?
+                        if (schemeId === null) {
+                            schemeId = codeRow["scheme_id"];
+                        }
+                        else {
+                            if (schemeId !== codeRow["scheme_id"]) {
+                                reject({
+                                    name: "CodeConsistencyError"
+                                });
+                                return;
+                            }
+                        }
                         if (!newScheme) {
                             newScheme = new CodeScheme(codeRow["scheme_id"], codeRow["scheme_name"], false);
                         }
@@ -1808,7 +1823,13 @@ class FileIO {
                         if (codeRow["code_shortcut"].length === 1 && isNaN(parseInt(codeRow["code_shortcut"]))) {
                             newShortcut = UIUtils.ascii(codeRow["code_shortcut"]);
                         }
-                        let newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"], codeRow["code_colour"], newShortcut, false);
+                        let newCode;
+                        if (code_regex && typeof codeRow["code_regex"] === "string") {
+                            newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"], codeRow["code_colour"], newShortcut, false, [codeRow["code_regex"], "g"]);
+                        }
+                        else {
+                            newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"], codeRow["code_colour"], newShortcut, false);
+                        }
                         if (code_words) {
                             if (codeRow["code_words"].length !== 0) {
                                 let words = codeRow["code_words"].split(",");

@@ -660,12 +660,17 @@ function initUI(dataset) {
                 $(".tableFloatingHeaderOriginal").hide();
                 failAlert.show();
 
-                if (parseErrors.length > 100) { // only report first 100 wrong lines
-                    parseErrors = parseErrors.slice(0, 100);
+                if (error.name === "ParseError") {
+                    console.log("ERROR: Cannot parse scheme file");
+                    if (parseErrors.length > 100) { // only report first 100 wrong lines
+                        parseErrors = parseErrors.slice(0, 100);
+                    }
+                    console.log(JSON.stringify(parseErrors));
+                } else if (error.name === "CodeConsistencyError") {
+                    console.log("ERROR: Uploaded code scheme has multiple ids.");
+                } else {
+                    console.log("ERROR: An unknown error occurred");
                 }
-
-                console.log("ERROR: CANNOT PARSE CSV");
-                console.log(JSON.stringify(parseErrors));
             }
 
             FileIO.loadCodeScheme(file).then(handleSchemeParsed, handleSchemeParseError);
@@ -732,88 +737,22 @@ function initUI(dataset) {
     SCHEME UPLOAD - via editor
      */
     $("#scheme-upload-file").on("change", () => {
-
         let files = $("#scheme-upload-file")[0].files;
-        let len = files.length;
 
-        if (len) {
-            console.log("Filename: " + files[0].name);
-            console.log("Type: " + files[0].type);
-            console.log("Size: " + files[0].size + " bytes");
+        if (files.length > 0) {
+            let file = files[0];
+            console.log("Filename: " + file.name);
+            console.log("Type: " + file.type);
+            console.log("Size: " + file.size + " bytes");
 
-            // TODO: IO. This is *mostly* the same code as is currently in FileIO.loadCodeScheme.
-            // TODO: However, there are some differences, noted below.
-            let read = new FileReader();
-            read.readAsText(files[0]);
-            // todo: error handling
-
-            read.onloadend = function() {
-                let csvResult = read.result;
-                let parse = Papa.parse(csvResult, {header: true});
-                if (parse.errors.length > 0) {
-                    console.log("ERROR: Cannot parse scheme file");
-                    console.log(JSON.stringify(parse.errors));
-                    return; // todo: alert error
+            function handleSchemeParsed(newScheme) {
+                // If the uploaded scheme is not a new version of the scheme to be updated, fail.
+                if (newScheme.id !== tempScheme.id) {
+                    console.log("ERROR: Trying to upload scheme with a wrong ID");
+                    return; // todo UI error message
                 }
 
-                let parsedObjs = parse.data;
-                let newScheme = null;
-                for (let codeRow of parsedObjs) {
-
-                    let id = codeRow.hasOwnProperty("scheme_id"),
-                        name = codeRow.hasOwnProperty("scheme_name"),
-                        code_id = codeRow.hasOwnProperty("code_id"),
-                        code_value = codeRow.hasOwnProperty("code_value"),
-                        code_colour = codeRow.hasOwnProperty("code_colour"),
-                        code_shortcut = codeRow.hasOwnProperty("code_shortcut"),
-                        code_words = codeRow.hasOwnProperty("code_words"),
-                        code_regex = codeRow.hasOwnProperty("code_regex"); // TODO: Difference: This is not present in FileIO.loadCodeScheme
-
-                    if (id && name && code_id && code_value) {
-
-                        // TODO: Difference: this is not in FileIO.loadCodeScheme.
-                        // TODO: In this case, this makes sense, because this version of the function is updating
-                        // TODO: rather than adding a new code scheme. Maybe add a flag for this in loadCodeScheme?
-                        if (codeRow["scheme_id"] != tempScheme["id"]) {
-                            console.log("ERROR: Trying to upload scheme with a wrong ID");
-                            return; // todo UI error message
-                        }
-
-                        if (!newScheme) {
-                            newScheme = new CodeScheme(codeRow["scheme_id"], codeRow["scheme_name"], false);
-                        }
-
-                        let newShortcut = codeRow["code_shortcut"];
-                        if (codeRow["code_shortcut"].length === 1 && Number.isNaN(parseInt(codeRow["code_shortcut"]))) {
-                            // initialize shortcuts
-                            newShortcut = UIUtils.ascii(codeRow["code_shortcut"]);
-                        }
-
-                        // TODO: Difference: This does not exist in FileIO, but why not. This is a bug; fix.
-                        let newCode;
-                        if (code_regex && typeof codeRow["code_regex"] === "string") {
-                            newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"], codeRow["code_colour"], newShortcut, false, [codeRow["code_regex"], "g"]);
-                        } else {
-                            newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"], codeRow["code_colour"], newShortcut, false);
-                        }
-
-                        if (code_words) {
-                            if (codeRow["code_words"].length !== 0) {
-                                let words = codeRow["code_words"].split(",");
-                                if (words.length > 0) {
-                                    newCode.addWords(words);
-                                }
-                            }
-                        }
-
-                        newScheme.codes.set(codeRow["code_id"], newCode);
-                    }
-                }
-
-                /*
-                Update the currently loaded scheme
-                 */
-
+                // Update the current scheme with the scheme just uploaded
                 let oldActiveRowCodeId = $(".code-row.active").attr("codeid");
 
                 for (let [codeId, code] of tempScheme.codes.entries()) {
@@ -834,6 +773,7 @@ function initUI(dataset) {
                         newScheme.codes.delete(codeId);
                     } else {
                         // not in the new scheme, remove row and set a new active row if necessary
+                        // TODO: what was this, and why has been commented?
                         /*
                         let isActive = codeRow.hasClass("active");
                         if (isActive) {
@@ -866,6 +806,7 @@ function initUI(dataset) {
                 codeEditorManager.activeCode = newActiveRowCodeId;
                 codeEditorManager.updateCodePanel(tempScheme.codes.get(codeEditorManager.activeCode));
 
+                // TODO: what was this, and why has it been commented?
                 /*
                 let activeCode = tempScheme.codes.get($(".code-row.active").attr("code-id"));
                 if (activeCode) {
@@ -887,8 +828,24 @@ function initUI(dataset) {
                     "data": tempScheme.toJSON(),
                     "timestamp": new Date()
                 });
-            };
+            }
+
+            function handleSchemeParseError(error) {
+                if (error.name === "ParseError") {
+                    console.log("ERROR: Cannot parse scheme file");
+                    console.log(JSON.stringify(error.parseErrors));
+                } else if (error.name === "CodeConsistencyError") {
+                    console.log("ERROR: Uploaded code scheme has multiple ids.");
+                    console.log(JSON.stringify(error.parseErrors));
+                } else {
+                    console.log("ERROR: An unknown error occurred");
+                }
+                // todo: alert error (which is already done elsewhere...)
+            }
+
+            FileIO.loadCodeScheme(file).then(handleSchemeParsed, handleSchemeParseError);
         }
+
         $("#scheme-upload-file")[0].value = ""; // need to reset so same file can be reloaded ie caught by 'onchange' listener
     });
 
