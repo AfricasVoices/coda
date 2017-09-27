@@ -740,7 +740,8 @@ function initUI(dataset) {
             console.log("Type: " + files[0].type);
             console.log("Size: " + files[0].size + " bytes");
 
-            // TODO: IO
+            // TODO: IO. This is *mostly* the same code as is currently in FileIO.loadCodeScheme.
+            // TODO: However, there are some differences, noted below.
             let read = new FileReader();
             read.readAsText(files[0]);
             // todo: error handling
@@ -765,10 +766,13 @@ function initUI(dataset) {
                         code_colour = codeRow.hasOwnProperty("code_colour"),
                         code_shortcut = codeRow.hasOwnProperty("code_shortcut"),
                         code_words = codeRow.hasOwnProperty("code_words"),
-                        code_regex = codeRow.hasOwnProperty("code_regex");
+                        code_regex = codeRow.hasOwnProperty("code_regex"); // TODO: Difference: This is not present in FileIO.loadCodeScheme
 
                     if (id && name && code_id && code_value) {
 
+                        // TODO: Difference: this is not in FileIO.loadCodeScheme.
+                        // TODO: In this case, this makes sense, because this version of the function is updating
+                        // TODO: rather than adding a new code scheme. Maybe add a flag for this in loadCodeScheme?
                         if (codeRow["scheme_id"] != tempScheme["id"]) {
                             console.log("ERROR: Trying to upload scheme with a wrong ID");
                             return; // todo UI error message
@@ -784,6 +788,7 @@ function initUI(dataset) {
                             newShortcut = UIUtils.ascii(codeRow["code_shortcut"]);
                         }
 
+                        // TODO: Difference: This does not exist in FileIO, but why not. This is a bug; fix.
                         let newCode;
                         if (code_regex && typeof codeRow["code_regex"] === "string") {
                             newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"], codeRow["code_colour"], newShortcut, false, [codeRow["code_regex"], "g"]);
@@ -791,9 +796,7 @@ function initUI(dataset) {
                             newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"], codeRow["code_colour"], newShortcut, false);
                         }
 
-
                         if (code_words) {
-
                             if (codeRow["code_words"].length !== 0) {
                                 let words = codeRow["code_words"].split(",");
                                 if (words.length > 0) {
@@ -801,6 +804,7 @@ function initUI(dataset) {
                                 }
                             }
                         }
+
                         newScheme.codes.set(codeRow["code_id"], newCode);
                     }
                 }
