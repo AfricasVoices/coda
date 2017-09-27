@@ -446,7 +446,9 @@ class Dataset {
     sortEventsByScheme(schemeId, isToDoList) {
         schemeId = schemeId + ""; // force it to string todo: here or make sure decorationForName processes it ok?
         if ((this.schemes.hasOwnProperty && this.schemes.hasOwnProperty(schemeId)) || this.schemes[schemeId] != undefined) {
-            let codes = Array.from(this.schemes[schemeId].codes.values()).map((code) => { return code.value; });
+            let codes = Array.from(this.schemes[schemeId].codes.values()).map((code) => {
+                return code.value;
+            });
             this.eventOrder.sort((eventKey1, eventKey2) => {
                 var e1 = this.events.get(eventKey1);
                 var e2 = this.events.get(eventKey2);
@@ -957,7 +959,11 @@ class EventDecoration {
         let obj = Object.create(null);
         obj.owner = this.owner.name;
         obj.scheme_id = this.scheme_id;
-        obj.code = (this.code != null) ? { "id": this.code.id, "value": this.code.value, "owner": this.code.owner.id } : {};
+        obj.code = (this.code != null) ? {
+            "id": this.code.id,
+            "value": this.code.value,
+            "owner": this.code.owner.id
+        } : {};
         obj.confidence = this.confidence;
         obj.manual = this.manual;
         return obj;
@@ -1344,7 +1350,9 @@ class Watchdog {
     constructor() {
         console.log("Watchdog ctor");
         var f = this.tick;
-        setInterval(function () { f(); }, 500);
+        setInterval(function () {
+            f();
+        }, 500);
     }
     tick() {
         console.log("Watchdog tick");
@@ -1443,7 +1451,10 @@ class StorageManager {
     }
     saveDataset(dataset) {
         this.lastEdit = new Date();
-        chrome.storage.local.set({ "dataset": JSON.stringify(dataset), "lastEdit": JSON.stringify(this.lastEdit) }, () => {
+        chrome.storage.local.set({
+            "dataset": JSON.stringify(dataset),
+            "lastEdit": JSON.stringify(this.lastEdit)
+        }, () => {
             console.log("Stored dataset edit timestamp: " + this.lastEdit);
             chrome.storage.local.get((store) => {
                 let data = JSON.parse(store["dataset"]);
@@ -1563,7 +1574,8 @@ class FileIO {
      * @param {Dataset} dataset Dataset to save to disk.
      */
     static saveDataset(dataset) {
-        let eventJSON = { "data": [], "fields": ["id", "timestamp", "owner", "data", "schemeId", "schemeName", "deco_codeValue", "deco_codeId",
+        let eventJSON = {
+            "data": [], "fields": ["id", "timestamp", "owner", "data", "schemeId", "schemeName", "deco_codeValue", "deco_codeId",
                 "deco_confidence", "deco_manual", "deco_timestamp", "deco_author"]
         }; // TODO: why are rows being referred to as 'events'?
         // For each 'event', add a row to the output for each scheme if schemes exist, or a single row if not.
@@ -1639,7 +1651,8 @@ class FileIO {
      * @param {CodeScheme} codeScheme Code scheme to save to disk.
      */
     static saveCodeScheme(codeScheme) {
-        let schemeJSON = { "data": [], "fields": ["scheme_id", "scheme_name", "code_id", "code_value", "code_colour",
+        let schemeJSON = {
+            "data": [], "fields": ["scheme_id", "scheme_name", "code_id", "code_value", "code_colour",
                 "code_shortcut", "code_words", "code_regex"]
         };
         for (let [codeId, code] of codeScheme.codes) {
@@ -1842,8 +1855,12 @@ class UndoManager {
             storage.saveDataset(newDataset);
         }
     }
-    canUndo() { return this.pointer != 0; }
-    canRedo() { return this.pointer != this.modelUndoStack.length - 1 && this.modelUndoStack.length != 0; }
+    canUndo() {
+        return this.pointer != 0;
+    }
+    canRedo() {
+        return this.pointer != this.modelUndoStack.length - 1 && this.modelUndoStack.length != 0;
+    }
     undo(messageViewerManager) {
         if (!this.canUndo())
             return false;

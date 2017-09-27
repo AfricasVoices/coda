@@ -39,10 +39,11 @@ document.addEventListener('DOMContentLoaded', function () {
         // if yes, clear storage
 
         // TODO: Possible duplicate of isExpired in model.ts
-        function isExpired(a : Date,b : Date) : boolean {
+        function isExpired(a: Date, b: Date): boolean {
             // http://stackoverflow.com/a/15289883
 
             var _MS_PER_DAY = 1000 * 60 * 60 * 24;
+
             // a and b are javascript Date objects
             function dateDiffInDays(a, b) {
                 // Discard the time and time-zone information.
@@ -51,14 +52,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 return Math.floor((utc2 - utc1) / _MS_PER_DAY);
             }
+
             return (30 <= dateDiffInDays(a, b));
         }
 
         function launch() {
             // http://stackoverflow.com/a/36000860
-            chrome.tabs.query({}, function(tabs) {
+            chrome.tabs.query({}, function (tabs) {
                 var doFlag = true;
-                for (var i=tabs.length-1; i>=0; i--) {
+                for (var i = tabs.length - 1; i >= 0; i--) {
                     console.log(tabs[i].url);
                     if (tabs[i].url.startsWith("chrome-extension://" + chrome.runtime.id)) {
                         // Coda is already open!
@@ -74,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 } else {
                     // initialize new Coda
-                    chrome.tabs.create({ url: chrome.extension.getURL("ui.html") });
+                    chrome.tabs.create({url: chrome.extension.getURL("ui.html")});
                 }
             });
         }
@@ -88,12 +90,12 @@ document.addEventListener('DOMContentLoaded', function () {
             editObj["lastEdit"] = new Date(JSON.parse(editObj["lastEdit"]));
             console.log(editObj["lastEdit"]);
 
-            if ( Object.prototype.toString.call(editObj["lastEdit"]) === "[object Date]" ) {
+            if (Object.prototype.toString.call(editObj["lastEdit"]) === "[object Date]") {
                 if (!isNaN((editObj["lastEdit"]).getTime())) {
                     // date is in valid format
 
                     if (isExpired(new Date(), editObj["lastEdit"])) {
-                        new Promise(function(resolve, reject) {
+                        new Promise(function (resolve, reject) {
                             chrome.storage.local.clear(() => {
                                 let error = chrome.runtime.lastError;
                                 if (error) {
@@ -131,9 +133,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     console.log("QUOTA_BYTES: " + chrome.storage.local.QUOTA_BYTES);
                 });
 
-                chrome.tabs.query({}, function(tabs) {
+                chrome.tabs.query({}, function (tabs) {
                     var doFlag = true;
-                    for (var i=tabs.length-1; i>=0; i--) {
+                    for (var i = tabs.length - 1; i >= 0; i--) {
                         console.log(tabs[i].url);
                         if (tabs[i].url.startsWith("chrome-extension://" + chrome.runtime.id)) {
                             // Coda is already open!
@@ -144,11 +146,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (!doFlag) {
                         // already open, so close the open tab first
                         chrome.tabs.remove([tabs[i].id], () => {
-                            chrome.tabs.create({ url: chrome.extension.getURL("ui.html") });
+                            chrome.tabs.create({url: chrome.extension.getURL("ui.html")});
                         });
 
                     } else {
-                        chrome.tabs.create({ url: chrome.extension.getURL("ui.html") });
+                        chrome.tabs.create({url: chrome.extension.getURL("ui.html")});
                     }
                 });
             }

@@ -30,7 +30,9 @@ class SortUtils {
     }
     sortEventsByScheme(events, scheme, isToDoList) {
         let schemeId = scheme.id + "";
-        let codes = Array.from(scheme.codes.values()).map((code) => { return code.value; });
+        let codes = Array.from(scheme.codes.values()).map((code) => {
+            return code.value;
+        });
         events.sort((e1, e2) => {
             const deco1 = e1.decorationForName(schemeId);
             const deco2 = e2.decorationForName(schemeId);
@@ -80,7 +82,9 @@ class SortUtils {
     }
     sortEventsByConfidenceOnly(events, scheme) {
         let schemeId = scheme.id + "";
-        let codes = Array.from(scheme.codes.values()).map((code) => { return code.value; });
+        let codes = Array.from(scheme.codes.values()).map((code) => {
+            return code.value;
+        });
         events.sort((e1, e2) => {
             let deco1 = e1.decorationForName(schemeId);
             let deco2 = e2.decorationForName(schemeId);

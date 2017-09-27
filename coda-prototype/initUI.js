@@ -20,7 +20,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-
 /*
 INITUI.JS
 Checks UUID
@@ -28,7 +27,6 @@ Loads the initial data - either from storage or the default dataset.
 Handles data I/O
 Handles interaction via navbar menus and buttons - undo/redo, export, load...
  */
-
 
 //UI globals
 var UUID;
@@ -51,7 +49,7 @@ storage = StorageManager.instance;
 undoManager = new UndoManager();
 
 // need to set height of editor before hiding the body & we hide the body before loading the data
-$("#editor-row").css("height", codeEditorPanel.outerHeight(true) - codeEditorPanel.find(".panel-heading").outerHeight(true) - $('#panel-row').outerHeight(true) - $('#button-row').outerHeight(true) - 10);
+$("#editor-row").css("height", codeEditorPanel.outerHeight(true) - codeEditorPanel.find(".panel-heading").outerHeight(true) - $("#panel-row").outerHeight(true) - $("#button-row").outerHeight(true) - 10);
 $("body").hide();
 
 /*
@@ -78,7 +76,11 @@ function initDataset(storageObj) {
                 "category": "DATASET",
                 "message": "Resuming coding dataset",
                 "messageDetails": "", // todo add identifier
-                "data": {"events": newDataset["events"].size, "schemes": Object.keys(newDataset["schemes"]).length, "sessions": newDataset["sessions"].size},
+                "data": {
+                    "events": newDataset["events"].size,
+                    "schemes": Object.keys(newDataset["schemes"]).length,
+                    "sessions": newDataset["sessions"].size
+                },
                 "timestamp": new Date()
             });
             initUI(newDataset);
@@ -88,25 +90,25 @@ function initDataset(storageObj) {
             if (error) console.log(error);
             console.time("Default data init");
             // TODO: this example file can't actually be parsed by the "load dataset" button
-            $.getJSON("./data/sessions-numbered-10000.json", function (data) {
+            $.getJSON("./data/sessions-numbered-10000.json", function(data) {
 
                 // todo ensure ALL IDs are unique
 
-                newDataset = function (data) {
+                newDataset = function(data) {
                     var decorations = {};
                     var eventCount = 0;
                     var schemes = {};
 
                     var properDataset = new Dataset();
-                    Object.keys(data).forEach(function (sessionKey) {
+                    Object.keys(data).forEach(function(sessionKey) {
                         var events = [];
-                        data[sessionKey]["events"].forEach(function (event) {
+                        data[sessionKey]["events"].forEach(function(event) {
                             var newEventObj = new RawEvent(eventCount + "", sessionKey, event["timestamp"], "", event["data"]);
                             properDataset.eventOrder.push(newEventObj.name);
                             properDataset.events.set(newEventObj.name, newEventObj);
                             eventCount += 1;
 
-                            Object.keys(event["decorations"]).forEach(function (d) {
+                            Object.keys(event["decorations"]).forEach(function(d) {
 
                                 var decorationValue = event["decorations"][d];
 
@@ -165,38 +167,39 @@ function initDataset(storageObj) {
 
 storage
     .getUUID().then(id => {
-        if (id && id.length === 36) {
-            // stored id is in valid format
-            UUID = id;
-            return initDataset(storage);
-        } else {
-            // create and save UUID
-            UUID = uuid.v4();
-            return storage.saveUUID(UUID)
-                .then(id => {
-                    return initDataset(storage);
-                })
-                .catch(err => {
-                    // set UUID object anyway, try to save again at first logging action
-                    console.log(err);
-                    UUID = uuid.v4();
-                    return initDataset(storage);
-                });
-        }
-    }).catch(err => {
-        // will catch errors at getting UUID
-        // set UUID object anyway, try to save again at first logging action
-        console.log(err);
+    if (id && id.length === 36) {
+        // stored id is in valid format
+        UUID = id;
+        return initDataset(storage);
+    } else {
+        // create and save UUID
         UUID = uuid.v4();
         return storage.saveUUID(UUID)
             .then(id => {
                 return initDataset(storage);
             })
             .catch(err => {
+                // set UUID object anyway, try to save again at first logging action
                 console.log(err);
+                UUID = uuid.v4();
                 return initDataset(storage);
             });
-    })/*.then(dataset => {
+    }
+}).catch(err => {
+    // will catch errors at getting UUID
+    // set UUID object anyway, try to save again at first logging action
+    console.log(err);
+    UUID = uuid.v4();
+    return storage.saveUUID(UUID)
+        .then(id => {
+            return initDataset(storage);
+        })
+        .catch(err => {
+            console.log(err);
+            return initDataset(storage);
+        });
+});
+/*.then(dataset => {
         console.time("Data init");
         dataset = typeof dataset === "string" ? JSON.parse(dataset) : dataset;
         newDataset = Dataset.restoreFromTypelessDataset(dataset);//new Dataset().setFields(dataset["sessions"], dataset["schemes"], dataset["events"]);
@@ -289,6 +292,7 @@ storage
 
         });
     }); */
+
 /*
 storage.getDataset().then(dataset => {
     console.time("Data init");
@@ -385,7 +389,6 @@ storage.getDataset().then(dataset => {
 });
 */
 
-
 function initUI(dataset) {
     console.time("TOTAL UI INITIALISATION TIME");
     var messagePanel = $("#message-panel");
@@ -401,11 +404,11 @@ function initUI(dataset) {
     console.timeEnd("total messageview init");
 
     console.time("stickyheaders init");
-    $('#deco-table').stickyTableHeaders({scrollableArea: messagePanel, container:messagePanel, fixedOffset: 1});
+    $("#deco-table").stickyTableHeaders({scrollableArea: messagePanel, container: messagePanel, fixedOffset: 1});
 
-    $('#message-table').stickyTableHeaders({scrollableArea: messagePanel, container:messagePanel, fixedOffset: 1});
+    $("#message-table").stickyTableHeaders({scrollableArea: messagePanel, container: messagePanel, fixedOffset: 1});
 
-    $('#code-table').stickyTableHeaders({scrollableArea: editorRow});
+    $("#code-table").stickyTableHeaders({scrollableArea: editorRow});
     console.timeEnd("stickyheaders init");
 
     codeEditorPanel.resizable({
@@ -418,13 +421,12 @@ function initUI(dataset) {
     codeEditorManager.init($("#code-editor"));
     console.timeEnd("editor init");
 
-
     $("[data-hide]").on("click", () => {
         let alert = $("#alert");
         alert[0].childNodes.forEach(node => {
-           if (node.nodeName === "#text") {
-               node.remove();
-           }
+            if (node.nodeName === "#text") {
+                node.remove();
+            }
         });
         alert.hide();
         $(".tableFloatingHeaderOriginal").show();
@@ -436,7 +438,7 @@ function initUI(dataset) {
                 activity = "";
                 console.log("Exporting empty instrumentation file.");
             }
-            let dataBlob = new Blob([activity], {type: 'application/json'});
+            let dataBlob = new Blob([activity], {type: "application/json"});
             FileIO.saveFile(dataBlob, downloadId => console.log("Downloaded activity file with id: " + downloadId));
         });
     });
@@ -476,7 +478,7 @@ function initUI(dataset) {
                         defaultScheme.codes.set(
                             defaultScheme.id + "-" + "01",
                             new Code(
-                                defaultScheme, defaultScheme.id + "-" + "01","Test", "#ffffff",
+                                defaultScheme, defaultScheme.id + "-" + "01", "Test", "#ffffff",
                                 UIUtils.ascii("t"), false
                             )
                         );
@@ -489,7 +491,7 @@ function initUI(dataset) {
                     messageViewerManager.resizeViewport();
 
                     undoManager.pointer = 0;
-                    undoManager.schemaUndoStack  = [];
+                    undoManager.schemaUndoStack = [];
                     undoManager.modelUndoStack = [];
                     undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
                     storage.saveDataset(dataset);
@@ -515,7 +517,7 @@ function initUI(dataset) {
                         successAlert.slideUp(500, () => {
                             successAlert.removeClass("alert-success");
                             successAlert.empty();
-                            successAlert.append($('<a href="#" class="close" data-hide="alert" aria-label="close">&times;</a>'));
+                            successAlert.append($("<a href=\"#\" class=\"close\" data-hide=\"alert\" aria-label=\"close\">&times;</a>"));
                             $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed. FIXME
                                                                       // Also, what header bug?
                         });
@@ -570,7 +572,7 @@ function initUI(dataset) {
             FileIO.loadDataset(file, UUID).then(handleDatasetParsed, handleDatasetParseError);
         }
 
-       $("#dataset-file")[0].value = ""; // need to reset so the 'onchange' listener will catch reloading the same file
+        $("#dataset-file")[0].value = ""; // need to reset so the 'onchange' listener will catch reloading the same file
 
     });
 
@@ -642,7 +644,7 @@ function initUI(dataset) {
                         successAlert.slideUp(500, () => {
                             successAlert.removeClass("alert-success");
                             successAlert.empty();
-                            successAlert.append($('<a href="#" class="close" data-hide="alert" aria-label="close">&times;</a>'));
+                            successAlert.append($("<a href=\"#\" class=\"close\" data-hide=\"alert\" aria-label=\"close\">&times;</a>"));
                             $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
                         });
                     });
@@ -725,7 +727,6 @@ function initUI(dataset) {
         tempScheme = {};
 
     });
-
 
     /*
     SCHEME UPLOAD - via editor
@@ -859,7 +860,7 @@ function initUI(dataset) {
                 let newActiveRowCodeId = $(".code-row.active").attr("codeid");
                 if (newActiveRowCodeId !== oldActiveRowCodeId) {
                     let newActiveRow = $(".code-row:last");
-                    newActiveRow.addClass('active');
+                    newActiveRow.addClass("active");
                 }
 
                 codeEditorManager.activeCode = newActiveRowCodeId;
@@ -886,7 +887,7 @@ function initUI(dataset) {
                     "data": tempScheme.toJSON(),
                     "timestamp": new Date()
                 });
-            }
+            };
         }
         $("#scheme-upload-file")[0].value = ""; // need to reset so same file can be reloaded ie caught by 'onchange' listener
     });
@@ -911,18 +912,21 @@ function initUI(dataset) {
             successAlert.slideUp(500, () => {
                 successAlert.removeClass("alert-success");
                 successAlert.empty();
-                successAlert.append($('<a href="#" class="close" data-hide="alert" aria-label="close">&times;</a>'));
+                successAlert.append($("<a href=\"#\" class=\"close\" data-hide=\"alert\" aria-label=\"close\">&times;</a>"));
                 $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
             });
         });
-
 
         // update the activity stack
         storage.saveActivity({
             "category": "DATASET",
             "message": "Saved dataset via button",
             "messageDetails": "", // todo add identifier
-            "data": {"events": dataset["events"].size, "schemes": Object.keys(dataset["schemes"]).length, "sessions": dataset["sessions"].size} ,
+            "data": {
+                "events": dataset["events"].size,
+                "schemes": Object.keys(dataset["schemes"]).length,
+                "sessions": dataset["sessions"].size
+            },
             "timestamp": new Date()
         });
     });
@@ -933,7 +937,7 @@ function initUI(dataset) {
             "category": "CODING",
             "message": "changed coding style to horizontal",
             "messageDetails": "",
-            "data": {} ,
+            "data": {},
             "timestamp": new Date()
         });
     });
@@ -944,7 +948,7 @@ function initUI(dataset) {
             "category": "CODING",
             "message": "changed coding style to vertical",
             "messageDetails": "",
-            "data": {} ,
+            "data": {},
             "timestamp": new Date()
         });
     });
@@ -1017,13 +1021,13 @@ function initUI(dataset) {
     });
 
     $("#submit").on("click", event => {
-        let regex = $('#regexModal-user-input').val();
+        let regex = $("#regexModal-user-input").val();
         if (regex && regex.length > 0) {
             try {
                 let flags = "";
                 $(".form-check-input").each((index, checkbox) => {
                     let flag = $(checkbox).attr("name");
-                    switch(flag) {
+                    switch (flag) {
                         case "case-insensitive":
                             if ($(checkbox).prop("checked")) {
                                 flags += "i";
@@ -1056,17 +1060,21 @@ function initUI(dataset) {
                 let regExp = new RegExp(regex, flags);
                 $("#regex-user").find("input").val(regExp);
                 tempScheme.codes.get(state.activeEditorRow).setRegexFromRegExpObj(regExp);
-                $("#regexModal").modal('hide');
+                $("#regexModal").modal("hide");
 
                 // update the activity stack
                 storage.saveActivity({
                     "category": "REGEX",
                     "message": "Entered new regex",
-                    "messageDetails": {"scheme": tempScheme["id"], "code": state.activeEditorRow, "regex": regExp.source},
+                    "messageDetails": {
+                        "scheme": tempScheme["id"],
+                        "code": state.activeEditorRow,
+                        "regex": regExp.source
+                    },
                     "data": tempScheme.toJSON(),
                     "timestamp": new Date()
                 });
-            } catch(e) {
+            } catch (e) {
                 $("#regex-input-error").text(e);
                 // update the activity stack
                 storage.saveActivity({
@@ -1080,12 +1088,12 @@ function initUI(dataset) {
         } else {
             $("#regex-user").find("input").val("");
             tempScheme.codes.get(state.activeEditorRow).clearRegex();
-            $("#regexModal").modal('hide');
+            $("#regexModal").modal("hide");
             // update the activity stack
             storage.saveActivity({
                 "category": "REGEX",
                 "message": "Cleared custom regex",
-                "messageDetails": {"code": state.activeEditorRow ,"scheme": tempScheme["id"]},
+                "messageDetails": {"code": state.activeEditorRow, "scheme": tempScheme["id"]},
                 "data": tempScheme.toJSON(),
                 "timestamp": new Date()
             });
@@ -1103,7 +1111,7 @@ function initUI(dataset) {
         let checkBoxes = $("#regexModal").find(".form-check-input");
         checkBoxes.each((index, checkbox) => {
             let name = $(checkbox).prop("name");
-            switch(name) {
+            switch (name) {
                 case "case-insensitive":
                     $("checkbox").prop("checked", regex[1].indexOf("i") > -1);
                     break;

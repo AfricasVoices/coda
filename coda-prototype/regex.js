@@ -60,11 +60,11 @@ var regexMatcher = {
         if (finalTexts.length === 0) {
             return null;
         } else {
-            let regexedTexts = finalTexts.map(eventText => { return RegExp.escape(eventText);});
-            return new RegExp('^\s*(' + regexedTexts.join('|') + ')[\s]*$', 'ig');
+            let regexedTexts = finalTexts.map(eventText => {
+                return RegExp.escape(eventText);
+            });
+            return new RegExp("^\s*(" + regexedTexts.join("|") + ")[\s]*$", "ig");
         }
-
-
 
         /*
         let eventTexts = Array.from(events).map((event => { return event["data"]}));
@@ -104,7 +104,6 @@ var regexMatcher = {
             eventObj.uglify(schemeId);
         }
 
-
         /*
          loop over codes and pick the assignment with the highest confidence
          */
@@ -117,7 +116,7 @@ var regexMatcher = {
                 let fullTextMatch = fullTextRegex.exec(eventObj.data + "");
                 if (fullTextMatch) {
 
-                    confidences.set(code[0], {"conf":0.95});
+                    confidences.set(code[0], {"conf": 0.95});
                     confidences.get(code[0]).isKeywordMatch = false;
                     confidences.get(code[0]).isFullTextMatch = true;
                     continue;
@@ -132,8 +131,8 @@ var regexMatcher = {
 
                 try {
                     var customRegex;
-                    if (customRegexData[1].indexOf('g') === -1) {
-                        customRegex = new RegExp(customRegexData[0], customRegexData[1] + 'g');
+                    if (customRegexData[1].indexOf("g") === -1) {
+                        customRegex = new RegExp(customRegexData[0], customRegexData[1] + "g");
                     } else {
                         customRegex = new RegExp(customRegexData[0], customRegexData[1]);
                     }
@@ -150,8 +149,8 @@ var regexMatcher = {
                     }
 
                     confidences.set(code[0], {
-                        "conf":regexMatcher.confidenceMatchLen(eventObj.data, matchCount),
-                        "isKeywordMatch":  false,
+                        "conf": regexMatcher.confidenceMatchLen(eventObj.data, matchCount),
+                        "isKeywordMatch": false,
                         "isFullTextMatch": false
                     });
 
@@ -181,8 +180,8 @@ var regexMatcher = {
                 }
 
                 confidences.set(code[0], {
-                    "conf":regexMatcher.confidenceMatchLen(eventObj.data, matchCount),
-                    "isKeywordMatch":  matchCount.size !== 0,
+                    "conf": regexMatcher.confidenceMatchLen(eventObj.data, matchCount),
+                    "isKeywordMatch": matchCount.size !== 0,
                     "isFullTextMatch": false
                 });
             }
@@ -225,7 +224,7 @@ var regexMatcher = {
                             decoration.confidence = maxConfEntry[1].conf;
                         }
 
-                    } else if (maxConfEntry[1].conf !== 0){
+                    } else if (maxConfEntry[1].conf !== 0) {
                         // doesnt have a code yet, and there's an assignment higher than 0
                         decoration.confidence = maxConfEntry[1].conf;
                         decoration.code = codes.get(maxConfEntry[0]);
@@ -248,7 +247,7 @@ var regexMatcher = {
         }
     },
 
-    codeDataset: function (schemeId) {
+    codeDataset: function(schemeId) {
         console.time("Coding dataset");
         schemeId = schemeId + "";
         let events = newDataset.events;
@@ -275,17 +274,19 @@ var regexMatcher = {
         storage.saveDataset(newDataset);
     },
 
-    generateOrRegex: function (wordArray) {
+    generateOrRegex: function(wordArray) {
 
         console.time("Generate or regex");
         if (!wordArray || wordArray.length === 0) return null;
-        let filtered = wordArray.filter(word => {return word.length > 0});
+        let filtered = wordArray.filter(word => {
+            return word.length > 0;
+        });
         console.time("generate or regex");
-        return new RegExp('[\\s]*[\#]?\\b(' + filtered.join('|') + ')[\.\,\-\?\)\]*[\\s]*', 'ig');
+        return new RegExp("[\\s]*[\#]?\\b(" + filtered.join("|") + ")[\.\,\-\?\)\]*[\\s]*", "ig");
 
     },
 
-    wrapText: function (text, regex, wrapClass, codeId) {
+    wrapText: function(text, regex, wrapClass, codeId) {
 
         // returns the text to be wrapped with a <p> element and with the appropriate substrings wrapped in <span>
         if (regex == null) return text;
@@ -293,7 +294,7 @@ var regexMatcher = {
 
         return text.replace(regex, function wrapper(match) {
 
-            let codeIdString = (codeId == 'undefined') ? "" : " codeid='" + codeId + "'";
+            let codeIdString = (codeId == "undefined") ? "" : " codeid='" + codeId + "'";
             return "<span class='" + wrapClass + "'" + codeIdString + ">" + match + "</span>";
         });
 
@@ -309,13 +310,13 @@ var regexMatcher = {
 
         let textLenNoSpaces = text.replace(/ /g, "").length;
 
-        return (matchLength/textLenNoSpaces > 0.95) ? 0.95 : matchLength/textLenNoSpaces;
+        return (matchLength / textLenNoSpaces > 0.95) ? 0.95 : matchLength / textLenNoSpaces;
     },
 
-    unwrapHighlights: function (eventRowParagraph) {
+    unwrapHighlights: function(eventRowParagraph) {
 
         let highlights = $(eventRowParagraph).find(".highlight");
-        highlights.each(function (index, highlight) {
+        highlights.each(function(index, highlight) {
             let text = $(highlight).text();
             $(highlight).replaceWith(text);
         });
@@ -326,8 +327,7 @@ var regexMatcher = {
 
     },
 
-
-    wrapElement: function (eventObj, regex, codeId) {
+    wrapElement: function(eventObj, regex, codeId) {
 
         if (!regex || regex.length === 0 || !eventObj || !codeId || codeId.length === 0) return;
         let matches;
@@ -359,4 +359,4 @@ var regexMatcher = {
         }
         return matchCount;
     }
-}
+};
