@@ -492,13 +492,42 @@ var UIUtils = (function() {
             //return $("#message-panel").scrollTop() === 0;
         },
 
+        /**
+         * Displays the given message in a green banner at the top of the screen.
+         * Success banners are automatically dismissed after a few seconds.
+         * @param message HTML to display in the banner.
+         */
+        displaySuccessAlert(message) {
+            // Display the alert.
+            let successAlert = $("#alert");
+            successAlert.removeClass("alert-danger").addClass("alert-success");
+            successAlert.append(message);
+            successAlert.show();
+            $(".tableFloatingHeaderOriginal").hide();
+
+            // Automatically hide the alert after 2s
+            successAlert.fadeTo(2000, 500).slideUp(500, () => {
+                successAlert.slideUp(500, () => {
+                    successAlert.removeClass("alert-success");
+                    successAlert.empty();
+                    successAlert.append(
+                        $("<a href=\"#\" class=\"close\" data-hide=\"alert\" aria-label=\"close\">&times;</a>"));
+                    $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
+                });
+            });
+        },
+
+        /**
+         * Displays the given message in a red banner at the top of the screen.
+         * Error banners are not automatically dismissed.
+         * @param message HTML to display in the banner.
+         */
         displayErrorAlert(message) {
             let failAlert = $("#alert");
             failAlert.removeClass("alert-success").addClass("alert-danger");
-            let errorMessage = document.createTextNode(message);
-            failAlert.append(errorMessage);
-            $(".tableFloatingHeaderOriginal").hide();
+            failAlert.append(message);
             failAlert.show();
+            $(".tableFloatingHeaderOriginal").hide();
         }
     };
 })();

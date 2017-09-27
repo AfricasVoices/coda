@@ -507,21 +507,7 @@ function initUI(dataset) {
 
                     // TODO do we reset instrumentation on data reload?
 
-                    // success message
-                    let successAlert = $("#alert");
-                    successAlert.removeClass("alert-danger").addClass("alert-success");
-                    successAlert.append("<strong>Success!</strong> New dataset was imported.");
-                    successAlert.show();
-                    $(".tableFloatingHeaderOriginal").hide();
-                    successAlert.fadeTo(2000, 500).slideUp(500, () => {
-                        successAlert.slideUp(500, () => {
-                            successAlert.removeClass("alert-success");
-                            successAlert.empty();
-                            successAlert.append($("<a href=\"#\" class=\"close\" data-hide=\"alert\" aria-label=\"close\">&times;</a>"));
-                            $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed. FIXME
-                                                                      // Also, what header bug?
-                        });
-                    });
+                    UIUtils.displaySuccessAlert("<strong>Success!</strong> New dataset was imported.");
                 } else {
                     // update the activity stack
                     storage.saveActivity({
@@ -620,19 +606,7 @@ function initUI(dataset) {
                     messageViewerManager.codeSchemeOrder.push(newScheme["id"] + "");
                     messageViewerManager.addNewSchemeColumn(newScheme);
 
-                    let successAlert = $("#alert");
-                    successAlert.removeClass("alert-danger").addClass("alert-success");
-                    successAlert.append("<strong>Success!</strong> New coding scheme was imported.");
-                    successAlert.show();
-                    $(".tableFloatingHeaderOriginal").hide();
-                    successAlert.fadeTo(2000, 500).slideUp(500, () => {
-                        successAlert.slideUp(500, () => {
-                            successAlert.removeClass("alert-success");
-                            successAlert.empty();
-                            successAlert.append($("<a href=\"#\" class=\"close\" data-hide=\"alert\" aria-label=\"close\">&times;</a>"));
-                            $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
-                        });
-                    });
+                    UIUtils.displaySuccessAlert("<strong>Success!</strong> New coding scheme was imported.");
                 }
             }
 
@@ -841,19 +815,7 @@ function initUI(dataset) {
     $("#save-all-button").on("click", () => {
         storage.saveDataset(newDataset);
 
-        let successAlert = $("#alert");
-        successAlert.removeClass("alert-danger").addClass("alert-success");
-        successAlert.append("<strong>Saved!</strong> Successfully stored the current dataset.");
-        successAlert.show();
-        $(".tableFloatingHeaderOriginal").hide();
-        successAlert.fadeTo(2000, 500).slideUp(500, () => {
-            successAlert.slideUp(500, () => {
-                successAlert.removeClass("alert-success");
-                successAlert.empty();
-                successAlert.append($("<a href=\"#\" class=\"close\" data-hide=\"alert\" aria-label=\"close\">&times;</a>"));
-                $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
-            });
-        });
+        UIUtils.displaySuccessAlert("<strong>Saved!</strong> Successfully stored the current dataset.");
 
         // update the activity stack
         storage.saveActivity({
