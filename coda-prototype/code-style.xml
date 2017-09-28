@@ -1,10 +1,10 @@
 <code_scheme name="Coda Code Style">
-  <JSCodeStyleSettings>
-    <option name="FORCE_SEMICOLON_STYLE" value="true" />
-    <option name="SPACE_BEFORE_FUNCTION_LEFT_PARENTH" value="false" />
-    <option name="FORCE_QUOTE_STYlE" value="true" />
-  </JSCodeStyleSettings>
-  <codeStyleSettings language="JavaScript">
-    <option name="KEEP_BLANK_LINES_IN_CODE" value="1" />
-  </codeStyleSettings>
+    <JSCodeStyleSettings>
+        <option name="FORCE_SEMICOLON_STYLE" value="true"/>
+        <option name="SPACE_BEFORE_FUNCTION_LEFT_PARENTH" value="false"/>
+        <option name="FORCE_QUOTE_STYlE" value="true"/>
+    </JSCodeStyleSettings>
+    <codeStyleSettings language="JavaScript">
+        <option name="KEEP_BLANK_LINES_IN_CODE" value="1"/>
+    </codeStyleSettings>
 </code_scheme>
