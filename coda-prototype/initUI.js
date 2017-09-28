@@ -610,11 +610,12 @@ function initUI(dataset) {
                 }
             }
 
-            function handleSchemeParseError(parseErrors) {
+            function handleSchemeParseError(error) {
                 UIUtils.displayErrorAlert("Something is wrong with the scheme data format. " +
                     "Change a few things up, refresh and try again.");
 
                 if (error.name === "ParseError") {
+                    let parseErrors = error.parseErrors;
                     console.log("ERROR: Cannot parse scheme file");
                     if (parseErrors.length > 100) { // only report first 100 wrong lines
                         parseErrors = parseErrors.slice(0, 100);
@@ -623,7 +624,7 @@ function initUI(dataset) {
                 } else if (error.name === "CodeConsistencyError") {
                     console.log("ERROR: Uploaded code scheme has multiple ids.");
                 } else {
-                    console.log("ERROR: An unknown error occurred");
+                    console.log("ERROR: An unknown error occurred. The error was: ", error);
                 }
             }
 
@@ -786,6 +787,9 @@ function initUI(dataset) {
             }
 
             function handleSchemeParseError(error) {
+                UIUtils.displayErrorAlert("Something is wrong with the scheme data format. " +
+                    "Change a few things up, refresh and try again.");
+
                 if (error.name === "ParseError") {
                     console.log("ERROR: Cannot parse scheme file");
                     console.log(JSON.stringify(error.parseErrors));
@@ -793,9 +797,8 @@ function initUI(dataset) {
                     console.log("ERROR: Uploaded code scheme has multiple ids.");
                     console.log(JSON.stringify(error.parseErrors));
                 } else {
-                    console.log("ERROR: An unknown error occurred");
+                    console.log("ERROR: An unknown error occurred. The error was:", error);
                 }
-                // todo: alert error (which is already done elsewhere...)
             }
 
             FileUtils.loadCodeScheme(file).then(handleSchemeParsed, handleSchemeParseError);
