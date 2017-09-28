@@ -439,11 +439,11 @@ function initUI(dataset) {
                 console.log("Exporting empty instrumentation file.");
             }
             let dataBlob = new Blob([activity], {type: "application/json"});
-            FileIO.saveFile(dataBlob, downloadId => console.log("Downloaded activity file with id: " + downloadId));
+            FileUtils.saveFile(dataBlob, downloadId => console.log("Downloaded activity file with id: " + downloadId));
         });
     });
 
-    $("#export-dataset").click(() => FileIO.saveDataset(newDataset));
+    $("#export-dataset").click(() => FileUtils.saveDataset(newDataset));
 
     $("#dataset-file").on("change", event => { // Fires when the dataset file has been changed by the file picker UI
         $(event.target).parents(".dropdown").removeClass("open");
@@ -569,7 +569,7 @@ function initUI(dataset) {
                 console.log(JSON.stringify(errors));
             }
 
-            FileIO.loadDataset(file, UUID).then(handleDatasetParsed, handleDatasetParseError);
+            FileUtils.loadDataset(file, UUID).then(handleDatasetParsed, handleDatasetParseError);
         }
 
         $("#dataset-file")[0].value = ""; // need to reset so the 'onchange' listener will catch reloading the same file
@@ -673,7 +673,7 @@ function initUI(dataset) {
                 }
             }
 
-            FileIO.loadCodeScheme(file).then(handleSchemeParsed, handleSchemeParseError);
+            FileUtils.loadCodeScheme(file).then(handleSchemeParsed, handleSchemeParseError);
         }
     });
 
@@ -688,7 +688,7 @@ function initUI(dataset) {
 
     });
 
-    $("#scheme-download").on("click", () => FileIO.saveCodeScheme(tempScheme));
+    $("#scheme-download").on("click", () => FileUtils.saveCodeScheme(tempScheme));
 
     /*
     TOOLTIPS
@@ -843,7 +843,7 @@ function initUI(dataset) {
                 // todo: alert error (which is already done elsewhere...)
             }
 
-            FileIO.loadCodeScheme(file).then(handleSchemeParsed, handleSchemeParseError);
+            FileUtils.loadCodeScheme(file).then(handleSchemeParsed, handleSchemeParseError);
         }
 
         $("#scheme-upload-file")[0].value = ""; // need to reset so same file can be reloaded ie caught by 'onchange' listener
