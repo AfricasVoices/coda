@@ -573,7 +573,7 @@ function initUI(dataset) {
 
             function handleSchemeParsed(newScheme) {
                 if (newScheme == null || newScheme.codes.size === 0 || newDataset.schemes[newScheme["id"]] != undefined) {
-                    let isDuplicate = newDataset.schemes[newScheme["id"]] != undefined;
+                    let isDuplicate = newScheme != null && newDataset.schemes[newScheme["id"]] != undefined;
                     let errorText = (isDuplicate)
                         ? "Can't import duplicate coding scheme (ID: '" + newScheme["id"] + "')." +
                         " To update an existing coding scheme access it via code editor."
