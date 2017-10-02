@@ -497,7 +497,7 @@ var UIUtils = (function() {
          * Success banners are automatically dismissed after a few seconds, and the contents automatically cleared.
          * @param message HTML to display in the banner.
          */
-        displaySuccessAlert(message) {
+        displayAlertAsSuccess(message) {
             // Display the alert.
             let successAlert = $("#alert");
             successAlert.removeClass("alert-danger").addClass("alert-success");
@@ -523,7 +523,7 @@ var UIUtils = (function() {
          * Error banners are not automatically dismissed.
          * @param message HTML to display in the banner.
          */
-        displayErrorAlert(message) {
+        displayAlertAsError(message) {
             let failAlert = $("#alert");
             failAlert.removeClass("alert-success").addClass("alert-danger");
             $("#alert-content").html(message); // Clear the existing message. TODO: queue alerts?
