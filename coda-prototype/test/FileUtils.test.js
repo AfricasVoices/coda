@@ -1,12 +1,12 @@
-/// <reference path="../model.ts"/>
+/// <reference path="../src/io/FileUtils.ts"/>
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
-describe("FileIO", function () {
+describe("FileUtils.test", function() {
     // Mock saving and loading a file, such that readFileAsText() returns the last object "saved" via saveFile.
     var savedFile;
-    FileIO.saveFile = function (fileContents, onDownloadStartedHandler) {
+    FileUtils.saveFile = function(fileContents, onDownloadStartedHandler) {
         savedFile = fileContents;
     };
-    FileIO.readFileAsText = function (file) {
+    FileUtils.readFileAsText = function(file) {
         return new Promise(function (resolve) {
             var reader = new FileReader();
             reader.onloadend = function () { return resolve(reader.result); };
@@ -15,7 +15,7 @@ describe("FileIO", function () {
     };
     it("The mocked saveFile(file) should set savedFile to file", function () {
         var blob = new Blob(["test"]);
-        FileIO.saveFile(blob);
+        FileUtils.saveFile(blob);
         expect(savedFile).toBe(blob);
     });
     it("true should be equal to true", function () {
@@ -26,16 +26,16 @@ describe("FileIO", function () {
     });
     it("should read the file just saved", function (done) {
         var blob = new Blob(["test"]);
-        FileIO.saveFile(blob);
-        FileIO.readFileAsText(undefined).then(function (out) {
+        FileUtils.saveFile(blob);
+        FileUtils.readFileAsText(undefined).then(function(out) {
             expect(out).toBe("test");
             done();
         });
     });
     it("should read the file just saved (sanity check version)", function (done) {
         var blob = new Blob(["test"]);
-        FileIO.saveFile(blob);
-        FileIO.readFileAsText(undefined).then(function (out) {
+        FileUtils.saveFile(blob);
+        FileUtils.readFileAsText(undefined).then(function(out) {
             expect(out).not.toBe("different_text");
             done();
         });
