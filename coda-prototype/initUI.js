@@ -448,16 +448,6 @@ function initUI(dataset) {
     $("#dataset-file").on("change", event => { // Fires when the dataset file has been changed by the file picker UI
         $(event.target).parents(".dropdown").removeClass("open");
 
-        // Hide the existing alert.
-        let alert = $("#alert");
-        alert[0].childNodes.forEach(node => {
-            if (node.nodeName === "#text") {
-                node.remove();
-            }
-        });
-        alert.hide();
-        $(".tableFloatingHeaderOriginal").show();
-
         let files = $("#dataset-file")[0].files;
         if (files.length > 0) {
             let file = files[0];

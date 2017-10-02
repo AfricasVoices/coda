@@ -494,24 +494,25 @@ var UIUtils = (function() {
 
         /**
          * Displays the given message in a green banner at the top of the screen.
-         * Success banners are automatically dismissed after a few seconds.
+         * Success banners are automatically dismissed after a few seconds, and the contents automatically cleared.
          * @param message HTML to display in the banner.
          */
         displaySuccessAlert(message) {
             // Display the alert.
             let successAlert = $("#alert");
             successAlert.removeClass("alert-danger").addClass("alert-success");
-            successAlert.append(message);
+
+            let alertContent = $("#alert-content");
+            alertContent.html(message); // Replace the existing message. TODO: queue alerts?
+
             successAlert.show();
             $(".tableFloatingHeaderOriginal").hide();
 
-            // Automatically hide the alert after 2s
+            // TODO: document
             successAlert.fadeTo(2000, 500).slideUp(500, () => {
                 successAlert.slideUp(500, () => {
                     successAlert.removeClass("alert-success");
-                    successAlert.empty();
-                    successAlert.append(
-                        $("<a href=\"#\" class=\"close\" data-hide=\"alert\" aria-label=\"close\">&times;</a>"));
+                    alertContent.empty();
                     $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
                 });
             });
@@ -525,9 +526,19 @@ var UIUtils = (function() {
         displayErrorAlert(message) {
             let failAlert = $("#alert");
             failAlert.removeClass("alert-success").addClass("alert-danger");
-            failAlert.append(message);
+            $("#alert-content").html(message); // Clear the existing message. TODO: queue alerts?
             failAlert.show();
             $(".tableFloatingHeaderOriginal").hide();
+        },
+
+        /**
+         * Hides the alert currently being displayed, and clears its contents.
+         */
+        hideAlert() {
+            let alert = $("#alert");
+            alert.hide();
+            $("#alert-content").empty();
+            $(".tableFloatingHeaderOriginal").show();
         }
     };
 })();
