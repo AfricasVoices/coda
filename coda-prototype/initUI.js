@@ -568,11 +568,6 @@ function initUI(dataset) {
             function handleSchemeParsed(newScheme) {
                 if (newScheme == null || newScheme.codes.size === 0 || newDataset.schemes[newScheme["id"]] != undefined) {
                     let isDuplicate = newScheme != null && newDataset.schemes[newScheme["id"]] != undefined;
-                    let errorText = (isDuplicate)
-                        ? "Can't import duplicate coding scheme (ID: '" + newScheme["id"] + "')." +
-                        " To update an existing coding scheme access it via code editor."
-                        : "Something is wrong with the data format. Change a few things up, refresh and try again.";
-                    UIUtils.displayAlertAsError(errorText);
 
                     let err;
                     if (isDuplicate) {
@@ -585,6 +580,11 @@ function initUI(dataset) {
                     }
                     console.log("ERROR: Can't create scheme object - %s" % err);
 
+                    let errorText = isDuplicate
+                        ? "Can't import duplicate coding scheme (ID: '" + newScheme["id"] + "')." +
+                        " To update an existing coding scheme access it via code editor."
+                        : "Something is wrong with the data format. Change a few things up, refresh and try again.";
+                    UIUtils.displayAlertAsError(errorText);
                 } else {
                     // todo: what is the behaviour when scheme id is a duplicate - overwrite??
                     // update the activity stack
