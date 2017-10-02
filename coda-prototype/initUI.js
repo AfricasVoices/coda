@@ -445,13 +445,19 @@ function initUI(dataset) {
 
     $("#export-dataset").click(() => FileUtils.saveDataset(newDataset));
 
-    $("#dataset-file").on("change", event => { // Fires when the dataset file has been changed by the file picker UI
+    /**
+     * Handles loading a new dataset after the user has selected a new dataset file via the Dataset dropdown.
+     */
+    $("#dataset-file").on("change", event => {
         $(event.target).parents(".dropdown").removeClass("open");
 
         UIUtils.hideAlert(); // This is a safety just in case there is a code path below which doesn't display an alert.
 
         let files = $("#dataset-file")[0].files;
-        if (files.length > 0) {
+        if (files.length !== 1) {
+            UIUtils.displayAlertAsError("Too many files selected. Only one dataset file can be uploaded at once");
+            console.log("ERROR: Multiple files selected. Files were:", files);
+        } else {
             let file = files[0];
             console.log("Filename: " + file.name);
             console.log("Type: " + file.type);
@@ -499,7 +505,7 @@ function initUI(dataset) {
 
                     // TODO do we reset instrumentation on data reload?
 
-                    UIUtils.displaySuccessAlert("<strong>Success!</strong> New dataset was imported.");
+                    UIUtils.displayAlertAsSuccess("<strong>Success!</strong> New dataset was imported.");
                 } else {
                     // update the activity stack
                     storage.saveActivity({
@@ -510,7 +516,7 @@ function initUI(dataset) {
                         "timestamp": new Date()
                     });
 
-                    UIUtils.displayErrorAlert("Something is wrong with the data format. " +
+                    UIUtils.displayAlertAsError("Something is wrong with the data format. " +
                         "Change a few things up, refresh and try again.");
 
                     console.log("ERROR: Dataset object is empty or has no events.");
@@ -523,7 +529,7 @@ function initUI(dataset) {
              * Prints the first 100 parse errors to the console.
              */
             function handleDatasetParseError(parseErrors) {
-                UIUtils.displayErrorAlert("Something is wrong with the data format. " +
+                UIUtils.displayAlertAsError("Something is wrong with the data format. " +
                     "Change a few things up, refresh and try again.");
 
                 let errors = parseErrors;
@@ -542,12 +548,18 @@ function initUI(dataset) {
 
     });
 
+    /**
+     * Handles loading a new scheme after the user has selected a new scheme file via the Dataset dropdown.
+     */
     $("#scheme-file").on("change", event => {
         $(event.target).parents(".dropdown").removeClass("open");
 
         UIUtils.hideAlert();
 
-        if (files.length > 0) {
+        if (files.length !== 1) {
+            UIUtils.displayAlertAsError("Too many files selected. Only one scheme file can be uploaded at once");
+            console.log("ERROR: Multiple files selected. Files were:", files);
+        } else {
             let file = files[0];
             console.log("Filename: " + file.name);
             console.log("Type: " + files.type);
@@ -560,7 +572,7 @@ function initUI(dataset) {
                         ? "Can't import duplicate coding scheme (ID: '" + newScheme["id"] + "')." +
                         " To update an existing coding scheme access it via code editor."
                         : "Something is wrong with the data format. Change a few things up, refresh and try again.";
-                    UIUtils.displayErrorAlert(errorText);
+                    UIUtils.displayAlertAsError(errorText);
 
                     let err;
                     if (isDuplicate) {
@@ -588,12 +600,12 @@ function initUI(dataset) {
                     messageViewerManager.codeSchemeOrder.push(newScheme["id"] + "");
                     messageViewerManager.addNewSchemeColumn(newScheme);
 
-                    UIUtils.displaySuccessAlert("<strong>Success!</strong> New coding scheme was imported.");
+                    UIUtils.displayAlertAsSuccess("<strong>Success!</strong> New coding scheme was imported.");
                 }
             }
 
             function handleSchemeParseError(error) {
-                UIUtils.displayErrorAlert("Something is wrong with the scheme data format. " +
+                UIUtils.displayAlertAsError("Something is wrong with the scheme data format. " +
                     "Change a few things up, refresh and try again.");
 
                 if (error.name === "ParseError") {
@@ -614,71 +626,18 @@ function initUI(dataset) {
         }
     });
 
-    $("#quit").on("click", () => {
-        storage.saveDataset(newDataset);
-
-        // todo: prompt to export all files with dialog box
-
-        chrome.tabs.getCurrent(tab => {
-            chrome.tabs.remove(tab.id);
-        });
-
-    });
-
-    $("#scheme-download").on("click", () => FileUtils.saveCodeScheme(tempScheme));
-
-    /*
-    TOOLTIPS
-     */
-    $("#save-all-button").tooltip();
-    $("#code-now-button").tooltip();
-    $("#undo").tooltip();
-    $("#redo").tooltip();
-    $("#scheme-download").tooltip();
-    $("#add-scheme").tooltip();
-    $("#scheme-upload").tooltip();
-    $("#scheme-duplicate").tooltip();
-    $("#delete-scheme-button").tooltip();
-    $("#scheme-name-help-block").find("sup").tooltip();
-
-    /*
-    SCHEME DUPLICATION
-     */
-    $("#scheme-duplicate").on("click", () => {
-
-        let newScheme = tempScheme.duplicate(Object.keys(newDataset.schemes));
-        newDataset.schemes[newScheme.id] = newScheme;
-        messageViewerManager.codeSchemeOrder.push(newScheme.id);
-        messageViewerManager.addNewSchemeColumn(newScheme, newScheme.name);
-
-        let headerDecoColumn = $("#header-decoration-column");
-        let header = headerDecoColumn.find("[scheme='" + newScheme["id"] + "']");
-        header.children("i").text(newScheme["name"]);
-
-        undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
-
-        let editorContainer = codeEditorManager.editorContainer;
-        editorContainer.hide();
-        editorContainer.find("tbody").empty();
-        codeEditorManager.bindAddCodeButtonListener();
-        editorContainer.find("#scheme-name-input").val("");
-        scrollbarManager.redraw(newDataset, newScheme.id);
-        scrollbarManager.redrawThumb(0);
-        $(scrollbarManager.scrollbarEl).drawLayers();
-        editorOpen = false;
-        tempScheme = {};
-
-    });
-
-    /*
-    SCHEME UPLOAD - via editor
+    /**
+     * Handles updating an existing scheme after a user has a selected a scheme file via the editor's upload button.
      */
     $("#scheme-upload-file").on("change", () => {
         UIUtils.hideAlert();
 
         let files = $("#scheme-upload-file")[0].files;
 
-        if (files.length > 0) {
+        if (files.length !== 1) {
+            UIUtils.displayAlertAsError("Too many files selected. Only one scheme file can be uploaded at once");
+            console.log("ERROR: Multiple files selected. Files were:", files);
+        } else {
             let file = files[0];
             console.log("Filename: " + file.name);
             console.log("Type: " + file.type);
@@ -688,7 +647,7 @@ function initUI(dataset) {
                 // If the uploaded scheme is not a new version of the scheme to be updated, fail.
                 if (newScheme.id !== tempScheme.id) {
                     console.log("ERROR: Trying to upload scheme with a wrong ID");
-                    UIUtils.displayErrorAlert("Data scheme format error - wrong id");
+                    UIUtils.displayAlertAsError("Data scheme format error - wrong id");
                     return;
                 }
 
@@ -760,6 +719,8 @@ function initUI(dataset) {
                 }
                 */
 
+                UIUtils.displayAlertAsSuccess("<strong>Success!</strong> Coding scheme was updated.");
+
                 // update the activity stack
                 storage.saveActivity({
                     "category": "SCHEME",
@@ -771,7 +732,7 @@ function initUI(dataset) {
             }
 
             function handleSchemeParseError(error) {
-                UIUtils.displayErrorAlert("Something is wrong with the scheme data format. " +
+                UIUtils.displayAlertAsError("Something is wrong with the scheme data format. " +
                     "Change a few things up, refresh and try again.");
 
                 if (error.name === "ParseError") {
@@ -791,6 +752,64 @@ function initUI(dataset) {
         $("#scheme-upload-file")[0].value = ""; // need to reset so same file can be reloaded ie caught by 'onchange' listener
     });
 
+    $("#quit").on("click", () => {
+        storage.saveDataset(newDataset);
+
+        // todo: prompt to export all files with dialog box
+
+        chrome.tabs.getCurrent(tab => {
+            chrome.tabs.remove(tab.id);
+        });
+
+    });
+
+    $("#scheme-download").on("click", () => FileUtils.saveCodeScheme(tempScheme));
+
+    /*
+    TOOLTIPS
+     */
+    $("#save-all-button").tooltip();
+    $("#code-now-button").tooltip();
+    $("#undo").tooltip();
+    $("#redo").tooltip();
+    $("#scheme-download").tooltip();
+    $("#add-scheme").tooltip();
+    $("#scheme-upload").tooltip();
+    $("#scheme-duplicate").tooltip();
+    $("#delete-scheme-button").tooltip();
+    $("#scheme-name-help-block").find("sup").tooltip();
+
+    /*
+    SCHEME DUPLICATION
+     */
+    $("#scheme-duplicate").on("click", () => {
+
+        let newScheme = tempScheme.duplicate(Object.keys(newDataset.schemes));
+        newDataset.schemes[newScheme.id] = newScheme;
+        messageViewerManager.codeSchemeOrder.push(newScheme.id);
+        messageViewerManager.addNewSchemeColumn(newScheme, newScheme.name);
+
+        let headerDecoColumn = $("#header-decoration-column");
+        let header = headerDecoColumn.find("[scheme='" + newScheme["id"] + "']");
+        header.children("i").text(newScheme["name"]);
+
+        undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
+
+        let editorContainer = codeEditorManager.editorContainer;
+        editorContainer.hide();
+        editorContainer.find("tbody").empty();
+        codeEditorManager.bindAddCodeButtonListener();
+        editorContainer.find("#scheme-name-input").val("");
+        scrollbarManager.redraw(newDataset, newScheme.id);
+        scrollbarManager.redrawThumb(0);
+        $(scrollbarManager.scrollbarEl).drawLayers();
+        editorOpen = false;
+        tempScheme = {};
+
+    });
+
+
+
     $("#undo").on("click", () => {
         messageViewerManager.undoHandler();
     });
@@ -802,7 +821,7 @@ function initUI(dataset) {
     $("#save-all-button").on("click", () => {
         storage.saveDataset(newDataset);
 
-        UIUtils.displaySuccessAlert("<strong>Saved!</strong> Successfully stored the current dataset.");
+        UIUtils.displayAlertAsSuccess("<strong>Saved!</strong> Successfully stored the current dataset.");
 
         // update the activity stack
         storage.saveActivity({
