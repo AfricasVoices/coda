@@ -448,6 +448,8 @@ function initUI(dataset) {
     $("#dataset-file").on("change", event => { // Fires when the dataset file has been changed by the file picker UI
         $(event.target).parents(".dropdown").removeClass("open");
 
+        UIUtils.hideAlert(); // This is a safety just in case there is a code path below which doesn't display an alert.
+
         let files = $("#dataset-file")[0].files;
         if (files.length > 0) {
             let file = files[0];
@@ -543,17 +545,7 @@ function initUI(dataset) {
     $("#scheme-file").on("change", event => {
         $(event.target).parents(".dropdown").removeClass("open");
 
-        // Hide the currently displayed alert.
-        let alert = $("#alert");
-        alert[0].childNodes.forEach(node => {
-            if (node.nodeName === "#text") {
-                node.remove();
-            }
-        });
-        alert.hide();
-        $(".tableFloatingHeaderOriginal").show();
-
-        let files = $("#scheme-file")[0].files;
+        UIUtils.hideAlert();
 
         if (files.length > 0) {
             let file = files[0];
@@ -682,6 +674,8 @@ function initUI(dataset) {
     SCHEME UPLOAD - via editor
      */
     $("#scheme-upload-file").on("change", () => {
+        UIUtils.hideAlert();
+
         let files = $("#scheme-upload-file")[0].files;
 
         if (files.length > 0) {
