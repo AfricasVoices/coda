@@ -113,7 +113,7 @@ class FileUtils {
 
         for (let [codeId, code] of codeScheme.codes) {
             let codeArr = [codeScheme.id, codeScheme.name, codeId, code.value, code.color,
-                code.shortcut, code.words.toString(), code.regex[0]];
+                code.shortcut, code.words.toString(), code.regex[0]]; // TODO: fail
             schemeJSON["data"].push(codeArr);
         }
 
@@ -327,7 +327,7 @@ class FileUtils {
                         let newCode;
                         if (code_regex && typeof codeRow["code_regex"] === "string") {
                             newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"],
-                                codeRow["code_colour"], newShortcut, false, [codeRow["code_regex"], "g"]);
+                                codeRow["code_colour"], newShortcut, false, [codeRow["code_regex"], "g"]); // TODO: fail
                         } else {
                             newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"],
                                 codeRow["code_colour"], newShortcut, false);
