@@ -1376,15 +1376,15 @@ class CodeScheme {
 
 class Code {
 
-    private _owner: CodeScheme;
-    private _id: string;
-    private _value: string;
-    private _color: string;
-    private _shortcut: string;
-    private _words: Array<string>;
-    private _isEdited: boolean;
+    private _owner: CodeScheme; // Code Scheme to which this code belongs
+    private _id: string; // Unique identifier for this code
+    private _value: string; // Code label, or name TODO: change to label?
+    private _color: string; // Color to highlight rows assigned to this code.
+    private _shortcut: string; // KeyCode of the short-cut key TODO: change type to "Integer"?
+    private _words: Array<string>; // List of words used for the word regex.
+    private _isEdited: boolean; // TODO: Remove this? Its only usage is in CodeScheme.duplicate
     private _eventsWithCode: Map<string, RawEvent>;
-    private _regex: [string, string];
+    private _regex: [string, string]; //
 
     get owner(): CodeScheme {
         return this._owner;
@@ -1418,11 +1418,13 @@ class Code {
         return this._eventsWithCode;
     }
 
-    get regex(): [string, string] {
-        return this._regex;
-    }
+    // get regex(): [string, string] {
+    //     return this._regex;
+    // }
 
     constructor(owner: CodeScheme, id: string, value: string, color: string, shortcut: string, isEdited: boolean, regex?: [string, string]) {
+        console.log("Code scheme constructor", regex);
+
         this._owner = owner;
         this._id = id;
         this._value = value;
@@ -1433,14 +1435,12 @@ class Code {
         this._eventsWithCode = new Map();
         if (regex && regex[0] && regex[0].length > 0) {
             try {
-                let regEXP = new RegExp(regex[0], regex[1]);
+                let regEXP = new RegExp(regex[0], regex[1]); // TODO: remove unused?
                 this._regex = regex;
-
             } catch (e) {
                 console.log("Error: invalid regex given to Code constructor.");
                 console.log(e);
                 this._regex = ["", ""];
-
             }
         } else {
             this._regex = ["", ""];
@@ -1515,7 +1515,6 @@ class Code {
         return false;
     }
 
-
     addWords(words: Array<string>): Code {
 
         let newWords = this._words.concat(words);
@@ -1568,12 +1567,16 @@ class Code {
         if (regExp && regExp instanceof RegExp) {
             this._regex = [regExp.source, regExp.flags];
         }
+
+        console.log("update via object", regExp, this._regex);
     }
 
     setRegexFromArray(regex: [string, string]) {
         if (regex && regex.length === 2) {
             this._regex = regex;
         }
+
+        console.log("update via array", regex, this._regex);
     }
 
     clearRegex() {

@@ -1212,10 +1212,11 @@ class Code {
     get eventsWithCode() {
         return this._eventsWithCode;
     }
-    get regex() {
-        return this._regex;
-    }
+    // get regex(): [string, string] {
+    //     return this._regex;
+    // }
     constructor(owner, id, value, color, shortcut, isEdited, regex) {
+        console.log("Code scheme constructor", regex);
         this._owner = owner;
         this._id = id;
         this._value = value;
@@ -1226,7 +1227,7 @@ class Code {
         this._eventsWithCode = new Map();
         if (regex && regex[0] && regex[0].length > 0) {
             try {
-                let regEXP = new RegExp(regex[0], regex[1]);
+                let regEXP = new RegExp(regex[0], regex[1]); // TODO: remove unused?
                 this._regex = regex;
             }
             catch (e) {
@@ -1335,11 +1336,13 @@ class Code {
         if (regExp && regExp instanceof RegExp) {
             this._regex = [regExp.source, regExp.flags];
         }
+        console.log("update via object", regExp, this._regex);
     }
     setRegexFromArray(regex) {
         if (regex && regex.length === 2) {
             this._regex = regex;
         }
+        console.log("update via array", regex, this._regex);
     }
     clearRegex() {
         this._regex = ["", ""];
