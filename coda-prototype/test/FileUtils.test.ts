@@ -31,7 +31,6 @@ describe("FileUtils", () => {
         });
     });
 
-    // TODO: Test failing
     it("should save and load a scheme which has no codes", done => {
         let inScheme = new CodeScheme("id-0", "Scheme0", false);
 
@@ -42,9 +41,20 @@ describe("FileUtils", () => {
         }, error => console.log(error));
     });
 
-    it("should save and load a single-code scheme", done => {
+    it("should save and load a one-code scheme", done => {
         let inScheme = new CodeScheme("id-1", "Scheme1", false);
         inScheme.codes.set("code0", new Code(inScheme, "code0", "x", "#ff0000", "", false));
+
+        FileUtils.saveCodeScheme(inScheme);
+        FileUtils.loadCodeScheme(undefined).then(outScheme => {
+            expect(inScheme).toEqual(outScheme);
+            done();
+        }, error => done.fail(error));
+    });
+
+    it("should save and load a multi-code scheme", done => {
+        let inScheme = new CodeScheme("27", "Scheme1", false);
+        inScheme.codes.set("27-4", new Code(inScheme, "27-4", "x", "#ff0000", "", false));
 
         FileUtils.saveCodeScheme(inScheme);
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
@@ -124,7 +134,6 @@ describe("FileUtils", () => {
         });
     });
 
-    // TODO: Test failing
     it("should fail if a multi-code scheme has an inconsistent name", done => {
         let inScheme =
             "scheme_id;scheme_name;code_id;code_value;code_colour;code_shortcut;code_words;code_regex\n" +
@@ -170,6 +179,22 @@ describe("FileUtils", () => {
             done.fail("An inconsistent scheme should have failed");
         }, error => {
             if (error.name === "ParseError") done();
+            else done.fail("Received an error, but it wasn't an expected CodeConsistencyError");
+        });
+    });
+
+    it("should fail if a multi-code scheme has codes with the same id", done => {
+        let inScheme =
+            "scheme_id;scheme_name;code_id;code_value;code_colour;code_shortcut;code_words;code_regex\n" +
+            "66;scheme1;66-91;123;#ffffff;;;\n" +
+            "66;scheme2;66-91;456;#ffffff;;;";
+
+        FileUtils.saveFile(new Blob([inScheme]));
+
+        FileUtils.loadCodeScheme(undefined).then(outScheme => {
+            done.fail("An inconsistent scheme should have failed");
+        }, error => {
+            if (error.name === "CodeConsistencyError") done(); // TODO: Is this the desired error in this case, or do we need a new one?
             else done.fail("Received an error, but it wasn't an expected CodeConsistencyError");
         });
     });
