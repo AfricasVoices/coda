@@ -169,5 +169,5 @@ describe("FileUtils", () => {
         });
     });
 
-    // TODO: This does not
+    // TODO: What should happen if the file is missing some columns? Should we have tests for this?
 });
