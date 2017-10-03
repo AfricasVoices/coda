@@ -1212,11 +1212,10 @@ class Code {
     get eventsWithCode() {
         return this._eventsWithCode;
     }
-    // get regex(): [string, string] {
-    //     return this._regex;
-    // }
+    get regex() {
+        return this._regex;
+    }
     constructor(owner, id, value, color, shortcut, isEdited, regex) {
-        console.log("Code scheme constructor", regex);
         this._owner = owner;
         this._id = id;
         this._value = value;
