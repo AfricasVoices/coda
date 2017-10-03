@@ -47,6 +47,8 @@ describe("FileUtils.test", () => {
 
         FileUtils.saveCodeScheme(inScheme);
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
+            console.log(inScheme);
+            console.log(outScheme);
             expect(inScheme).toEqual(outScheme);
             done();
         }, error => done.fail(error));

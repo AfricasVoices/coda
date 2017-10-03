@@ -15,6 +15,7 @@ module.exports = function(config) {
         files: [
             "model.js",
             "src/io/FileUtils.js",
+            "external/papaparse/papaparse.js",
             "test/*.test.js"
         ],
 

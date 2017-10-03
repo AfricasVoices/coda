@@ -12,6 +12,7 @@
     "model.ts",
     "src/io/FileUtils.ts",
     "src/io/StorageUtils.ts",
-    "sortUtils.ts"
+    "sortUtils.ts",
+    "test/FileUtils.test.ts"
   ]
 }
