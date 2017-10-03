@@ -143,5 +143,5 @@ describe("FileUtils", () => {
                 done.fail("Received an error, but it wasn't an expected CodeConsistencyError");
         });
     });
-    // TODO: This does not
+    // TODO: What should happen if the file is missing some columns? Should we have tests for this?
 });
