@@ -152,4 +152,22 @@ describe("FileUtils", () => {
             else done.fail("Received an error, but it wasn't an expected CodeConsistencyError");
         });
     });
+
+    it("should fail with a ParseError if a scheme is not parseable", done => {
+        let inScheme =
+            "scheme_id;scheme_name;code_id;code_value;code_colour;code_shortcut;code_words;code_regex\n" +
+            "66;scheme1;66-91;123;#ffffff;\n" +
+            "66;scheme2;66-9ffff;;;";
+
+        FileUtils.saveFile(new Blob([inScheme]));
+
+        FileUtils.loadCodeScheme(undefined).then(outScheme => {
+            done.fail("An inconsistent scheme should have failed");
+        }, error => {
+            if (error.name === "ParseError") done(); // TODO: Is this the desired error in this case, or do we need a new one?
+            else done.fail("Received an error, but it wasn't an expected CodeConsistencyError");
+        });
+    });
+
+    // TODO: This does not
 });
