@@ -805,10 +805,10 @@ var messageViewerManager = {
 
         } else {
             /*
-setTimeout(() => {
-    messageViewerManager.horizontalCoding(activeRow.attr("eventid"));
-}, 500);
-*/
+      setTimeout(() => {
+      messageViewerManager.horizontalCoding(activeRow.attr("eventid"));
+      }, 500);
+      */
             messageViewerManager.horizontalCoding(activeRow.attr("eventid"));
         }
 
@@ -1255,10 +1255,10 @@ setTimeout(() => {
 
                 if (messageViewerManager.horizontal) {
                     /*
-  setTimeout(() => {
-      messageViewerManager.horizontalCoding(activeRow.attr("eventid"));
-  }, 500);
-  */
+          setTimeout(() => {
+          messageViewerManager.horizontalCoding(activeRow.attr("eventid"));
+          }, 500);
+          */
                     messageViewerManager.horizontalCoding(activeRow.attr("eventid"));
                 } else {
                     setTimeout(() => {

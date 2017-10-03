@@ -812,8 +812,6 @@ function initUI(dataset) {
 
     });
 
-
-
     $("#undo").on("click", () => {
         messageViewerManager.undoHandler();
     });
