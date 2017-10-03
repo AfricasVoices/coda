@@ -1378,13 +1378,36 @@ class Code {
 
     private _owner: CodeScheme; // Code Scheme to which this code belongs
     private _id: string; // Unique identifier for this code
-    private _value: string; // Code label, or name TODO: change to label?
-    private _color: string; // Color to highlight rows assigned to this code.
-    private _shortcut: string; // KeyCode of the short-cut key TODO: change type to "Integer"?
-    private _words: Array<string>; // List of words used for the word regex.
-    private _isEdited: boolean; // TODO: Remove this? Its only usage is in CodeScheme.duplicate
-    private _eventsWithCode: Map<string, RawEvent>;
-    private _regex: [string, string]; //
+    private _value: string; // Code label, or name TODO: change name to "label"?
+    private _color: string; // Color to highlight rows assigned to this code
+    private _shortcut: string; // KeyCode of the shortcut key used to assign this code TODO: change type to "Integer"?
+    private _words: Array<string>; // List of words used to generate the words regex
+    private _isEdited: boolean; // TODO: Remove this? Its only usage is (I think) in CodeScheme.duplicate
+    private _eventsWithCode: Map<string, RawEvent>; // TODO: what is this for?
+    private _regex: [string, string]; // Custom regex. Note that this never holds the auto-generated words regex.
+
+    constructor(owner: CodeScheme, id: string, value: string, color: string, shortcut: string, isEdited: boolean, regex?: [string, string]) {
+        this._owner = owner;
+        this._id = id;
+        this._value = value;
+        this._color = color;
+        this._shortcut = shortcut;
+        this._words = [];
+        this._isEdited = isEdited;
+        this._eventsWithCode = new Map();
+        if (regex && regex[0] && regex[0].length > 0) {
+            try {
+                let regEXP = new RegExp(regex[0], regex[1]); // TODO: remove unused?
+                this._regex = regex;
+            } catch (e) {
+                console.log("Error: invalid regex given to Code constructor.");
+                console.log(e);
+                this._regex = ["", ""];
+            }
+        } else {
+            this._regex = ["", ""];
+        }
+    }
 
     get owner(): CodeScheme {
         return this._owner;
@@ -1420,29 +1443,6 @@ class Code {
 
     get regex(): [string, string] {
         return this._regex;
-    }
-
-    constructor(owner: CodeScheme, id: string, value: string, color: string, shortcut: string, isEdited: boolean, regex?: [string, string]) {
-        this._owner = owner;
-        this._id = id;
-        this._value = value;
-        this._color = color;
-        this._shortcut = shortcut;
-        this._words = [];
-        this._isEdited = isEdited;
-        this._eventsWithCode = new Map();
-        if (regex && regex[0] && regex[0].length > 0) {
-            try {
-                let regEXP = new RegExp(regex[0], regex[1]); // TODO: remove unused?
-                this._regex = regex;
-            } catch (e) {
-                console.log("Error: invalid regex given to Code constructor.");
-                console.log(e);
-                this._regex = ["", ""];
-            }
-        } else {
-            this._regex = ["", ""];
-        }
     }
 
     toJSON(): { owner: string, id: string, value: string, color: string, shortcut: string, words: Array<String> } {
