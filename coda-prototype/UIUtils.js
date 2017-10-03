@@ -505,16 +505,12 @@ var UIUtils = (function() {
             let alertContent = $("#alert-content");
             alertContent.html(message); // Replace the existing message. TODO: queue alerts?
 
-            successAlert.show();
             $(".tableFloatingHeaderOriginal").hide();
-
-            // TODO: document
-            successAlert.fadeTo(2000, 500).slideUp(500, () => {
-                successAlert.slideUp(500, () => {
-                    successAlert.removeClass("alert-success");
-                    alertContent.empty();
-                    $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
-                });
+            successAlert.show();
+            successAlert.delay(2000).slideUp(500, () => {
+                successAlert.removeClass("alert-success");
+                alertContent.empty();
+                $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
             });
         },
 
@@ -526,9 +522,11 @@ var UIUtils = (function() {
         displayAlertAsError(message) {
             let failAlert = $("#alert");
             failAlert.removeClass("alert-success").addClass("alert-danger");
+
             $("#alert-content").html(message); // Clear the existing message. TODO: queue alerts?
-            failAlert.show();
+
             $(".tableFloatingHeaderOriginal").hide();
+            failAlert.show();
         },
 
         /**
