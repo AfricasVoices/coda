@@ -1335,13 +1335,11 @@ class Code {
         if (regExp && regExp instanceof RegExp) {
             this._regex = [regExp.source, regExp.flags];
         }
-        console.log("update via object", regExp, this._regex);
     }
     setRegexFromArray(regex) {
         if (regex && regex.length === 2) {
             this._regex = regex;
         }
-        console.log("update via array", regex, this._regex);
     }
     clearRegex() {
         this._regex = ["", ""];
