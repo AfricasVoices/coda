@@ -35,47 +35,43 @@ describe("FileUtils", () => {
             done();
         }, error => console.log(error));
     });
-    it("should save and load a one-code scheme", done => {
+    it("should save and load a single-code scheme", done => {
         let inScheme = new CodeScheme("id-1", "Scheme1", false);
         inScheme.codes.set("code0", new Code(inScheme, "code0", "x", "#ff0000", "", false));
         FileUtils.saveCodeScheme(inScheme);
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
-            console.log(inScheme);
-            console.log(outScheme);
             expect(inScheme).toEqual(outScheme);
             done();
         }, error => done.fail(error));
     });
-    it("should save and load a simple multi-code scheme", done => {
-        let inScheme = new CodeScheme("27", "Scheme1", false);
-        inScheme.codes.set("27-4", new Code(inScheme, "27-4", "Code 1", "#ff0000", "96", false));
-        inScheme.codes.set("27-9", new Code(inScheme, "27-9", "Code 2", "#ff00ff", "97", false));
-        inScheme.codes.set("27-5", new Code(inScheme, "27-5", "Code 3", "#ffff00", "98", false));
-        inScheme.codes.set("27-7", new Code(inScheme, "27-7", "Code 4", "#00ff00", "99", false));
+    it("should save and load a single-code scheme with custom words", done => {
+        let inScheme = new CodeScheme("id-1", "Scheme1", false);
+        let code = new Code(inScheme, "code", "x", "#ff0000", "", false);
+        code.addWords(["some", "test", "words"]);
+        inScheme.codes.set("code", code);
+        FileUtils.saveCodeScheme(inScheme);
+        FileUtils.loadCodeScheme(undefined).then(outScheme => {
+            inScheme.codes.forEach(code => delete code._isEdited); // TODO: Understand what Code._isEdited is needed for.
+            outScheme.codes.forEach(code => delete code._isEdited);
+            expect(inScheme).toEqual(outScheme);
+            done();
+        }, error => done.fail(error));
+    });
+    it("should save and load a single-code scheme with a custom regex", done => {
+        let inScheme = new CodeScheme("id-1", "Scheme1", false);
+        inScheme.codes.set("code0", new Code(inScheme, "code0", "x", "#ff0000", "", false, [".*", "i"]));
         FileUtils.saveCodeScheme(inScheme);
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
             expect(inScheme).toEqual(outScheme);
             done();
         }, error => done.fail(error));
     });
-    it("should save and load a multi-code scheme with regexes", done => {
-        let inScheme = new CodeScheme("27", "Scheme1", false);
-        inScheme.codes.set("27-4", new Code(inScheme, "27-4", "Code 1", "#ff0000", "96", false));
-        inScheme.codes.set("27-9", new Code(inScheme, "27-9", "Code 2", "#ff00ff", "97", false, [".*", "gi"]));
-        inScheme.codes.set("27-5", new Code(inScheme, "27-5", "Code 3", "#ffff00", "98", false, [".*", "g"]));
-        inScheme.codes.set("27-7", new Code(inScheme, "27-7", "Code 4", "#00ff00", "99", false, [".*", "i"]));
-        FileUtils.saveCodeScheme(inScheme);
-        FileUtils.loadCodeScheme(undefined).then(outScheme => {
-            expect(inScheme).toEqual(outScheme);
-            done();
-        }, error => done.fail(error));
-    });
-    it("should save and load a multi-code scheme with custom words", done => {
+    it("should save and load a multi-code scheme", done => {
         let inScheme = new CodeScheme("27", "Scheme1", false);
         let code1 = new Code(inScheme, "27-4", "Code 1", "#ff0000", "96", false);
         let code2 = new Code(inScheme, "27-9", "Code 2", "#ff00ff", "97", false, [".*", "g"]);
-        let code3 = new Code(inScheme, "27-5", "Code 3", "#ffff00", "98", false, [".*", "g"]);
-        let code4 = new Code(inScheme, "27-7", "Code 4", "#00ff00", "99", false, [".*", "g"]);
+        let code3 = new Code(inScheme, "27-5", "Code 3", "#ffff00", "98", false, [".*", "i"]);
+        let code4 = new Code(inScheme, "27-7", "Code 4", "#00ff00", "99", false, [".*", "gi"]);
         code1.addWords(["some", "test", "words"]);
         code2.addWords([]);
         code3.addWords(["abc"]);
