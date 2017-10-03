@@ -1,3 +1,5 @@
+/// <reference path="../../UIUtils.js"/>
+
 class FileUtils {
     /**
      * Saves the given string to a file. The file is determined by a file selector UI.
@@ -264,7 +266,6 @@ class FileUtils {
                 resolve(dataset);
             });
         });
-
     }
 
     static loadCodeScheme(file: File): Promise<CodeScheme> {

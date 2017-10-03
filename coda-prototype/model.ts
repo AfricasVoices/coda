@@ -1599,8 +1599,6 @@ class Watchdog {
 }
 
 
-
-
 class UndoManager {
 
     static MAX_UNDO_LEVELS = 8;

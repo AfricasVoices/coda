@@ -463,7 +463,6 @@ var UIUtils = (function() {
         },
 
         scrollRowToTop: function(row, container) {
-
             // TODO: be given the offsetHeight of the row with biggest height
 
             var boundingBoxTop = row.getBoundingClientRect().top;
@@ -491,7 +490,53 @@ var UIUtils = (function() {
         isScrolledToTop: function(tableContainer) {
             return UIUtils.checkVisible($(".message-row").first()[0]);
             //return $("#message-panel").scrollTop() === 0;
-        }
+        },
 
+        /**
+         * Displays the given message in a green banner at the top of the screen.
+         * Success banners are automatically dismissed after a few seconds, and the contents automatically cleared.
+         * @param message HTML to display in the banner.
+         */
+        displayAlertAsSuccess(message) {
+            // Display the alert.
+            let successAlert = $("#alert");
+            successAlert.removeClass("alert-danger").addClass("alert-success");
+
+            let alertContent = $("#alert-content");
+            alertContent.html(message); // Replace the existing message. TODO: queue alerts?
+
+            $(".tableFloatingHeaderOriginal").hide();
+            successAlert.show();
+            successAlert.delay(2000).slideUp(500, () => {
+                successAlert.removeClass("alert-success");
+                alertContent.empty();
+                $(".tableFloatingHeaderOriginal").show(); // hack until header bug is fixed (todo)
+            });
+        },
+
+        /**
+         * Displays the given message in a red banner at the top of the screen.
+         * Error banners are not automatically dismissed.
+         * @param message HTML to display in the banner.
+         */
+        displayAlertAsError(message) {
+            let failAlert = $("#alert");
+            failAlert.removeClass("alert-success").addClass("alert-danger");
+
+            $("#alert-content").html(message); // Clear the existing message. TODO: queue alerts?
+
+            $(".tableFloatingHeaderOriginal").hide();
+            failAlert.show();
+        },
+
+        /**
+         * Hides the alert currently being displayed, and clears its contents.
+         */
+        hideAlert() {
+            let alert = $("#alert");
+            alert.hide();
+            $("#alert-content").empty();
+            $(".tableFloatingHeaderOriginal").show();
+        }
     };
 })();
