@@ -1,4 +1,5 @@
 /// <reference path="../../UIUtils.js"/>
+/// <reference path="../../external/papaparse/papaparse.js"/>
 
 class FileUtils {
     /**
