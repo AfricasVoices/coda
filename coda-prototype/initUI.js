@@ -589,23 +589,25 @@ function initUI(dataset) {
                     " To update an existing coding scheme access it via code editor."
                     : "Something is wrong with the data format. Change a few things up, refresh and try again.";
                 UIUtils.displayAlertAsError(errorText);
-            } else {
-                // todo: what is the behaviour when scheme id is a duplicate - overwrite??
-                // update the activity stack
-                storage.saveActivity({
-                    "category": "SCHEME",
-                    "message": "Imported new scheme",
-                    "messageDetails": {"scheme": newScheme.id},
-                    "data": newScheme.toJSON(),
-                    "timestamp": new Date()
-                });
 
-                newDataset.schemes[newScheme["id"]] = newScheme;
-                messageViewerManager.codeSchemeOrder.push(newScheme["id"] + "");
-                messageViewerManager.addNewSchemeColumn(newScheme);
-
-                UIUtils.displayAlertAsSuccess("<strong>Success!</strong> New coding scheme was imported.");
+                return;
             }
+
+            // todo: what is the behaviour when scheme id is a duplicate - overwrite??
+            // update the activity stack
+            storage.saveActivity({
+                "category": "SCHEME",
+                "message": "Imported new scheme",
+                "messageDetails": {"scheme": newScheme.id},
+                "data": newScheme.toJSON(),
+                "timestamp": new Date()
+            });
+
+            newDataset.schemes[newScheme["id"]] = newScheme;
+            messageViewerManager.codeSchemeOrder.push(newScheme["id"] + "");
+            messageViewerManager.addNewSchemeColumn(newScheme);
+
+            UIUtils.displayAlertAsSuccess("<strong>Success!</strong> New coding scheme was imported.");
         }
 
         function handleSchemeParseError(error) {
@@ -659,20 +661,33 @@ function initUI(dataset) {
             // Update the current scheme with the scheme just uploaded
             let oldActiveRowCodeId = $(".code-row.active").attr("codeid");
 
+            // TODO: This updates the editor UI, so really this should code be refactored into editorUI.js
             for (let [codeId, code] of tempScheme.codes.entries()) {
                 // update existing codes
                 let codeRow = $(".code-row[codeid='" + codeId + "']");
                 if (newScheme.codes.has(codeId)) {
                     let newCode = newScheme.codes.get(codeId);
                     newCode.owner = tempScheme;
+
+                    // Update this code's label
                     codeRow.find(".code-input").attr("value", newCode.value);
 
-                    if (newCode.length > 0) {
-                        // don't set value to empty string, it still counts as value, fails validation and loses placeholder text
+                    // Update this code's color
+                    codeRow.find("td").attr("style", "background-color: " + (newCode.color ? newCode.color : "#ffffff"));
+
+                    // Update this code's shortcut if one is defined.
+                    // The length check is necessary because otherwise this code's shortcut could be set to empty
+                    // string, which would cause validation to fail.
+                    if (newCode.shortcut.length > 0) {
                         codeRow.find(".shortcut-input").attr("value", String.fromCharCode(newCode.shortcut));
+                    } else {
+                        codeRow.find(".shortcut-input").removeAttr("value");
                     }
 
-                    codeRow.find("td").attr("style", "background-color: " + (newCode.color ? newCode.color : "#ffffff"));
+                    // Update this code's regex(es)
+                    // TODO
+
+
                     tempScheme.codes.set(codeId, newCode);
                     newScheme.codes.delete(codeId);
                 } else {
