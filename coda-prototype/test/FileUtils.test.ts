@@ -105,6 +105,29 @@ describe("FileUtils", () => {
         }, error => done.fail(error));
     });
 
+    it("should load a multi-code scheme which has each shortcut variant", done => {
+        // Note: need to use raw text here because saveCodeScheme does not support writing shortcuts as characters.
+        let inSchemeText =
+            "scheme_id;scheme_name;code_id;code_value;code_colour;code_shortcut;code_words;code_regex\n" +
+            "66;scheme1;66-91;123;#ffffff;97;;\n" + // Variant: key code
+            "66;scheme1;66-79;456;#ffffff;b;;\n" + // Variant: character
+            "66;scheme1;66-80;789;#ffffff;;;"; // Variant: no shortcut
+
+        FileUtils.saveFile(new Blob([inSchemeText]));
+
+        let inScheme = new CodeScheme("66", "scheme1", false);
+        inScheme.codes.set("66-91", new Code(inScheme, "66-91", "123", "#ffffff", "97", false));
+        inScheme.codes.set("66-79", new Code(inScheme, "66-79", "456", "#ffffff", "98", false));
+        inScheme.codes.set("66-80", new Code(inScheme, "66-80", "789", "#ffffff", "", false));
+
+        FileUtils.loadCodeScheme(undefined).then(outScheme => {
+            expect(inScheme).toEqual(outScheme);
+            done();
+        }, error => done.fail(error));
+    });
+
+    // TODO: Check for fail if the provided shortcut key is not a single character alphanumeric code/character?
+
     it("should fail if a multi-code scheme has an inconsistent id", done => {
         let inScheme =
             "scheme_id;scheme_name;code_id;code_value;code_colour;code_shortcut;code_words;code_regex\n" +
@@ -173,4 +196,7 @@ describe("FileUtils", () => {
     // TODO: I think in this case we should do "best effort". Some tests where columns are missing might be needed here.
 
     // TODO: Test saving/loading a dataset
+    it("should save and load an empty dataset", done => {
+        done();
+    });
 });
