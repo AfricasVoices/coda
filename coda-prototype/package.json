@@ -16,7 +16,9 @@
     "jasmine-ts": "^0.2.1",
     "karma": "^1.7.1",
     "karma-chrome-launcher": "^2.2.0",
-    "karma-jasmine": "^1.1.0"
+    "karma-coverage": "^1.1.1",
+    "karma-jasmine": "^1.1.0",
+    "karma-remap-coverage": "^0.1.4"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

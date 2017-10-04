@@ -24,12 +24,29 @@ module.exports = function(config) {
 
         // preprocess matching files before serving them to the browser
         // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
-        preprocessors: {},
+        preprocessors: {
+            "src/**/*.js": ["coverage"]
+        },
+
+        plugins: ["karma-coverage", "karma-jasmine", "karma-chrome-launcher"],
 
         // test results reporter to use
         // possible values: 'dots', 'progress'
         // available reporters: https://npmjs.org/browse/keyword/karma-reporter
-        reporters: ["progress"],
+        reporters: ["progress", "coverage"], // "remap-coverage"
+
+        // save interim raw coverage report in memory
+        // coverageReporter: {
+        //     // type: 'in-memory'
+        // },
+
+        // define where to save final remapped coverage reports
+        // remapCoverageReporter: {
+        //     // 'text-summary': null,
+        //     'lcovonly': "C:\\Users\\as2388\\AppData\\Local\\Temp\\karma-intellij-coverage-"
+        //     // html: './coverage/html',
+        //     // cobertura: './coverage/cobertura.xml'
+        // },
 
         // web server port
         port: 9876,

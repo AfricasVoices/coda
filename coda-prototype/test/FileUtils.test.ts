@@ -164,10 +164,13 @@ describe("FileUtils", () => {
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
             done.fail("An inconsistent scheme should have failed");
         }, error => {
-            if (error.name === "ParseError") done(); // TODO: Is this the desired error in this case, or do we need a new one?
+            if (error.name === "ParseError") done();
             else done.fail("Received an error, but it wasn't an expected CodeConsistencyError");
         });
     });
 
     // TODO: What should happen if the file is missing some columns? Should we have tests for this?
+    // TODO: I think in this case we should do "best effort". Some tests where columns are missing might be needed here.
+
+    // TODO: Test saving/loading a dataset
 });

@@ -1380,7 +1380,7 @@ class Code {
     private _id: string; // Unique identifier for this code
     private _value: string; // Code label, or name TODO: change name to "label"?
     private _color: string; // Color to highlight rows assigned to this code
-    private _shortcut: string; // KeyCode of the shortcut key used to assign this code TODO: change type to "Integer"?
+    private _shortcut: string; // KeyCode of the shortcut key used to assign this code, //TODO: or...
     private _words: Array<string>; // List of words used to generate the words regex
     private _isEdited: boolean; // TODO: Remove this? Its only usage is (I think) in CodeScheme.duplicate
     private _eventsWithCode: Map<string, RawEvent>; // TODO: what is this for?
