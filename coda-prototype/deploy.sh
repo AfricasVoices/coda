@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e;
 
 # Delete last attempt if it exists
 rm -rf coda;
@@ -7,7 +8,7 @@ rm -rf coda;
 mkdir coda;
 
 # Check out HEAD to the temporary directory.
-# Export via git archive, which exports as a zip which have to unzip.
+# Export via git archive, which exports as a zip which we have to unzip.
 git archive HEAD --output=coda/export.zip;
 unzip -qq coda/export.zip -d coda/;
 rm coda/export.zip;
