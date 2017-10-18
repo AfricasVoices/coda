@@ -12,8 +12,6 @@ git archive HEAD --output=coda/export.zip;
 unzip -qq coda/export.zip -d coda/;
 rm coda/export.zip;
 
-        #git checkout-index -af --prefix=coda-prototype/export/
-
 # Build project
 # Note: will need to run npm install here in future.
 tsc;
