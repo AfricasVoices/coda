@@ -389,15 +389,19 @@ storage.getDataset().then(dataset => {
 });
 */
 
-function initUI(dataset) {
-    console.time("TOTAL UI INITIALISATION TIME");
-    var messagePanel = $("#message-panel");
-    var editorRow = $("#editor-row");
-
+function loadVersion() {
     $.getJSON("version.json", version => {
-        let hash = version.hash === "develop" ? "develop" : `${version.hash.substring(0, 6).toUpperCase()}`;
-        let date = version.date.substring(0, 16);
-        let versionText = version.hash === "develop" ? "develop" : `v${hash} at ${date}`;
+        let versionText;
+        if (version.hash === "develop") {
+            // This is not a deployed version, so don't claim a version number.
+            versionText = "develop";
+        } else {
+            // Display short forms of the hash and date to save screen space.
+            let hashForDisplay = `${version.hash.substring(0, 6).toUpperCase()}`;
+            let dateForDisplay = version.date.substring(0, 16);
+
+            versionText = `v${hashForDisplay} at ${dateForDisplay}`;
+        }
 
         console.log("Version: " + version.hash);
         console.log("Date: " + version.date);
@@ -412,6 +416,14 @@ function initUI(dataset) {
 
         $("#version-label").text(versionText);
     });
+}
+
+function initUI(dataset) {
+    console.time("TOTAL UI INITIALISATION TIME");
+    var messagePanel = $("#message-panel");
+    var editorRow = $("#editor-row");
+
+    loadVersion();
 
     console.time("total messageview init");
     $("#success-codescheme-alert").hide();
