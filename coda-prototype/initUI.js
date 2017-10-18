@@ -394,6 +394,25 @@ function initUI(dataset) {
     var messagePanel = $("#message-panel");
     var editorRow = $("#editor-row");
 
+    $.getJSON("version.json", version => {
+        let hash = version.hash === "develop" ? "develop" : `${version.hash.substring(0, 6).toUpperCase()}`;
+        let date = version.date.substring(0, 16);
+        let versionText = version.hash === "develop" ? "develop" : `v${hash} at ${date}`;
+
+        console.log("Version: " + version.hash);
+        console.log("Date: " + version.date);
+
+        storage.saveActivity({
+            "category": "VERSION",
+            "message": "Version identified",
+            "messageDetails": version,
+            "data": "",
+            "timestamp": new Date()
+        });
+
+        $("#version-label").text(versionText);
+    });
+
     console.time("total messageview init");
     $("#success-codescheme-alert").hide();
     $("#success-dataset-alert").hide();

@@ -21,364 +21,371 @@ SOFTWARE.
 */
 
 .table-fixed thead {
-  width: 100%;
+    width: 100%;
 }
+
 .table-fixed tbody { /* TODO Scrollbar actually appears on #message-panel */
-  overflow-y: scroll;
-  width: 100%;
+    overflow-y: scroll;
+    width: 100%;
 }
 
 #scrollbar-col {
-  max-width: 120px !important;
-  padding-right: 0px;
+    max-width: 120px !important;
+    padding-right: 0px;
 }
 
 #message-table {
-  table-layout: fixed;
-  word-wrap: break-word;
+    table-layout: fixed;
+    word-wrap: break-word;
 }
 
-.dropdown-toggle > b{
-  font-weight: 500;
+.dropdown-toggle > b {
+    font-weight: 500;
 }
 
 #save-all-button {
-  margin-left: 7px;
-  margin-right: 2px;
+    margin-left: 7px;
+    margin-right: 2px;
 }
 
-#code-now-button{
-  margin-left: 2px;
-  margin-right: 7px;
+#code-now-button {
+    margin-left: 2px;
+    margin-right: 7px;
 }
 
 #undo-redo {
-  margin-left: 7px;
-  margin-right: 15px;
+    margin-left: 7px;
+    margin-right: 15px;
 }
 
 .navbar-brand {
-  font-weight: 900;
-  padding: 14px 15px;
+    font-weight: 900;
+    padding: 14px 15px;
 }
 
 thead {
-  border-top: none;
-  border-bottom: none;
-  background-color: #FFF;
+    border-top: none;
+    border-bottom: none;
+    background-color: #FFF;
 }
 
 body {
-  padding-top: 65px;
+    padding-top: 65px;
 }
 
-.container>.row, .container-fluid>.row {
-  height: 80vh; /* TODO: will be calculated */
+.container > .row, .container-fluid > .row {
+    height: 80vh; /* TODO: will be calculated */
 }
 
 .feedback-input-field {
-  position: relative;
+    position: relative;
 }
 
 .input-group .glyphicon {
-  position: absolute;
-  padding: 10px;
-  pointer-events: none;
-  right: 0px;
-  display: none;
+    position: absolute;
+    padding: 10px;
+    pointer-events: none;
+    right: 0px;
+    display: none;
 }
 
 .input-group.has-feedback .glyphicon {
-  display: inline;
-  z-index:8;
+    display: inline;
+    z-index: 8;
 }
 
 .input-group.has-feedback.has-error .glyphicon {
-  color: #a94442;
+    color: #a94442;
 }
 
 .feedback-input-field .glyphicon {
-  position: absolute;
-  padding: 10px;
-  pointer-events: none;
-  right: 0px;
-  display: none;
+    position: absolute;
+    padding: 10px;
+    pointer-events: none;
+    right: 0px;
+    display: none;
 }
 
 .feedback-input-field input {
-  padding-right: 30px;
+    padding-right: 30px;
 }
 
 .feedback-input-field .help-block {
-  display: none;
+    display: none;
 }
 
 .feedback-input-field.has-feedback .glyphicon {
-  display: inline;
-  z-index:8;
-  color: #a94442;
+    display: inline;
+    z-index: 8;
+    color: #a94442;
 }
 
 #scheme-name-help-block {
-  margin-bottom: 0px;
-  margin-left:122px;
-  color: #a94442;
+    margin-bottom: 0px;
+    margin-left: 122px;
+    color: #a94442;
 }
 
 #scheme-name-col small {
-  display:none;
+    display: none;
 }
 
 #scheme-name-col.has-error small {
-  display:inline;
+    display: inline;
 }
 
 .feedback-input-field.has-feedback.has-error .help-block {
-  /* sets text to same color as the field border */
-  color: #a94442;
-  display: inline;
-  margin-bottom: 0px;
-  padding: 0 5px 0 5px;
-  background-color: white;
+    /* sets text to same color as the field border */
+    color: #a94442;
+    display: inline;
+    margin-bottom: 0px;
+    padding: 0 5px 0 5px;
+    background-color: white;
 }
 
 .feedback-input-field.has-feedback.has-error .glyphicon {
-  /* sets icon to same color as the field border */
-  color: #a94442;
+    /* sets icon to same color as the field border */
+    color: #a94442;
 }
 
 div[class*=col-], #message-panel {
-  height: 100%;
+    height: 100%;
 }
 
 #message-viewer {
-  min-width: 1230px !important;
+    min-width: 1230px !important;
 }
 
 #message-panel {
-  height: 97%;
-  overflow-y: auto;
-  overflow-x: hidden;
+    height: 97%;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 #message-panel::-webkit-scrollbar {
-  width: 0;   /* remove scrollbar space */
-  background: transparent;   /* optional: just make scrollbar invisible */
+    width: 0; /* remove scrollbar space */
+    background: transparent; /* optional: just make scrollbar invisible */
 }
 
 #pagination-nav {
-  text-align: right;
+    text-align: right;
 }
 
 .pagination {
-  margin: 2px 0;
+    margin: 2px 0;
 }
 
-
 #close-editor {
-  float: right;
+    float: right;
 }
 
 #code-editor {
-  z-index: 5;
-  position: fixed !important;
-  bottom: 0;
-  right: 0;
-  width: 550px;
+    z-index: 5;
+    position: fixed !important;
+    bottom: 0;
+    right: 0;
+    width: 550px;
 
-  /* position: relative; */
+    /* position: relative; */
 }
 
 #button-row {
-  position:absolute;
-  bottom: 0;
-  margin-bottom: 10px;
-  width: 100%;
+    position: absolute;
+    bottom: 0;
+    margin-bottom: 10px;
+    width: 100%;
 }
 
 #code-editor-panel {
-  overflow: hidden;
-  top: auto !important;
-  bottom: 0 !important;
-  position:relative;
-  height: 500px;
-  margin-bottom: 0;
+    overflow: hidden;
+    top: auto !important;
+    bottom: 0 !important;
+    position: relative;
+    height: 500px;
+    margin-bottom: 0;
 }
 
 #scheme-save-btn-group {
-  margin-left: 10px;
+    margin-left: 10px;
 }
 
 .panel-heading > h4, .panel-heading > span {
-  margin-bottom: 10px;
-  margin-top: 10px;
+    margin-bottom: 10px;
+    margin-top: 10px;
 }
 
 .panel-heading > button {
-  margin-left: 10px;
+    margin-left: 10px;
 }
 
 .edit-scheme-button {
-  margin-left: 5px;
+    margin-left: 5px;
 }
 
 #delete-scheme-btn-group {
-  float: right;
+    float: right;
 }
 
-
 #editor-row, #panel-row {
-  margin: 0px;
+    margin: 0px;
 }
 
 #editor-row {
-  overflow-y: scroll;
-  padding: 0px 10px 10px 10px;
+    overflow-y: scroll;
+    padding: 0px 10px 10px 10px;
 }
 
 #panel-row > .panel {
-  padding-bottom: 10px;
-  height: 100%;
+    padding-bottom: 10px;
+    height: 100%;
 }
 
 #panel-row {
-  height: 155px;
-  /* padding-bottom: 44px; */
-  bottom: 50px;
-  position: absolute;
-  width: 100%;
-  padding: 10px 10px 0px 10px;
+    height: 155px;
+    /* padding-bottom: 44px; */
+    bottom: 50px;
+    position: absolute;
+    width: 100%;
+    padding: 10px 10px 0px 10px;
 }
 
-.table>tbody>tr.active>td.message-text {
-  background-color: transparent !important;
+.table > tbody > tr.active > td.message-text {
+    background-color: transparent !important;
 }
 
 tr.active {
-  border-left: 30px solid black;
+    border-left: 30px solid black;
 }
 
 tr.active.code-row > td {
-  background-color: transparent !important;
+    background-color: transparent !important;
 }
 
 .highlight {
-  background-color: rgba(157, 157, 157, 1);
-  border: 1px solid black;
+    background-color: rgba(157, 157, 157, 1);
+    border: 1px solid black;
 }
 
 .highlight:hover {
-  background-color: rgba(157, 157, 157, 0.5);
+    background-color: rgba(157, 157, 157, 0.5);
+}
+
+#version-label {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    color: grey;
+    font-size: 11px;
 }
 
 #color-pick {
-  margin-bottom: 5px;
+    margin-bottom: 5px;
 }
 
 .sort-button {
-  margin-right: 5px;
+    margin-right: 5px;
 }
 
 .sort-button > small > span.active {
-  border: 1px solid;
+    border: 1px solid;
 }
 
 #scrollthumb {
-  position: absolute;
-  top: 0;
-  left: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
 #code-details-panel {
-  overflow-y: scroll;
+    overflow-y: scroll;
 }
 
 #deco-table > thead > tr {
-  height: 61px;
+    height: 61px;
 }
 
 #deco-table-col {
-  padding-left: 0px;
+    padding-left: 0px;
 }
 
 #message-table-col {
-  padding-right: 0px;
+    padding-right: 0px;
 }
 
 #word-list > .panel-heading {
-  padding: 5px 15px;
-  background-color: rgb(242,242,242);
+    padding: 5px 15px;
+    background-color: rgb(242, 242, 242);
 }
 
 #word-list {
-  margin-bottom: 0;
+    margin-bottom: 0;
 }
 
 #regex-user, #regex-edit, #word-list {
-  margin-bottom: 5px;
+    margin-bottom: 5px;
 }
 
 #regex-input-error {
-  color: red;
+    color: red;
 }
 
 #word-textarea {
-  padding-bottom: 0 !important;
+    padding-bottom: 0 !important;
 }
 
 .bootstrap-tagsinput {
-  width: 100%;
-  padding: 2px 6px 3px;
+    width: 100%;
+    padding: 2px 6px 3px;
 }
 
 .btn-file {
 
-  position: relative;
-  overflow: hidden;
+    position: relative;
+    overflow: hidden;
 
 }
 
 .btn-file input[type=file] {
 
-  position: absolute;
-  top: 0;
-  right: 0;
-  min-width: 100%;
-  min-height: 100%;
-  font-size: 100px;
-  text-align: right;
-  filter: alpha(opacity=0);
-  opacity: 0;
-  outline: none;
-  background: white;
-  cursor: pointer;
-  display: block;
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 100%;
+    min-height: 100%;
+    font-size: 100px;
+    text-align: right;
+    filter: alpha(opacity=0);
+    opacity: 0;
+    outline: none;
+    background: white;
+    cursor: pointer;
+    display: block;
 
 }
 
 .sort-btn {
-  padding: 1px;
-  margin-right: 5px;
+    padding: 1px;
+    margin-right: 5px;
 }
 
 .sort-icon {
-  height: 18px;
-  width: 19px;
+    height: 18px;
+    width: 19px;
 }
 
 select[disabled] {
-  -webkit-appearance:none;
+    -webkit-appearance: none;
 }
 
 .scheme-name-cont {
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 .scheme-name-cont:hover {
-  white-space: nowrap;
-  overflow: visible;
+    white-space: nowrap;
+    overflow: visible;
 }
 
 /*
@@ -386,26 +393,26 @@ TODO prevent code header column wrapping to next row - keep button always on top
 */
 
 .checkbox-manual {
-  transform: scale(1.1);
+    transform: scale(1.1);
 }
 
 i.scheme-name {
-  cursor: pointer;
-  border: solid #ffffff 1px;
-  border-radius: 3px;
+    cursor: pointer;
+    border: solid #ffffff 1px;
+    border-radius: 3px;
 }
 
 i.scheme-name:hover {
-  background-color: #f9f9f9;
-  border: solid #9d9d9d 1px;
-  border-radius: 3px;
+    background-color: #f9f9f9;
+    border: solid #9d9d9d 1px;
+    border-radius: 3px;
 }
 
 i.scheme-name.active-scheme {
-  border: solid black 1px;
-  border-radius: 3px;
-  font-size: 16px;
-  font-style: normal;
+    border: solid black 1px;
+    border-radius: 3px;
+    font-size: 16px;
+    font-style: normal;
 
 }
 
@@ -413,62 +420,63 @@ i.scheme-name.active-scheme {
 .five-cols .col-sm-1,
 .five-cols .col-xs-1,
 .five-cols .col-lg-1 {
-  width: 20%;
+    width: 20%;
 }
 
 .seven-cols .col-md-1,
 .seven-cols .col-sm-1,
 .seven-cols .col-xs-1,
 .seven-cols .col-lg-1 {
-  width: 14.285714285714285714285714285714%;
+    width: 14.285714285714285714285714285714%;
 }
 
 .eight-cols .col-md-1,
 .eight-cols .col-sm-1,
 .eight-cols .col-xs-1,
 .eight-cols .col-lg-1 {
-  width: 12.5%;
+    width: 12.5%;
 }
 
 .nine-cols .col-md-1,
 .nine-cols .col-sm-1,
 .nine-cols .col-xs-1,
 .nine-cols .col-lg-1 {
-  width: 11.11111111111111%;
+    width: 11.11111111111111%;
 }
 
 .ten-cols .col-md-1,
 .ten-cols .col-sm-1,
 .ten-cols .col-xs-1,
 .ten-cols .col-lg-1 {
-  width: 10%;
+    width: 10%;
 }
 
 .eleven-cols .col-md-1,
 .eleven-cols .col-sm-1,
 .eleven-cols .col-xs-1,
 .eleven-cols .col-lg-1 {
-  width: 9.090909090909092%;
+    width: 9.090909090909092%;
 }
 
 .deco-container .input-group {
-  width: 100%;
+    width: 100%;
 }
 
 .active-scheme .input-group {
-  width: 100%;
+    width: 100%;
 }
 
 #active-scheme-header, #active-scheme-header > .scheme-header {
-  max-width: none !important;
+    max-width: none !important;
 }
+
 /*
 .scheme-name{
   width: 100%
 }
 */
 .scheme-header {
-  max-width: 266px !important;
-  min-width: 266px;
-  /* HAVE TO KEEP MIN-WIDTH AS SET BY STICKYTABLEHEADERS */
+    max-width: 266px !important;
+    min-width: 266px;
+    /* HAVE TO KEEP MIN-WIDTH AS SET BY STICKYTABLEHEADERS */
 }
