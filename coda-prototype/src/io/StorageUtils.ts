@@ -199,7 +199,7 @@ class StorageManager {
                 }
 
                 console.log("Saved user ID: " + id);
-                resolve(id);
+                resolve(String(id));
             });
         });
     }
@@ -212,7 +212,7 @@ class StorageManager {
                     reject(chrome.runtime.lastError);
                 }
 
-                let id = data.hasOwnProperty('userId') ? data['userId'] : null;
+                let id: string = data.hasOwnProperty('userId') ? data['userId'] : null;
 
                 if (id && id.length == 36) {
                     resolve(id);

@@ -1,4 +1,5 @@
-/// <reference path="../../UIUtils.js"/>
+declare let UIUtils;
+declare let Papa;
 
 class FileUtils {
     /**
