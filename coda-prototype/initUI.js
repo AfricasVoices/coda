@@ -389,10 +389,41 @@ storage.getDataset().then(dataset => {
 });
 */
 
+function loadVersion() {
+    $.getJSON("version.json", version => {
+        let versionText;
+        if (version.hash === "develop") {
+            // This is not a deployed version, so don't claim a version number.
+            versionText = "develop";
+        } else {
+            // Display short forms of the hash and date to save screen space.
+            let hashForDisplay = `${version.hash.substring(0, 6).toUpperCase()}`;
+            let dateForDisplay = version.date.substring(0, 16);
+
+            versionText = `v${hashForDisplay} at ${dateForDisplay}`;
+        }
+
+        console.log("Version: " + version.hash);
+        console.log("Date: " + version.date);
+
+        storage.saveActivity({
+            "category": "VERSION",
+            "message": "Version identified",
+            "messageDetails": version,
+            "data": "",
+            "timestamp": new Date()
+        });
+
+        $("#version-label").text(versionText);
+    });
+}
+
 function initUI(dataset) {
     console.time("TOTAL UI INITIALISATION TIME");
     var messagePanel = $("#message-panel");
     var editorRow = $("#editor-row");
+
+    loadVersion();
 
     console.time("total messageview init");
     $("#success-codescheme-alert").hide();
