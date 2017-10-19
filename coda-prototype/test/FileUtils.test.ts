@@ -32,13 +32,13 @@ describe("FileUtils", () => {
     });
 
     it("should save and load a scheme which has no codes", done => {
-        let inScheme = new CodeScheme("id-0", "Scheme0", false);
+        let inScheme = new CodeScheme("id0", "Scheme0", false);
 
         FileUtils.saveCodeScheme(inScheme);
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
             expect(inScheme).toEqual(outScheme);
             done();
-        }, error => console.log(error));
+        }, done.fail);
     });
 
     it("should save and load a one-code scheme", done => {
@@ -52,9 +52,9 @@ describe("FileUtils", () => {
         }, error => done.fail(error));
     });
 
-    it("should save and load a multi-code scheme", done => {
-        let inScheme = new CodeScheme("27", "Scheme1", false);
-        inScheme.codes.set("27-4", new Code(inScheme, "27-4", "x", "#ff0000", "", false));
+    it("should save and load a single-code with semicolons in the scheme name", done => {
+        let inScheme = new CodeScheme("id-1", "x;y", false);
+        inScheme.codes.set("code0", new Code(inScheme, "code0", "x", "#ff0000", "", false));
 
         FileUtils.saveCodeScheme(inScheme);
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
@@ -198,6 +198,8 @@ describe("FileUtils", () => {
             else done.fail("Received an error, but it wasn't an expected CodeConsistencyError");
         });
     });
+
+    // TODO: test for rejecting a completely empty scheme (i.e. only column headers)
 
     // TODO: What should happen if the file is missing some columns? Should we have tests for this?
     // TODO: I think in this case we should do "best effort". Some tests where columns are missing might be needed here.

@@ -21,7 +21,7 @@ class FileUtils {
         let eventJSON = {
             "data": [], "fields": ["id", "timestamp", "owner", "data", "schemeId", "schemeName", "deco_codeValue", "deco_codeId",
                 "deco_confidence", "deco_manual", "deco_timestamp", "deco_author"]
-        }; // TODO: why are rows being referred to as 'events'?
+        };
         // For each 'event', add a row to the output for each scheme if schemes exist, or a single row if not.
         // TODO: Write this in a less-yucky way such that pushing many empty strings is not required
         for (let event of dataset.events.values()) {
@@ -99,10 +99,15 @@ class FileUtils {
             "data": [], "fields": ["scheme_id", "scheme_name", "code_id", "code_value", "code_colour",
                 "code_shortcut", "code_words", "code_regex"]
         };
-        for (let [codeId, code] of codeScheme.codes) {
-            let codeArr = [codeScheme.id, codeScheme.name, codeId, code.value, code.color,
-                code.shortcut, code.words.toString(), code.regex[0]]; // TODO: fail
-            schemeJSON["data"].push(codeArr);
+        if (codeScheme.codes.size === 0) {
+            schemeJSON["data"].push([codeScheme.id, codeScheme.name, "", "", "", "", "", ""]);
+        }
+        else {
+            for (let [codeId, code] of codeScheme.codes) {
+                let codeArr = [codeScheme.id, codeScheme.name, codeId, code.value, code.color,
+                    code.shortcut, code.words.toString(), code.regex[0]]; // TODO: This drops the regex type (e.g. 'i', 'g')
+                schemeJSON["data"].push(codeArr);
+            }
         }
         let dataBlob = new Blob([Papa.unparse(schemeJSON, { header: true, delimiter: ";" })], { type: 'text/plain' });
         FileUtils.saveFile(dataBlob, downloadId => {
@@ -244,11 +249,8 @@ class FileUtils {
                 // Construct a CodeScheme object by parsing each code entry in turn.
                 for (let codeRow of parsedObjects) {
                     let id = codeRow.hasOwnProperty("scheme_id"), name = codeRow.hasOwnProperty("scheme_name"), code_id = codeRow.hasOwnProperty("code_id"), code_value = codeRow.hasOwnProperty("code_value"), code_colour = codeRow.hasOwnProperty("code_colour"), code_shortcut = codeRow.hasOwnProperty("code_shortcut"), code_words = codeRow.hasOwnProperty("code_words"), code_regex = codeRow.hasOwnProperty("code_regex");
-                    // If there is sufficient information to convert this row into a code, do so, and add it to the
-                    // scheme.
-                    if (id && name && code_id && code_value) {
-                        // todo handle if loading an edit of a scheme that was already loaded in... how to deal if
-                        // todo code was deleted?
+                    // If there is enough information to construct a scheme from this entry, do so.
+                    if (id && name) {
                         if (schemeId === null) {
                             schemeId = codeRow["scheme_id"];
                         }
@@ -263,26 +265,31 @@ class FileUtils {
                         if (!newScheme) {
                             newScheme = new CodeScheme(codeRow["scheme_id"], codeRow["scheme_name"], false);
                         }
-                        let newShortcut = codeRow["code_shortcut"];
-                        if (codeRow["code_shortcut"].length === 1 && isNaN(parseInt(codeRow["code_shortcut"]))) {
-                            newShortcut = UIUtils.ascii(codeRow["code_shortcut"]);
-                        }
-                        let newCode;
-                        if (code_regex && typeof codeRow["code_regex"] === "string") {
-                            newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"], codeRow["code_colour"], newShortcut, false, [codeRow["code_regex"], "g"]); // TODO: fail
-                        }
-                        else {
-                            newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"], codeRow["code_colour"], newShortcut, false);
-                        }
-                        if (code_words) {
-                            if (codeRow["code_words"].length !== 0) {
-                                let words = codeRow["code_words"].split(",");
-                                if (words.length > 0) {
-                                    newCode.addWords(words);
+                        // If there is also enough information to construct a code, do so.
+                        if (code_id && code_value && codeRow["code_id"] !== "" && codeRow["code_value"] !== "") {
+                            // todo handle if loading an edit of a scheme that was already loaded in... how to deal if
+                            // todo code was deleted?
+                            let newShortcut = codeRow["code_shortcut"];
+                            if (codeRow["code_shortcut"].length === 1 && isNaN(parseInt(codeRow["code_shortcut"]))) {
+                                newShortcut = UIUtils.ascii(codeRow["code_shortcut"]);
+                            }
+                            let newCode;
+                            if (code_regex && typeof codeRow["code_regex"] === "string") {
+                                newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"], codeRow["code_colour"], newShortcut, false, [codeRow["code_regex"], "g"]); // TODO: This drops the regex type
+                            }
+                            else {
+                                newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"], codeRow["code_colour"], newShortcut, false);
+                            }
+                            if (code_words) {
+                                if (codeRow["code_words"].length !== 0) {
+                                    let words = codeRow["code_words"].split(",");
+                                    if (words.length > 0) {
+                                        newCode.addWords(words);
+                                    }
                                 }
                             }
+                            newScheme.codes.set(codeRow["code_id"], newCode);
                         }
-                        newScheme.codes.set(codeRow["code_id"], newCode);
                     }
                 }
                 resolve(newScheme);
