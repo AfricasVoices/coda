@@ -3,7 +3,7 @@ set -e
 
 # Revert version.json on exit.
 function finish {
-    echo "{\"hash\": \"develop\", \"date\": \"\"}" >version.json
+    echo $'{\n  "hash": "develop",\n  "date": ""\n}' >version.json
 }
 trap finish EXIT
 
