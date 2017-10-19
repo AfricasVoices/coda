@@ -1,5 +1,5 @@
 /// <reference path="../src/io/FileUtils.ts"/>
-/// <reference path="../model.ts""/>
+/// <reference path="../model.ts"/>
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 
 describe("FileUtils", () => {

@@ -1,5 +1,5 @@
 /// <reference path="../src/io/FileUtils.ts"/>
-/// <reference path="../model.ts""/>
+/// <reference path="../model.ts"/>
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 describe("FileUtils", () => {
     // Mock saving and loading a file, such that readFileAsText() returns the last object "saved" via saveFile.
