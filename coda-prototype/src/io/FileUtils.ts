@@ -290,6 +290,11 @@ class FileUtils {
                 let newScheme: CodeScheme = null;
                 let schemeId = null;
 
+                if (parsedObjects.length === 0) {
+                    reject({name: "NoValuesError"});
+                    return;
+                }
+
                 // Each row defines a code within the code scheme.
                 // Construct a CodeScheme object by parsing each code entry in turn.
                 for (let codeRow of parsedObjects) {
