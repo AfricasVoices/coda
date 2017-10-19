@@ -147,7 +147,6 @@ describe("FileUtils", () => {
             "67;scheme1;67-79;456;#ffffff;;;";
 
         FileUtils.saveFile(new Blob([inScheme]));
-
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
             done.fail("An inconsistent scheme should have failed");
         }, error => {
@@ -163,7 +162,6 @@ describe("FileUtils", () => {
             "66;scheme2;66-79;456;#ffffff;;;";
 
         FileUtils.saveFile(new Blob([inScheme]));
-
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
             done.fail("An inconsistent scheme should have failed");
         }, error => {
@@ -180,7 +178,6 @@ describe("FileUtils", () => {
             "66;scheme2;66-91;456;#ffffff;;;";
 
         FileUtils.saveFile(new Blob([inScheme]));
-
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
             done.fail("An inconsistent scheme should have failed");
         }, error => {
@@ -196,12 +193,26 @@ describe("FileUtils", () => {
             "66;scheme2;66-9ffff;;;";
 
         FileUtils.saveFile(new Blob([inScheme]));
-
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
             done.fail("An inconsistent scheme should have failed");
         }, error => {
             if (error.name === "ParseError") done();
-            else done.fail("Received an error, but it wasn't an expected CodeConsistencyError");
+            else done.fail("Received an error, but it wasn't an expected ParseError");
+        });
+    });
+
+    // TODO: Test failing
+    it("should fail with a NoValuesError if a scheme has valid column headings but no data", done => {
+        let inScheme =
+            "scheme_id;scheme_name;code_id;code_value;code_colour;code_shortcut;code_words;code_regex";
+
+        FileUtils.saveFile(new Blob([inScheme]));
+        FileUtils.loadCodeScheme(undefined).then(outScheme => {
+            done.fail("A scheme file with no data should have failed");
+        }, error => {
+            console.log(JSON.stringify(error));
+            if (error.name === "NoValuesError") done();
+            else done.fail("Received an error, but it wasn't an expected NoValuesError");
         });
     });
 
