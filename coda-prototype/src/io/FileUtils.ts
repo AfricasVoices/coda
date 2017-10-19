@@ -309,11 +309,15 @@ class FileUtils {
                             schemeId = codeRow["scheme_id"];
                         } else {
                             if (schemeId !== codeRow["scheme_id"]) {
-                                reject({
-                                    name: "CodeConsistencyError"
-                                });
+                                reject({name: "CodeConsistencyError"});
                                 return;
                             }
+                        }
+
+                        // Ensure the scheme's name is consistent across all codes.
+                        if (newScheme !== null && codeRow["scheme_name"] !== newScheme.name) {
+                            reject({name: "CodeConsistencyError"});
+                            return;
                         }
 
                         if (!newScheme) {
