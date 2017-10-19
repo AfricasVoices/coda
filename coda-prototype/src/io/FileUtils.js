@@ -97,15 +97,15 @@ class FileUtils {
     static saveCodeScheme(codeScheme) {
         let schemeJSON = {
             "data": [], "fields": ["scheme_id", "scheme_name", "code_id", "code_value", "code_colour",
-                "code_shortcut", "code_words", "code_regex"]
+                "code_shortcut", "code_words", "code_regex", "code_regex_modifier"]
         };
         if (codeScheme.codes.size === 0) {
-            schemeJSON["data"].push([codeScheme.id, codeScheme.name, "", "", "", "", "", ""]);
+            schemeJSON["data"].push([codeScheme.id, codeScheme.name, "", "", "", "", "", "", ""]);
         }
         else {
             for (let [codeId, code] of codeScheme.codes) {
                 let codeArr = [codeScheme.id, codeScheme.name, codeId, code.value, code.color,
-                    code.shortcut, code.words.toString(), code.regex[0]]; // TODO: This drops the regex type (e.g. 'i', 'g')
+                    code.shortcut, code.words.toString(), code.regex[0], code.regex[1]];
                 schemeJSON["data"].push(codeArr);
             }
         }
@@ -248,7 +248,7 @@ class FileUtils {
                 // Each row defines a code within the code scheme.
                 // Construct a CodeScheme object by parsing each code entry in turn.
                 for (let codeRow of parsedObjects) {
-                    let id = codeRow.hasOwnProperty("scheme_id"), name = codeRow.hasOwnProperty("scheme_name"), code_id = codeRow.hasOwnProperty("code_id"), code_value = codeRow.hasOwnProperty("code_value"), code_colour = codeRow.hasOwnProperty("code_colour"), code_shortcut = codeRow.hasOwnProperty("code_shortcut"), code_words = codeRow.hasOwnProperty("code_words"), code_regex = codeRow.hasOwnProperty("code_regex");
+                    let id = codeRow.hasOwnProperty("scheme_id"), name = codeRow.hasOwnProperty("scheme_name"), code_id = codeRow.hasOwnProperty("code_id"), code_value = codeRow.hasOwnProperty("code_value"), code_colour = codeRow.hasOwnProperty("code_colour"), code_shortcut = codeRow.hasOwnProperty("code_shortcut"), code_words = codeRow.hasOwnProperty("code_words"), code_regex = codeRow.hasOwnProperty("code_regex"), code_regex_modifier = codeRow.hasOwnProperty("code_regex_modifier");
                     // If there is enough information to construct a scheme from this entry, do so.
                     if (id && name) {
                         if (schemeId === null) {
@@ -274,8 +274,10 @@ class FileUtils {
                                 newShortcut = UIUtils.ascii(codeRow["code_shortcut"]);
                             }
                             let newCode;
-                            if (code_regex && typeof codeRow["code_regex"] === "string") {
-                                newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"], codeRow["code_colour"], newShortcut, false, [codeRow["code_regex"], "g"]); // TODO: This drops the regex type
+                            if (code_regex || code_regex_modifier) {
+                                let regex = code_regex ? codeRow["code_regex"] : "";
+                                let modifier = code_regex_modifier ? codeRow["code_regex_modifier"] : "g";
+                                newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"], codeRow["code_colour"], newShortcut, false, [regex, modifier]);
                             }
                             else {
                                 newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"], codeRow["code_colour"], newShortcut, false);

@@ -118,6 +118,28 @@ describe("FileUtils", () => {
         }, error => done.fail(error));
     });
 
+    it("should load a scheme with no regex column", done => {
+        let inSchemeText =
+            "scheme_id;scheme_name;code_id;code_value;code_colour;code_shortcut;code_words\n" +
+            "66;scheme1;66-91;123;#ffffff;;\n" +
+            "66;scheme1;66-79;456;#ffffff;;";
+
+        let inScheme = new CodeScheme("66", "scheme1", false);
+        let code1 = new Code(inScheme, "66-91", "123", "#ffffff", "", false);
+        let code2 = new Code(inScheme, "66-79", "456", "#ffffff", "", false);
+        inScheme.codes.set("66-91", code1);
+        inScheme.codes.set("66-79", code2);
+
+        FileUtils.saveFile(new Blob([inSchemeText]));
+        FileUtils.loadCodeScheme(undefined).then(outScheme => {
+            inScheme.codes.forEach(code => delete code._isEdited); // TODO: Understand what Code._isEdited is needed for.
+            outScheme.codes.forEach(code => delete code._isEdited);
+
+            expect(inScheme).toEqual(outScheme);
+            done();
+        }, error => done.fail(error));
+    });
+
     it("should fail if a multi-code scheme has an inconsistent id", done => {
         let inScheme =
             "scheme_id;scheme_name;code_id;code_value;code_colour;code_shortcut;code_words;code_regex\n" +
