@@ -147,7 +147,7 @@ describe("FileUtils", () => {
     it("should fail if a multi-code scheme has codes with the same code id", done => {
         let inScheme = "scheme_id;scheme_name;code_id;code_value;code_colour;code_shortcut;code_words;code_regex\n" +
             "66;scheme1;66-91;123;#ffffff;;;\n" +
-            "66;scheme2;66-91;456;#ffffff;;;";
+            "66;scheme1;66-91;456;#ffffff;;;";
         FileUtils.saveFile(new Blob([inScheme]));
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
             done.fail("An inconsistent scheme should have failed");

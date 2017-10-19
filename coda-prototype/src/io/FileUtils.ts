@@ -287,7 +287,7 @@ class FileUtils {
                 }
 
                 let parsedObjects = parse.data;
-                let newScheme = null;
+                let newScheme: CodeScheme = null;
                 let schemeId = null;
 
                 // Each row defines a code within the code scheme.
@@ -328,6 +328,14 @@ class FileUtils {
                         if (code_id && code_value && codeRow["code_id"] !== "" && codeRow["code_value"] !== "") {
                             // todo handle if loading an edit of a scheme that was already loaded in... how to deal if
                             // todo code was deleted?
+
+                            if (newScheme.codes.has(codeRow["code_id"])) {
+                                reject({
+                                    name: "CodeConsistencyError",
+                                    message: "Scheme file had multiple codes with the same id"
+                                });
+                                return;
+                            }
 
                             let newShortcut = codeRow["code_shortcut"];
                             if (codeRow["code_shortcut"].length === 1 && isNaN(parseInt(codeRow["code_shortcut"]))) {
