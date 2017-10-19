@@ -79,7 +79,6 @@ describe("FileUtils", () => {
         }, error => done.fail(error));
     });
 
-    // TODO: Test failing
     it("should save and load a single-code scheme with a custom regex", done => {
         let inScheme = new CodeScheme("id-1", "Scheme1", false);
         inScheme.codes.set("code0", new Code(inScheme, "code0", "x", "#ff0000", "", false, [".*", "i"]));
@@ -91,7 +90,6 @@ describe("FileUtils", () => {
         }, error => done.fail(error));
     });
 
-    // TODO: Test failing
     it("should save and load a multi-code scheme", done => {
         let inScheme = new CodeScheme("27", "Scheme1", false);
         let code1 = new Code(inScheme, "27-4", "Code 1", "#ff0000", "96", false);
@@ -170,7 +168,6 @@ describe("FileUtils", () => {
         });
     });
 
-    // TODO: Test failing
     it("should fail if a multi-code scheme has codes with the same code id", done => {
         let inScheme =
             "scheme_id;scheme_name;code_id;code_value;code_colour;code_shortcut;code_words;code_regex\n" +
