@@ -1188,6 +1188,30 @@ class CodeScheme {
     }
 }
 class Code {
+    constructor(owner, id, value, color, shortcut, isEdited, regex) {
+        this._owner = owner;
+        this._id = id;
+        this._value = value;
+        this._color = color;
+        this._shortcut = shortcut;
+        this._words = [];
+        this._isEdited = isEdited;
+        this._eventsWithCode = new Map();
+        if (regex && regex[0] && regex[0].length > 0) {
+            try {
+                let regEXP = new RegExp(regex[0], regex[1]); // TODO: remove unused?
+                this._regex = regex;
+            }
+            catch (e) {
+                console.log("Error: invalid regex given to Code constructor.");
+                console.log(e);
+                this._regex = ["", ""];
+            }
+        }
+        else {
+            this._regex = ["", ""];
+        }
+    }
     get owner() {
         return this._owner;
     }
@@ -1214,30 +1238,6 @@ class Code {
     }
     get regex() {
         return this._regex;
-    }
-    constructor(owner, id, value, color, shortcut, isEdited, regex) {
-        this._owner = owner;
-        this._id = id;
-        this._value = value;
-        this._color = color;
-        this._shortcut = shortcut;
-        this._words = [];
-        this._isEdited = isEdited;
-        this._eventsWithCode = new Map();
-        if (regex && regex[0] && regex[0].length > 0) {
-            try {
-                let regEXP = new RegExp(regex[0], regex[1]);
-                this._regex = regex;
-            }
-            catch (e) {
-                console.log("Error: invalid regex given to Code constructor.");
-                console.log(e);
-                this._regex = ["", ""];
-            }
-        }
-        else {
-            this._regex = ["", ""];
-        }
     }
     toJSON() {
         let obj = Object.create(null);
@@ -1335,11 +1335,13 @@ class Code {
         if (regExp && regExp instanceof RegExp) {
             this._regex = [regExp.source, regExp.flags];
         }
+        console.log("update via object", regExp, this._regex);
     }
     setRegexFromArray(regex) {
         if (regex && regex.length === 2) {
             this._regex = regex;
         }
+        console.log("update via array", regex, this._regex);
     }
     clearRegex() {
         this._regex = ["", ""];
