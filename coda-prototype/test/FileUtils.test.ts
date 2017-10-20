@@ -175,7 +175,6 @@ describe("FileUtils", () => {
             "66;scheme1;66-91;456;#ffffff;;;";
 
         FileUtils.saveFile(new Blob([inScheme]));
-        
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
             done.fail("An inconsistent scheme should have failed");
         }, error => {
