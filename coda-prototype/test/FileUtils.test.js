@@ -42,7 +42,7 @@ describe("FileUtils", () => {
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
             expect(inScheme).toEqual(outScheme);
             done();
-        }, error => done.fail(error));
+        }, done.fail);
     });
     it("should save and load a single-code with semicolons in the scheme name", done => {
         let inScheme = new CodeScheme("id-1", "x;y", false);
@@ -51,7 +51,7 @@ describe("FileUtils", () => {
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
             expect(inScheme).toEqual(outScheme);
             done();
-        }, error => done.fail(error));
+        }, done.fail);
     });
     it("should save and load a single-code scheme with custom words", done => {
         let inScheme = new CodeScheme("id-1", "Scheme1", false);
@@ -64,7 +64,7 @@ describe("FileUtils", () => {
             outScheme.codes.forEach(code => delete code._isEdited);
             expect(inScheme).toEqual(outScheme);
             done();
-        }, error => done.fail(error));
+        }, done.fail);
     });
     it("should save and load a single-code scheme with a custom regex", done => {
         let inScheme = new CodeScheme("id-1", "Scheme1", false);
@@ -73,7 +73,7 @@ describe("FileUtils", () => {
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
             expect(inScheme).toEqual(outScheme);
             done();
-        }, error => done.fail(error));
+        }, done.fail);
     });
     it("should save and load a multi-code scheme", done => {
         let inScheme = new CodeScheme("27", "Scheme1", false);
@@ -94,7 +94,7 @@ describe("FileUtils", () => {
             outScheme.codes.forEach(code => delete code._isEdited);
             expect(inScheme).toEqual(outScheme);
             done();
-        }, error => done.fail(error));
+        }, done.fail);
     });
     it("should load a scheme with no regex column", done => {
         let inSchemeText = "scheme_id;scheme_name;code_id;code_value;code_colour;code_shortcut;code_words\n" +
@@ -111,7 +111,7 @@ describe("FileUtils", () => {
             outScheme.codes.forEach(code => delete code._isEdited);
             expect(inScheme).toEqual(outScheme);
             done();
-        }, error => done.fail(error));
+        }, done.fail);
     });
     it("should fail if a multi-code scheme has an inconsistent id", done => {
         let inScheme = "scheme_id;scheme_name;code_id;code_value;code_colour;code_shortcut;code_words;code_regex\n" +
@@ -150,7 +150,7 @@ describe("FileUtils", () => {
             done.fail("An inconsistent scheme should have failed");
         }, error => {
             if (error.name === "CodeConsistencyError")
-                done(); // TODO: Is this the desired error in this case, or do we need a new one?
+                done();
             else
                 done.fail("Received an error, but it wasn't an expected CodeConsistencyError");
         });
@@ -181,21 +181,6 @@ describe("FileUtils", () => {
                 done.fail("Received an error, but it wasn't an expected NoValuesError");
         });
     });
-    it("should fail if a multi-code scheme has codes with the same id", done => {
-        let inScheme = "scheme_id;scheme_name;code_id;code_value;code_colour;code_shortcut;code_words;code_regex\n" +
-            "66;scheme1;66-91;123;#ffffff;;;\n" +
-            "66;scheme2;66-91;456;#ffffff;;;";
-        FileUtils.saveFile(new Blob([inScheme]));
-        FileUtils.loadCodeScheme(undefined).then(outScheme => {
-            done.fail("An inconsistent scheme should have failed");
-        }, error => {
-            if (error.name === "CodeConsistencyError")
-                done(); // TODO: Is this the desired error in this case, or do we need a new one?
-            else
-                done.fail("Received an error, but it wasn't an expected CodeConsistencyError");
-        });
-    });
-    // TODO: test for rejecting a completely empty scheme (i.e. only column headers)
     // TODO: What should happen if the file is missing some columns? Should we have tests for this?
     // TODO: I think in this case we should do "best effort". Some tests where columns are missing might be needed here.
     // TODO: Test saving/loading a dataset
