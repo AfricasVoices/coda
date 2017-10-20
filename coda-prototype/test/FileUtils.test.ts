@@ -61,8 +61,8 @@ describe("FileUtils", () => {
 
         FileUtils.saveCodeScheme(inScheme);
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
-            inScheme.codes.forEach(code => delete code._isEdited); // TODO: Understand what Code._isEdited is needed for.
-            outScheme.codes.forEach(code => delete code._isEdited);
+            inScheme.codes.forEach(code => delete (<any>code)._isEdited);
+            outScheme.codes.forEach(code => delete (<any>code)._isEdited);
 
             expect(inScheme).toEqual(outScheme);
             done();
@@ -100,8 +100,8 @@ describe("FileUtils", () => {
 
         FileUtils.saveCodeScheme(inScheme);
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
-            inScheme.codes.forEach(code => delete code._isEdited); // TODO: Understand what Code._isEdited is needed for.
-            outScheme.codes.forEach(code => delete code._isEdited);
+            inScheme.codes.forEach(code => delete (<any>code)._isEdited);
+            outScheme.codes.forEach(code => delete (<any>code)._isEdited);
 
             expect(inScheme).toEqual(outScheme);
             done();

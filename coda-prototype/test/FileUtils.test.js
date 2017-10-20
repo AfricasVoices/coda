@@ -4,10 +4,10 @@
 describe("FileUtils", () => {
     // Mock saving and loading a file, such that readFileAsText() returns the last object "saved" via saveFile.
     let savedFile;
-    FileUtils.saveFile = function(fileContents, onDownloadStartedHandler) {
+    FileUtils.saveFile = function (fileContents, onDownloadStartedHandler) {
         savedFile = fileContents;
     };
-    FileUtils.readFileAsText = function(file) {
+    FileUtils.readFileAsText = function (file) {
         return new Promise(resolve => {
             let reader = new FileReader();
             reader.onloadend = () => resolve(reader.result);
@@ -52,7 +52,7 @@ describe("FileUtils", () => {
         inScheme.codes.set("code", code);
         FileUtils.saveCodeScheme(inScheme);
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
-            inScheme.codes.forEach(code => delete code._isEdited); // TODO: Understand what Code._isEdited is needed for.
+            inScheme.codes.forEach(code => delete code._isEdited);
             outScheme.codes.forEach(code => delete code._isEdited);
             expect(inScheme).toEqual(outScheme);
             done();
@@ -84,7 +84,7 @@ describe("FileUtils", () => {
         inScheme.codes.set("27-7", code4);
         FileUtils.saveCodeScheme(inScheme);
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
-            inScheme.codes.forEach(code => delete code._isEdited); // TODO: Understand what Code._isEdited is needed for.
+            inScheme.codes.forEach(code => delete code._isEdited);
             outScheme.codes.forEach(code => delete code._isEdited);
             expect(inScheme).toEqual(outScheme);
             done();
