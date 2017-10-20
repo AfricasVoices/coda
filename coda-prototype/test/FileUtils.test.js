@@ -107,7 +107,7 @@ describe("FileUtils", () => {
         inScheme.codes.set("66-79", code2);
         FileUtils.saveFile(new Blob([inSchemeText]));
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
-            inScheme.codes.forEach(code => delete code._isEdited); // TODO: Understand what Code._isEdited is needed for.
+            inScheme.codes.forEach(code => delete code._isEdited);
             outScheme.codes.forEach(code => delete code._isEdited);
             expect(inScheme).toEqual(outScheme);
             done();
