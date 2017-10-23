@@ -13,6 +13,9 @@ changes=$(git status --porcelain) # Machine readable list of changes; empty if t
 if [ ! -z "${changes}" ]; then
     echo "Warning: File system is different to HEAD, so the zipped project will not
          include a version identifier."
+
+    # Zip this directory into a zip file.
+     zip -r -qq coda.zip . -x coda*.zip
 else
     # Get the commit hash and time-stamp
     hash=$(git rev-parse HEAD)
@@ -20,10 +23,8 @@ else
 
     # Write the hash and time-stamp to a file
     echo "{\"hash\": \"$hash\", \"date\": \"$date\"}" >version.json
+
+    # Zip this directory into a zip file, appending the first 7 digits of the hash to the filename.
+    shortHash="$(echo ${hash} | cut -c1-7)"
+    zip -r -qq  "coda-v${shortHash}.zip" . -x coda*.zip
 fi
-
-# Delete the previously deployed version, if it exists, so that it is not included in the next zip file.
-[ -e coda.zip ] && rm coda.zip
-
-# Zip this directory into coda.zip
-zip -r -qq coda.zip .
