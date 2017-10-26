@@ -1,31 +1,30 @@
 #!/bin/bash
-set -e;
+set -e
 
-# Delete last attempt if it exists
-rm -rf coda;
+# Revert version.json on exit.
+function finish {
+    echo $'{\n  "hash": "develop",\n  "date": ""\n}' >version.json
+}
+trap finish EXIT
 
-# Create a temporary directory to export to
-mkdir coda;
+# If the current directory does not match the HEAD commit, emit a warning,
+# otherwise export the hash and date of HEAD to version.json
+changes=$(git status --porcelain) # Machine readable list of changes; empty if there no changes.
+if [ ! -z "${changes}" ]; then
+    echo "Warning: File system is different to HEAD, so the zipped project will not
+         include a version identifier."
 
-# Check out HEAD to the temporary directory.
-# Export via git archive, which exports as a zip which we have to unzip.
-git archive HEAD --output=coda/export.zip;
-unzip -qq coda/export.zip -d coda/;
-rm coda/export.zip;
+    # Zip this directory into a zip file.
+     zip -r -qq coda.zip . -x coda*.zip
+else
+    # Get the commit hash and time-stamp
+    hash=$(git rev-parse HEAD)
+    date=$(git show -s --format=%ci HEAD)
 
-# Build project
-# Note: will need to run npm install here in future.
-tsc;
+    # Write the hash and time-stamp to a file
+    echo "{\"hash\": \"$hash\", \"date\": \"$date\"}" >version.json
 
-# Get the commit hash and time-stamp
-hash=$(git rev-parse HEAD);
-date=$(git show -s --format=%ci HEAD)
-
-# Write the hash and time-stamp to a file
-echo "{\"hash\": \"$hash\", \"date\": \"$date\"}" >coda/version.json;
-
-# Zip up the output
-zip -r -qq coda.zip coda/;
-
-# Clean-up the temporary export directory.
-rm -rf coda;
+    # Zip this directory into a zip file, appending the first 7 digits of the hash to the filename.
+    shortHash="$(echo ${hash} | cut -c1-7)"
+    zip -r -qq  "coda-v${shortHash}.zip" . -x coda*.zip
+fi
