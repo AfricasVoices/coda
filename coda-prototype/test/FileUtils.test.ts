@@ -31,18 +31,17 @@ describe("FileUtils", () => {
         });
     });
 
-    // TODO: Test failing
     it("should save and load a scheme which has no codes", done => {
-        let inScheme = new CodeScheme("id-0", "Scheme0", false);
+        let inScheme = new CodeScheme("id0", "Scheme0", false);
 
         FileUtils.saveCodeScheme(inScheme);
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
             expect(inScheme).toEqual(outScheme);
             done();
-        }, error => console.log(error));
+        }, done.fail);
     });
 
-    it("should save and load a single-code scheme", done => {
+    it("should save and load a one-code scheme", done => {
         let inScheme = new CodeScheme("id-1", "Scheme1", false);
         inScheme.codes.set("code0", new Code(inScheme, "code0", "x", "#ff0000", "", false));
 
@@ -50,7 +49,18 @@ describe("FileUtils", () => {
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
             expect(inScheme).toEqual(outScheme);
             done();
-        }, error => done.fail(error));
+        }, done.fail);
+    });
+
+    it("should save and load a single-code with semicolons in the scheme name", done => {
+        let inScheme = new CodeScheme("id-1", "x;y", false);
+        inScheme.codes.set("code0", new Code(inScheme, "code0", "x", "#ff0000", "", false));
+
+        FileUtils.saveCodeScheme(inScheme);
+        FileUtils.loadCodeScheme(undefined).then(outScheme => {
+            expect(inScheme).toEqual(outScheme);
+            done();
+        }, done.fail);
     });
 
     it("should save and load a single-code scheme with custom words", done => {
@@ -66,10 +76,9 @@ describe("FileUtils", () => {
 
             expect(inScheme).toEqual(outScheme);
             done();
-        }, error => done.fail(error));
+        }, done.fail);
     });
 
-    // TODO: Test failing
     it("should save and load a single-code scheme with a custom regex", done => {
         let inScheme = new CodeScheme("id-1", "Scheme1", false);
         inScheme.codes.set("code0", new Code(inScheme, "code0", "x", "#ff0000", "", false, [".*", "i"]));
@@ -78,10 +87,9 @@ describe("FileUtils", () => {
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
             expect(inScheme).toEqual(outScheme);
             done();
-        }, error => done.fail(error));
+        }, done.fail);
     });
 
-    // TODO: Test failing
     it("should save and load a multi-code scheme", done => {
         let inScheme = new CodeScheme("27", "Scheme1", false);
         let code1 = new Code(inScheme, "27-4", "Code 1", "#ff0000", "96", false);
@@ -105,7 +113,29 @@ describe("FileUtils", () => {
 
             expect(inScheme).toEqual(outScheme);
             done();
-        }, error => done.fail(error));
+        }, done.fail);
+    });
+
+    it("should load a scheme with no regex column", done => {
+        let inSchemeText =
+            "scheme_id;scheme_name;code_id;code_value;code_colour;code_shortcut;code_words\n" +
+            "66;scheme1;66-91;123;#ffffff;;\n" +
+            "66;scheme1;66-79;456;#ffffff;;";
+
+        let inScheme = new CodeScheme("66", "scheme1", false);
+        let code1 = new Code(inScheme, "66-91", "123", "#ffffff", "", false);
+        let code2 = new Code(inScheme, "66-79", "456", "#ffffff", "", false);
+        inScheme.codes.set("66-91", code1);
+        inScheme.codes.set("66-79", code2);
+
+        FileUtils.saveFile(new Blob([inSchemeText]));
+        FileUtils.loadCodeScheme(undefined).then(outScheme => {
+            inScheme.codes.forEach(code => delete (<any>code)._isEdited);
+            outScheme.codes.forEach(code => delete (<any>code)._isEdited);
+
+            expect(inScheme).toEqual(outScheme);
+            done();
+        }, done.fail);
     });
 
     it("should fail if a multi-code scheme has an inconsistent id", done => {
@@ -115,7 +145,6 @@ describe("FileUtils", () => {
             "67;scheme1;67-79;456;#ffffff;;;";
 
         FileUtils.saveFile(new Blob([inScheme]));
-
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
             done.fail("An inconsistent scheme should have failed");
         }, error => {
@@ -124,7 +153,6 @@ describe("FileUtils", () => {
         });
     });
 
-    // TODO: Test failing
     it("should fail if a multi-code scheme has an inconsistent name", done => {
         let inScheme =
             "scheme_id;scheme_name;code_id;code_value;code_colour;code_shortcut;code_words;code_regex\n" +
@@ -132,7 +160,6 @@ describe("FileUtils", () => {
             "66;scheme2;66-79;456;#ffffff;;;";
 
         FileUtils.saveFile(new Blob([inScheme]));
-
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
             done.fail("An inconsistent scheme should have failed");
         }, error => {
@@ -141,19 +168,17 @@ describe("FileUtils", () => {
         });
     });
 
-    // TODO: Test failing
     it("should fail if a multi-code scheme has codes with the same code id", done => {
         let inScheme =
             "scheme_id;scheme_name;code_id;code_value;code_colour;code_shortcut;code_words;code_regex\n" +
             "66;scheme1;66-91;123;#ffffff;;;\n" +
-            "66;scheme2;66-91;456;#ffffff;;;";
+            "66;scheme1;66-91;456;#ffffff;;;";
 
         FileUtils.saveFile(new Blob([inScheme]));
-
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
             done.fail("An inconsistent scheme should have failed");
         }, error => {
-            if (error.name === "CodeConsistencyError") done(); // TODO: Is this the desired error in this case, or do we need a new one?
+            if (error.name === "CodeConsistencyError") done(); 
             else done.fail("Received an error, but it wasn't an expected CodeConsistencyError");
         });
     });
@@ -165,12 +190,24 @@ describe("FileUtils", () => {
             "66;scheme2;66-9ffff;;;";
 
         FileUtils.saveFile(new Blob([inScheme]));
-
         FileUtils.loadCodeScheme(undefined).then(outScheme => {
             done.fail("An inconsistent scheme should have failed");
         }, error => {
             if (error.name === "ParseError") done();
-            else done.fail("Received an error, but it wasn't an expected CodeConsistencyError");
+            else done.fail("Received an error, but it wasn't an expected ParseError");
+        });
+    });
+
+    it("should fail with a NoValuesError if a scheme has valid column headings but no data", done => {
+        let inScheme =
+            "scheme_id;scheme_name;code_id;code_value;code_colour;code_shortcut;code_words;code_regex";
+
+        FileUtils.saveFile(new Blob([inScheme]));
+        FileUtils.loadCodeScheme(undefined).then(outScheme => {
+            done.fail("A scheme file with no data should have failed");
+        }, error => {
+            if (error.name === "NoValuesError") done();
+            else done.fail("Received an error, but it wasn't an expected NoValuesError");
         });
     });
 

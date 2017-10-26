@@ -27,7 +27,7 @@ class FileUtils {
             "data": [], "fields":
                 ["id", "timestamp", "owner", "data", "schemeId", "schemeName", "deco_codeValue", "deco_codeId",
                     "deco_confidence", "deco_manual", "deco_timestamp", "deco_author"]
-        }; // TODO: why are rows being referred to as 'events'?
+        };
 
         // For each 'event', add a row to the output for each scheme if schemes exist, or a single row if not.
         // TODO: Write this in a less-yucky way such that pushing many empty strings is not required
@@ -108,13 +108,17 @@ class FileUtils {
         let schemeJSON = {
             "data": [], "fields":
                 ["scheme_id", "scheme_name", "code_id", "code_value", "code_colour",
-                    "code_shortcut", "code_words", "code_regex"]
+                    "code_shortcut", "code_words", "code_regex", "code_regex_modifier"]
         };
 
-        for (let [codeId, code] of codeScheme.codes) {
-            let codeArr = [codeScheme.id, codeScheme.name, codeId, code.value, code.color,
-                code.shortcut, code.words.toString(), code.regex[0]]; // TODO: fail
-            schemeJSON["data"].push(codeArr);
+        if (codeScheme.codes.size === 0) {
+            schemeJSON["data"].push([codeScheme.id, codeScheme.name, "", "", "", "", "", "", ""]);
+        } else {
+            for (let [codeId, code] of codeScheme.codes) {
+                let codeArr = [codeScheme.id, codeScheme.name, codeId, code.value, code.color,
+                    code.shortcut, code.words.toString(), code.regex[0], code.regex[1]];
+                schemeJSON["data"].push(codeArr);
+            }
         }
 
         let dataBlob = new Blob([Papa.unparse(schemeJSON, {header: true, delimiter: ";"})], {type: 'text/plain'});
@@ -283,8 +287,13 @@ class FileUtils {
                 }
 
                 let parsedObjects = parse.data;
-                let newScheme = null;
+                let newScheme: CodeScheme = null;
                 let schemeId = null;
+
+                if (parsedObjects.length === 0) {
+                    reject({name: "NoValuesError"});
+                    return;
+                }
 
                 // Each row defines a code within the code scheme.
                 // Construct a CodeScheme object by parsing each code entry in turn.
@@ -296,53 +305,71 @@ class FileUtils {
                         code_colour: boolean = codeRow.hasOwnProperty("code_colour"),
                         code_shortcut: boolean = codeRow.hasOwnProperty("code_shortcut"),
                         code_words: boolean = codeRow.hasOwnProperty("code_words"),
-                        code_regex: boolean = codeRow.hasOwnProperty("code_regex");
+                        code_regex: boolean = codeRow.hasOwnProperty("code_regex"),
+                        code_regex_modifier: boolean = codeRow.hasOwnProperty("code_regex_modifier");
 
-                    // If there is sufficient information to convert this row into a code, do so, and add it to the
-                    // scheme.
-                    if (id && name && code_id && code_value) {
-                        // todo handle if loading an edit of a scheme that was already loaded in... how to deal if
-                        // todo code was deleted?
-
+                    // If there is enough information to construct a scheme from this entry, do so.
+                    if (id && name) {
                         if (schemeId === null) {
                             schemeId = codeRow["scheme_id"];
                         } else {
                             if (schemeId !== codeRow["scheme_id"]) {
-                                reject({
-                                    name: "CodeConsistencyError"
-                                });
+                                reject({name: "CodeConsistencyError", message: "Scheme id was inconsistent"});
                                 return;
                             }
+                        }
+
+                        // Ensure the scheme's name is consistent across all codes.
+                        if (newScheme !== null && codeRow["scheme_name"] !== newScheme.name) {
+                            reject({name: "CodeConsistencyError", message: "Scheme name was inconsistent"});
+                            return;
                         }
 
                         if (!newScheme) {
                             newScheme = new CodeScheme(codeRow["scheme_id"], codeRow["scheme_name"], false);
                         }
 
-                        let newShortcut = codeRow["code_shortcut"];
-                        if (codeRow["code_shortcut"].length === 1 && isNaN(parseInt(codeRow["code_shortcut"]))) {
-                            newShortcut = UIUtils.ascii(codeRow["code_shortcut"]);
-                        }
+                        // If there is also enough information to construct a code, do so.
+                        if (code_id && code_value && codeRow["code_id"] !== "" && codeRow["code_value"] !== "") {
+                            // todo handle if loading an edit of a scheme that was already loaded in... how to deal if
+                            // todo code was deleted?
 
-                        let newCode;
-                        if (code_regex && typeof codeRow["code_regex"] === "string") {
-                            newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"],
-                                codeRow["code_colour"], newShortcut, false, [codeRow["code_regex"], "g"]); // TODO: fail
-                        } else {
-                            newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"],
-                                codeRow["code_colour"], newShortcut, false);
-                        }
+                            if (newScheme.codes.has(codeRow["code_id"])) {
+                                reject({
+                                    name: "CodeConsistencyError",
+                                    message: "Scheme file had multiple codes with the same id"
+                                });
+                                return;
+                            }
 
-                        if (code_words) {
-                            if (codeRow["code_words"].length !== 0) {
-                                let words = codeRow["code_words"].split(",");
-                                if (words.length > 0) {
-                                    newCode.addWords(words);
+                            let newShortcut = codeRow["code_shortcut"];
+                            if (codeRow["code_shortcut"].length === 1 && isNaN(parseInt(codeRow["code_shortcut"]))) {
+                                newShortcut = UIUtils.ascii(codeRow["code_shortcut"]);
+                            }
+
+                            let newCode;
+                            if (code_regex || code_regex_modifier) {
+                                let regex = code_regex ? codeRow["code_regex"] : "";
+                                let modifier = code_regex_modifier ? codeRow["code_regex_modifier"] : "g";
+
+                                newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"],
+                                    codeRow["code_colour"], newShortcut, false, [regex, modifier]);
+                            } else {
+                                newCode = new Code(newScheme, codeRow["code_id"], codeRow["code_value"],
+                                    codeRow["code_colour"], newShortcut, false);
+                            }
+
+                            if (code_words) {
+                                if (codeRow["code_words"].length !== 0) {
+                                    let words = codeRow["code_words"].split(",");
+                                    if (words.length > 0) {
+                                        newCode.addWords(words);
+                                    }
                                 }
                             }
-                        }
 
-                        newScheme.codes.set(codeRow["code_id"], newCode);
+                            newScheme.codes.set(codeRow["code_id"], newCode);
+                        }
                     }
                 }
 

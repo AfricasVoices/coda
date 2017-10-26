@@ -652,6 +652,8 @@ function initUI(dataset) {
                 console.log(JSON.stringify(parseErrors));
             } else if (error.name === "CodeConsistencyError") {
                 console.log("ERROR: Uploaded code scheme has multiple ids.");
+            } else if (error.name === "NoValuesError") {
+                console.log("ERROR: Uploaded code scheme has valid column headers but no values");
             } else {
                 console.log("ERROR: An unknown error occurred. The error was: ", error);
             }
@@ -772,11 +774,12 @@ function initUI(dataset) {
                 "Change a few things up, refresh and try again.");
 
             if (error.name === "ParseError") {
-                console.log("ERROR: Cannot parse scheme file");
+                console.log("ERROR: Cannot parse scheme file.");
                 console.log(JSON.stringify(error.parseErrors));
             } else if (error.name === "CodeConsistencyError") {
                 console.log("ERROR: Uploaded code scheme has multiple ids.");
-                console.log(JSON.stringify(error.parseErrors));
+            } else if (error.name === "NoValuesError") {
+                console.log("ERROR: Uploaded code scheme has valid column headers but no values");
             } else {
                 console.log("ERROR: An unknown error occurred. The error was:", error);
             }
