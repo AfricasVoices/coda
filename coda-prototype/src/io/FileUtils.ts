@@ -342,12 +342,12 @@ class FileUtils {
                                 return;
                             }
 
-                            let newShortcut = codeRow["code_shortcut"];
+                            let newShortcut: string = codeRow["code_shortcut"];
                             if (codeRow["code_shortcut"].length === 1 && isNaN(parseInt(codeRow["code_shortcut"]))) {
-                                newShortcut = UIUtils.ascii(codeRow["code_shortcut"]);
+                                newShortcut = UIUtils.ascii(codeRow["code_shortcut"]).toString();
                             }
 
-                            let newCode;
+                            let newCode: Code;
                             if (code_regex || code_regex_modifier) {
                                 let regex = code_regex ? codeRow["code_regex"] : "";
                                 let modifier = code_regex_modifier ? codeRow["code_regex_modifier"] : "g";

@@ -14,10 +14,19 @@ module.exports = function(config) {
         // list of files / patterns to load in the browser
         files: [
             "external/papaparse/papaparse.js",
+            {
+                pattern: "test/*.json",
+                served: true,
+                included: false
+            },
             "dist/src/model.js",
             "dist/src/io/FileUtils.js",
             "dist/test/*.test.js"
         ],
+
+        proxies: {
+            "/test/": "/base/test/"
+        },
 
         // list of files to exclude
         exclude: [],
@@ -33,7 +42,7 @@ module.exports = function(config) {
         // test results reporter to use
         // possible values: 'dots', 'progress'
         // available reporters: https://npmjs.org/browse/keyword/karma-reporter
-        reporters: ["progress", "coverage"], // "remap-coverage"
+        reporters: ["progress", "coverage"],
 
         // web server port
         port: 9876,

@@ -138,6 +138,27 @@ describe("FileUtils", () => {
         }, done.fail);
     });
 
+    it("should load a multi-code scheme which has each shortcut variant", done => {
+        // Note: need to use raw text here because saveCodeScheme does not support writing shortcuts as characters.
+        let inSchemeText =
+            "scheme_id;scheme_name;code_id;code_value;code_colour;code_shortcut;code_words;code_regex\n" +
+            "66;scheme1;66-91;123;#ffffff;97;;\n" + // Variant: key code
+            "66;scheme1;66-79;456;#ffffff;b;;\n" + // Variant: character
+            "66;scheme1;66-80;789;#ffffff;;;"; // Variant: no shortcut
+
+        FileUtils.saveFile(new Blob([inSchemeText]));
+
+        let inScheme = new CodeScheme("66", "scheme1", false);
+        inScheme.codes.set("66-91", new Code(inScheme, "66-91", "123", "#ffffff", "97", false));
+        inScheme.codes.set("66-79", new Code(inScheme, "66-79", "456", "#ffffff", "98", false));
+        inScheme.codes.set("66-80", new Code(inScheme, "66-80", "789", "#ffffff", "", false));
+
+        FileUtils.loadCodeScheme(undefined).then(outScheme => {
+            expect(inScheme).toEqual(outScheme);
+            done();
+        }, done.fail);
+    });
+
     it("should fail if a multi-code scheme has an inconsistent id", done => {
         let inScheme =
             "scheme_id;scheme_name;code_id;code_value;code_colour;code_shortcut;code_words;code_regex\n" +
@@ -215,4 +236,36 @@ describe("FileUtils", () => {
     // TODO: I think in this case we should do "best effort". Some tests where columns are missing might be needed here.
 
     // TODO: Test saving/loading a dataset
+    it("should save and load an empty dataset", done => {
+        let inDataset = new Dataset();
+
+        FileUtils.saveDataset(inDataset);
+        FileUtils.loadDataset(undefined, "uuid-0").then(outDataset => {
+            expect(inDataset).toEqual(outDataset);
+            done();
+        }, done.fail);
+    });
+
+    it("dataset test", done => {
+        let inDataset = new Dataset();
+
+    });
+
+    it("should save and load the default dataset", done => {
+        console.log("enter");
+        Dataset.generateDefaultDataset("uuid-0", "test/sessions-numbered-100.json").then(inDataset => {
+            console.log("generated");
+            FileUtils.saveDataset(inDataset);
+            console.log("'saved'");
+            FileUtils.loadDataset(undefined, "uuid-0").then(outDataset => {
+                console.log("'loaded'");
+                expect(inDataset).toEqual(outDataset);
+                done();
+            }, done.fail);
+        }, done.fail);
+    });
+
+    // it("should save and load a dataset which has one event", done => {
+    //     let inDataset = new Dataset();
+    // });
 });

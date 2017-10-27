@@ -83,84 +83,34 @@ function initDataset(storageObj) {
                 },
                 "timestamp": new Date()
             });
+
             initUI(newDataset);
             undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
         })
         .catch(error => {
             if (error) console.log(error);
+
             console.time("Default data init");
-            // TODO: this example file can't actually be parsed by the "load dataset" button
-            $.getJSON("./data/sessions-numbered-10000.json", function(data) {
-
-                // todo ensure ALL IDs are unique
-
-                newDataset = function(data) {
-                    var decorations = {};
-                    var eventCount = 0;
-                    var schemes = {};
-
-                    var properDataset = new Dataset();
-                    Object.keys(data).forEach(function(sessionKey) {
-                        var events = [];
-                        data[sessionKey]["events"].forEach(function(event) {
-                            var newEventObj = new RawEvent(eventCount + "", sessionKey, event["timestamp"], "", event["data"]);
-                            properDataset.eventOrder.push(newEventObj.name);
-                            properDataset.events.set(newEventObj.name, newEventObj);
-                            eventCount += 1;
-
-                            Object.keys(event["decorations"]).forEach(function(d) {
-
-                                var decorationValue = event["decorations"][d];
-
-                                if (!decorations.hasOwnProperty(d)) {
-                                    // TODO: how to do scheme ids
-                                    let newSchemeId = UIUtils.randomId(Object.keys(schemes));
-                                    schemes[newSchemeId] = new CodeScheme(newSchemeId, d, true);
-                                    decorations[d] = newSchemeId;
-                                }
-
-                                if (decorationValue.length > 0) {
-                                    var scheme = schemes[decorations[d]];
-                                    if (!schemes[decorations[d]].getCodeValues().has(decorationValue)) {
-                                        var newCodeId = decorations[d] + "-" + UIUtils.randomId(Array.from(scheme.codes.keys()));
-                                        scheme.codes.set(newCodeId, new Code(scheme, newCodeId, decorationValue, "#ffffff", "", false));
-                                    }
-
-                                    var code = scheme.getCodeByValue(decorationValue);
-                                    newEventObj.decorate(decorations[d], true, UUID, code, 0.95); // has to use decorations[d] as scheme key
-                                }
-                            });
-                            events.push(newEventObj);
-                        });
-                        var session = new Session(sessionKey, events);
-                        properDataset.sessions.set(sessionKey, session);
-                    });
-
-                    properDataset.schemes = schemes;
-                    properDataset.eventCount = eventCount;
-                    console.log(properDataset);
-                    return properDataset;
-
-                }(data);
-
+            let defaultDatasetLocation = "./data/sessions-numbered-10000.json";
+            Dataset.generateDefaultDataset(UUID, defaultDatasetLocation).then(dataset => {
+                newDataset = dataset;
+                console.log(dataset);
                 console.timeEnd("Default data init");
 
-                //dataset = data;
-                //newDataset = buildDataset;
                 // update the activity stack
                 storage.saveActivity({
                     "category": "DATASET",
                     "message": "Loaded default dataset",
                     "messageDetails": "",
-                    "data": "sessions-numbered-1000.txt",
+                    "data": defaultDatasetLocation,
                     "timestamp": new Date()
                 });
+
                 initUI(newDataset);
                 undoManager.modelUndoStack = [];
                 undoManager.schemaUndoStack = [];
                 undoManager.pointer = 0;
                 undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
-
             });
         });
 }

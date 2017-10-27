@@ -29,6 +29,8 @@ Defines datastructures used for:
 - autosave.
  */
 
+declare let $;
+
 
 /*
 globals
@@ -63,6 +65,69 @@ class Dataset {
     schemes = {};
     events: Map<string, RawEvent> = new Map();
     eventOrder: Array<string> = [];
+
+    /**
+     * TODO Complete headerdoc and add internal commentary to the function body.
+     * Generates a new Dataset from the
+     * Generated dataset is the anonymised Incoming/Outgoing/Unknown dataset.
+     * @param {string} uuid
+     * @returns {Promise<Dataset>} Resolves with ___; rejects with ___
+     */
+    static generateDefaultDataset(uuid: string, datasetPath: string): Promise<Dataset> {
+        return new Promise<Dataset>((resolve, reject) => {
+            $.getJSON(datasetPath, dataForDataset => {
+                console.log("fetched json");
+                // todo ensure ALL IDs are unique
+                let dataset: Dataset = new Dataset();
+                let decorations = {};
+                let eventCount = 0;
+                let schemes = {};
+
+                Object.keys(dataForDataset).forEach(sessionKey => {
+                    let events: Array<RawEvent> = [];
+                    dataForDataset[sessionKey]["events"].forEach(event => {
+                        let newEvent: RawEvent =
+                            new RawEvent(eventCount + "", sessionKey, event["timestamp"], "", event["data"]);
+
+                        dataset.eventOrder.push(newEvent.name);
+                        dataset.events.set(newEvent.name, newEvent);
+                        eventCount += 1;
+
+                        Object.keys(event["decorations"]).forEach(d => {
+                            let decorationValue = event["decorations"][d];
+
+                            if (!decorations.hasOwnProperty(d)) {
+                                // TODO: how to do scheme ids
+                                let newSchemeId = UIUtils.randomId(Object.keys(schemes));
+                                schemes[newSchemeId] = new CodeScheme(newSchemeId, d, true);
+                                decorations[d] = newSchemeId;
+                            }
+
+                            if (decorationValue.length > 0) {
+                                let scheme = schemes[decorations[d]];
+                                if (!schemes[decorations[d]].getCodeValues().has(decorationValue)) {
+                                    let newCodeId =
+                                        decorations[d] + "-" + UIUtils.randomId(Array.from(scheme.codes.keys()));
+                                    scheme.codes.set(
+                                        newCodeId, new Code(scheme, newCodeId, decorationValue, "#ffffff", "", false));
+                                }
+
+                                let code = scheme.getCodeByValue(decorationValue);
+                                newEvent.decorate(decorations[d], true, uuid, code, 0.95);
+                            }
+                        });
+                        events.push(newEvent);
+                    });
+                    let session = new Session(sessionKey, events);
+                    dataset.sessions.set(sessionKey, session);
+                });
+
+                dataset.schemes = schemes;
+
+                resolve(dataset);
+            }).fail(reject);
+        });
+    }
 
     static validate(dataset: Dataset): boolean {
         let sessions = dataset.sessions;
