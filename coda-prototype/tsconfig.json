@@ -7,14 +7,10 @@
     "sourceMap": false
   },
   "files": [
-    "src/ui/ui.ts",
-    "src/popup/popup.ts",
     "typings/chrome/chrome.d.ts",
-    "src/model.ts",
-    "src/util/sortUtils.ts",
-    "test/FileUtils.test.ts"
   ],
   "include": [
-    "src/**/*.ts"
+    "src/**/*.ts",
+    "test/**/*.ts"
   ]
 }

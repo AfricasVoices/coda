@@ -13,10 +13,10 @@ module.exports = function(config) {
 
         // list of files / patterns to load in the browser
         files: [
-            "model.js",
-            "src/io/FileUtils.js",
             "external/papaparse/papaparse.js",
-            "test/*.test.js"
+            "dist/src/model.js",
+            "dist/src/io/FileUtils.js",
+            "dist/test/*.test.js"
         ],
 
         // list of files to exclude
