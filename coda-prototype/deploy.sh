@@ -7,7 +7,7 @@ function finish {
 }
 trap finish EXIT
 
-npm install
+npm install --silent
 tsc
 
 # If the current directory does not match the HEAD commit, emit a warning,
