@@ -7,6 +7,9 @@ function finish {
 }
 trap finish EXIT
 
+npm install
+tsc
+
 # If the current directory does not match the HEAD commit, emit a warning,
 # otherwise export the hash and date of HEAD to version.json
 changes=$(git status --porcelain) # Machine readable list of changes; empty if there no changes.
