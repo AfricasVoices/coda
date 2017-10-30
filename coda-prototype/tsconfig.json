@@ -7,7 +7,7 @@
     "sourceMap": false
   },
   "files": [
-    "ui.ts",
+    "src/ui/ui.ts",
     "src/popup/popup.ts",
     "typings/chrome/chrome.d.ts",
     "model.ts",
