@@ -2,17 +2,15 @@
   "compilerOptions": {
     "module": "commonjs",
     "target": "es6",
+    "outDir": "dist",
     "noImplicitAny": false,
     "sourceMap": false
   },
   "files": [
-    "ui.ts",
-    "popup.ts",
     "typings/chrome/chrome.d.ts",
-    "model.ts",
-    "src/io/FileUtils.ts",
-    "src/io/StorageUtils.ts",
-    "sortUtils.ts",
-    "test/FileUtils.test.ts"
+  ],
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts"
   ]
 }

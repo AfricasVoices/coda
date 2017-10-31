@@ -19,6 +19,7 @@
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  SOFTWARE.
  */
+
 /*
 POPUP.TS/JS // TODO: ChromeExtensionButton might be a better name
 Handles the interactions with the extension via the toolbar popup.
@@ -27,25 +28,34 @@ Handles the interactions with the extension via the toolbar popup.
 - Wipes the entire extension cache
 
 */
-/// <reference path="typings/chrome/chrome.d.ts" />
+
+/// <reference path="../../typings/chrome/chrome.d.ts" />
 document.addEventListener('DOMContentLoaded', function () {
+
     var checkPageButton = document.getElementById('checkPage');
+
     checkPageButton.addEventListener('click', function () {
         // on every startup of CODA, check if storage is expired, i.e. more than 30 days have passed since last edit
         // if yes, clear storage
+
         // TODO: Possible duplicate of isExpired in model.ts
-        function isExpired(a, b) {
+        function isExpired(a: Date, b: Date): boolean {
             // http://stackoverflow.com/a/15289883
+
             var _MS_PER_DAY = 1000 * 60 * 60 * 24;
+
             // a and b are javascript Date objects
             function dateDiffInDays(a, b) {
                 // Discard the time and time-zone information.
                 let utc1 = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
                 let utc2 = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+
                 return Math.floor((utc2 - utc1) / _MS_PER_DAY);
             }
+
             return (30 <= dateDiffInDays(a, b));
         }
+
         function launch() {
             // http://stackoverflow.com/a/36000860
             chrome.tabs.query({}, function (tabs) {
@@ -60,16 +70,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 if (!doFlag) {
                     // already open, so focus first on the window and then on the tab
-                    chrome.windows.update(tabs[i].windowId, { "focused": true }, () => {
-                        chrome.tabs.update(tabs[i].id, { active: true });
+                    chrome.windows.update(tabs[i].windowId, {"focused": true}, () => {
+                        chrome.tabs.update(tabs[i].id, {active: true});
                     });
-                }
-                else {
+
+                } else {
                     // initialize new Coda
-                    chrome.tabs.create({ url: chrome.extension.getURL("ui.html") });
+                    chrome.tabs.create({url: chrome.extension.getURL("ui.html")});
                 }
             });
         }
+
         chrome.storage.local.get("lastEdit", (editObj) => {
             if (!editObj || !editObj["lastEdit"]) {
                 launch();
@@ -78,17 +89,18 @@ document.addEventListener('DOMContentLoaded', function () {
             console.log(editObj);
             editObj["lastEdit"] = new Date(JSON.parse(editObj["lastEdit"]));
             console.log(editObj["lastEdit"]);
+
             if (Object.prototype.toString.call(editObj["lastEdit"]) === "[object Date]") {
                 if (!isNaN((editObj["lastEdit"]).getTime())) {
                     // date is in valid format
+
                     if (isExpired(new Date(), editObj["lastEdit"])) {
                         new Promise(function (resolve, reject) {
                             chrome.storage.local.clear(() => {
                                 let error = chrome.runtime.lastError;
                                 if (error) {
                                     reject(new Error(error.message));
-                                }
-                                else {
+                                } else {
                                     resolve();
                                 }
                             });
@@ -96,15 +108,17 @@ document.addEventListener('DOMContentLoaded', function () {
                             console.log("Cleared expired storage");
                             launch();
                         }).catch(error => console.log(error));
-                    }
-                    else {
+
+                    } else {
                         launch();
                     }
                 }
             }
         });
     }, false);
+
     var clearCacheButton = document.getElementById('clearCache');
+
     clearCacheButton.addEventListener('click', function () {
         chrome.storage.local.clear(() => {
             var error = chrome.runtime.lastError;
@@ -118,6 +132,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     console.log("Bytes in use: " + bytesUnUse);
                     console.log("QUOTA_BYTES: " + chrome.storage.local.QUOTA_BYTES);
                 });
+
                 chrome.tabs.query({}, function (tabs) {
                     var doFlag = true;
                     for (var i = tabs.length - 1; i >= 0; i--) {
@@ -131,11 +146,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (!doFlag) {
                         // already open, so close the open tab first
                         chrome.tabs.remove([tabs[i].id], () => {
-                            chrome.tabs.create({ url: chrome.extension.getURL("ui.html") });
+                            chrome.tabs.create({url: chrome.extension.getURL("ui.html")});
                         });
-                    }
-                    else {
-                        chrome.tabs.create({ url: chrome.extension.getURL("ui.html") });
+
+                    } else {
+                        chrome.tabs.create({url: chrome.extension.getURL("ui.html")});
                     }
                 });
             }
