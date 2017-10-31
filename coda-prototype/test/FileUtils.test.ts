@@ -249,6 +249,8 @@ describe("FileUtils", () => {
     it("dataset test", done => {
         let inDataset = new Dataset();
 
+        done.fail();
+
     });
 
     it("should save and load the default dataset", done => {

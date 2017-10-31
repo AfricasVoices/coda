@@ -14,11 +14,13 @@ module.exports = function(config) {
         // list of files / patterns to load in the browser
         files: [
             "external/papaparse/papaparse.js",
+            "external/jquery/jquery-3.1.1.min.js",
             {
                 pattern: "test/*.json",
                 served: true,
                 included: false
             },
+            "src/ui/UIUtils.js",
             "dist/src/model.js",
             "dist/src/io/FileUtils.js",
             "dist/test/*.test.js"
@@ -34,6 +36,7 @@ module.exports = function(config) {
         // preprocess matching files before serving them to the browser
         // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
         preprocessors: {
+            "dist/**/*.js": ["coverage"],
             "src/**/*.js": ["coverage"]
         },
 

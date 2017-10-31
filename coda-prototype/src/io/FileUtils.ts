@@ -344,7 +344,7 @@ class FileUtils {
 
                             let newShortcut: string = codeRow["code_shortcut"];
                             if (codeRow["code_shortcut"].length === 1 && isNaN(parseInt(codeRow["code_shortcut"]))) {
-                                newShortcut = UIUtils.ascii(codeRow["code_shortcut"]).toString();
+                                newShortcut = String(UIUtils.ascii(codeRow["code_shortcut"]).toString());
                             }
 
                             let newCode: Code;
