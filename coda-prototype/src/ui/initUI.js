@@ -111,7 +111,10 @@ function initDataset(storageObj) {
                 undoManager.schemaUndoStack = [];
                 undoManager.pointer = 0;
                 undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
+
+                console.log("dataset", newDataset);
             });
+
         });
 }
 

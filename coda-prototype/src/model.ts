@@ -62,7 +62,7 @@ const VALID_NAME_FORMAT = /(^[a-zA-Z0-9]+([" "]?[a-zA-Z0-9])*)([/\-_][a-zA-Z0-9]
 class Dataset {
     // TODO: understand and document what each of these things does.
     sessions: Map<string, Session> = new Map();
-    schemes = {};
+    schemes = {}; // Maps scheme ids to CodeScheme objects.
     events: Map<string, RawEvent> = new Map();
     eventOrder: Array<string> = [];
 
@@ -174,7 +174,6 @@ class Dataset {
         eventsObjValid = eventsObjValid && eventsHaveValidEntries;
 
         let hasEventOrder = dataset.eventOrder && dataset.eventOrder.length > 0;
-
 
         return sessionsObjValid && eventsObjValid && hasEventOrder && hasSchemes;
     }

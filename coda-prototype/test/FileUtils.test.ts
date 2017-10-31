@@ -236,32 +236,42 @@ describe("FileUtils", () => {
     // TODO: I think in this case we should do "best effort". Some tests where columns are missing might be needed here.
 
     // TODO: Test saving/loading a dataset
-    it("should save and load an empty dataset", done => {
-        let inDataset = new Dataset();
+    // it("should save and load an empty dataset", done => {
+    //     let inDataset = new Dataset();
+    //
+    //     FileUtils.saveDataset(inDataset);
+    //     FileUtils.loadDataset(undefined, "uuid-0").then(outDataset => {
+    //         expect(inDataset).toEqual(outDataset);
+    //         done();
+    //     }, done.fail);
+    // });
 
-        FileUtils.saveDataset(inDataset);
-        FileUtils.loadDataset(undefined, "uuid-0").then(outDataset => {
-            expect(inDataset).toEqual(outDataset);
-            done();
-        }, done.fail);
-    });
-
-    it("dataset test", done => {
-        let inDataset = new Dataset();
-
-        done.fail();
-
-    });
+    // it("should validate an empty dataset?", done => {
+    //     if (Dataset.validate(new Dataset())) {
+    //         done();
+    //     } else {
+    //         done.fail();
+    //     }
+    // });
+    //
+    // it("dataset test", done => {
+    //     let inDataset = new Dataset();
+    //
+    //     done.fail();
+    //
+    // });
 
     it("should save and load the default dataset", done => {
-        console.log("enter");
         Dataset.generateDefaultDataset("uuid-0", "test/sessions-numbered-100.json").then(inDataset => {
-            console.log("generated");
+            console.log(Dataset.validate(inDataset));
+
             FileUtils.saveDataset(inDataset);
-            console.log("'saved'");
             FileUtils.loadDataset(undefined, "uuid-0").then(outDataset => {
-                console.log("'loaded'");
-                expect(inDataset).toEqual(outDataset);
+                outDataset.events.forEach(
+                    event => event.decorations.forEach()
+                )
+
+                expect(inDataset.events).toEqual(outDataset.events);
                 done();
             }, done.fail);
         }, done.fail);
