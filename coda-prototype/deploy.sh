@@ -15,7 +15,7 @@ function finish {
 trap finish EXIT
 
 # Ensure dependencies are up to date, and recompile typescript
-npm install
+npm install --silent
 tsc
 
 # If the current directory does not match the HEAD commit, emit a warning,
