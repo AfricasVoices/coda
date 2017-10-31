@@ -85,15 +85,17 @@ Some dependencies are already included in the git repository, inside the directo
 
 To install the remaining dependencies: `$ npm install`
 
-#### Typescript Compiler
+---
+
+#### Typescript Compilation
 Coda's source is written in a mix of TypeScript and Javascript, located in src/. We are in the process of  migrating all 
-JavaScript files to TypeScript. TypeScript files must be compiled to JavaScript in order to run them. Modern IDEs will
-compile TypeScript automatically. Invoke `$ tsc` to re-compile manually. Compiled code is placed in the dist/ directory.
+JavaScript files to TypeScript. TypeScript files must be compiled to JavaScript in order to run them, which modern IDEs 
+will do automatically. Invoke `$ tsc` to re-compile manually. Compiled code is placed in the dist/ directory.
+
+---
 
 #### Testing
 The test suites for Coda are written using Jasmine, and executed by Karma.
-
----
 
 To run the test suites from the command line:
 1. Install dependencies: `$ npm install`
@@ -103,12 +105,12 @@ To run the test suites from the command line:
 
 Karma will execute all tests and print the results to the command line.
 
----
-
 To run the test suites from within WebStorm:
 1. Install dependencies: `$ npm install`
 2. Right-click 'karma.conf.js' in the project explorer, and choose "Create karma.conf.js..."
 3. Accept all defaults, and Run.
+
+---
 
 #### Deployment
 Coda is distributed via zip files which are made available on the releases page of the GitHub repository.
@@ -117,5 +119,5 @@ To generate a new zip file: `$ sh deploy.sh`
 
 This will update dependencies and re-compile all TypeScript files, then compress the current coda-prototype directory
 into coda.zip. If the current file system matches HEAD, the commit hash of HEAD will be appended to the zip file name, 
-and also displayed on Coda's UI. Otherwise, deploy.sh will emit a warning. *Do not release a version of Coda which does 
-not have a hash.*
+and also displayed on Coda's UI. Otherwise, deploy.sh will still create a zip, but emit a warning. 
+*Do not release a version of Coda which does not have a hash!*
