@@ -1,3 +1,4 @@
+#!/bin/bash
 # Packages coda into a distributable zip file.
 # Automatically updates dependencies and re-compiles TypeScript, and outputs to coda.zip.
 # If the current file tree matches HEAD, the commit hash of HEAD will be included in the built project
@@ -5,7 +6,6 @@
 #
 # Note: This script MUST be run from its parent directory in order to work correctly.
 
-#!/bin/bash
 set -e
 
 # Revert version.json on exit.
