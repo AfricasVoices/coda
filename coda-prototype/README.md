@@ -53,7 +53,7 @@ A new icon should then show up next to the Chrome address bar and Coda can be ac
 ---
 
 #### Uninstalling
-To uninstall the Coda, just navigate to the same place (chrome://extensions/), click the trashcan icon next to Coda and untick Developer Mode on top.
+To uninstall Coda, just navigate to the same place (chrome://extensions/), click the trashcan icon next to Coda and untick Developer Mode on top.
 
 ---
 
@@ -75,3 +75,47 @@ If you have an old version of Coda installed and want to update it with a new ve
 
 ###### **PLEASE NOTE**:
 Updating by uninstalling the app (clicking on the trashcan icon) and then reinstalling the new version will ***WIPE*** Coda’s internal storage. Unless you have already exported all coding data, **don’t** do this when updating Coda to a new version.
+
+## Developer Setup
+
+Note: All commands below should be run from the coda-prototype directory, unless otherwise specified.
+
+#### Dependencies
+Some dependencies are already included in the git repository, inside the directory external/.
+
+To install the remaining dependencies: `$ npm install`
+
+#### Typescript Compiler
+Coda's source is written in a mix of TypeScript and Javascript, located in src/. We are in the process of  migrating all 
+JavaScript files to TypeScript. TypeScript files must be compiled to JavaScript in order to run them. Modern IDEs will
+compile TypeScript automatically. Invoke `$ tsc` to re-compile manually. Compiled code is placed in the dist/ directory.
+
+#### Testing
+The test suites for Coda are written using Jasmine, and executed by Karma.
+
+---
+
+To run the test suites from the command line:
+1. Install dependencies: `$ npm install`
+2. Ensure all test files are up to date: `$ tsc`
+2. Install the command line interface for karma: `$ npm install -g karma-cli`
+3. Run the suite: `$ karma start`
+
+Karma will execute all tests and print the results to the command line.
+
+---
+
+To run the test suites from within WebStorm:
+1. Install dependencies: `$ npm install`
+2. Right-click 'karma.conf.js' in the project explorer, and choose "Create karma.conf.js..."
+3. Accept all defaults, and Run.
+
+#### Deployment
+Coda is distributed via zip files which are made available on the releases page of the GitHub repository.
+
+To generate a new zip file: `$ sh deploy.sh`
+
+This will update dependencies and re-compile all TypeScript files, then compress the current coda-prototype directory
+into coda.zip. If the current file system matches HEAD, the commit hash of HEAD will be appended to the zip file name, 
+and also displayed on Coda's UI. Otherwise, deploy.sh will emit a warning. *Do not release a version of Coda which does 
+not have a hash.*
