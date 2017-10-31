@@ -1,3 +1,10 @@
+# Packages coda into a distributable zip file.
+# Automatically updates dependencies and re-compiles TypeScript, and outputs to coda.zip.
+# If the current file tree matches HEAD, the commit hash of HEAD will be included in the built project
+# and in the zip filename.
+#
+# Note: This script MUST be run from its parent directory in order to work correctly.
+
 #!/bin/bash
 set -e
 
@@ -7,6 +14,7 @@ function finish {
 }
 trap finish EXIT
 
+# Ensure dependencies are up to date, and recompile typescript
 npm install
 tsc
 
