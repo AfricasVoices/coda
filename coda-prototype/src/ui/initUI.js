@@ -660,6 +660,8 @@ function initUI(dataset) {
         }
 
         FileUtils.loadCodeScheme(file).then(handleSchemeParsed, handleSchemeParseError);
+
+        $("#scheme-file")[0].value = ""; // need to reset so same file can be reloaded ie caught by 'onchange' listener
     });
 
     /**
