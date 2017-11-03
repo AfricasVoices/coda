@@ -632,7 +632,6 @@ function initUI(dataset) {
                 });
 
                 newDataset.schemes[newScheme["id"]] = newScheme;
-                messageViewerManager.codeSchemeOrder.push(newScheme["id"] + "");
                 messageViewerManager.addNewSchemeColumn(newScheme);
 
                 UIUtils.displayAlertAsSuccess("<strong>Success!</strong> New coding scheme was imported.");
@@ -822,12 +821,12 @@ function initUI(dataset) {
     /*
     SCHEME DUPLICATION
      */
+    // TODO: I don't think there is a scheme-duplicate button
     $("#scheme-duplicate").on("click", () => {
 
         let newScheme = tempScheme.duplicate(Object.keys(newDataset.schemes));
         newDataset.schemes[newScheme.id] = newScheme;
-        messageViewerManager.codeSchemeOrder.push(newScheme.id);
-        messageViewerManager.addNewSchemeColumn(newScheme, newScheme.name);
+        messageViewerManager.addNewSchemeColumn(newScheme);
 
         let headerDecoColumn = $("#header-decoration-column");
         let header = headerDecoColumn.find("[scheme='" + newScheme["id"] + "']");
