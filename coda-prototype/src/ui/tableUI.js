@@ -526,6 +526,7 @@ var messageViewerManager = {
                 }
 
                 orderedSchemes.forEach(schemeKey => {
+                    console.log("schemeKey", schemeKey);
                     let schemeObj = newDataset.schemes[schemeKey];
 
                     let sortIcon = "<button class='sort-btn btn btn-default btn-xs' data-toggle='tooltip' data-placement='top' title='Sort messages' data-container='body'><div class='sort-icon " + (schemeKey === messageViewerManager.activeScheme ? activeSortIcon + "'" : "icon-def active'") + "></div></button>";
@@ -965,11 +966,8 @@ var messageViewerManager = {
         }
     },
 
-    addNewSchemeColumn: function(scheme) {
-
-        if (scheme["codes"].size === 0) return; // shouldnt happen because fields are validated
-
-        regexMatcher.codeDataset(scheme["id"]);
+    addNewSchemeColumn: function(newScheme) {
+        regexMatcher.codeDataset(newScheme["id"]);
         if (messageViewerManager.codeSchemeOrder.length === 1) {
             // means the default scheme is being added
             // need to append to message table, not decorations table since it's becoming active scheme
@@ -984,7 +982,7 @@ var messageViewerManager = {
             decoTableTbodyElement.hide();
             messageTableTbodyElement.css({"width": "100%"});
 
-            messageViewerManager.addNewActiveScheme(scheme["id"]);
+            messageViewerManager.addNewActiveScheme(newScheme["id"]);
 
         } else {
 
@@ -1028,19 +1026,17 @@ var messageViewerManager = {
             /*
             Rebuild decorations table header
              */
-            let activeSchemeHeader = $("#active-scheme-header");
             let decorationCell = messageViewerManager.decorationTable.find("thead").find("tr");
             decorationCell.empty();
-            let appendedOtherSchemeHeaders = messageViewerManager.buildDecorationsHeader(messageViewerManager.codeSchemeOrder.slice(1), "icon-def", decorationCell).appendTo(decorationCell);
+
+            let allSchemeHeaders = messageViewerManager
+                .buildDecorationsHeader(messageViewerManager.codeSchemeOrder.slice(1), "icon-def", decorationCell)
+                .appendTo(decorationCell);
 
             /*
             let activeSchemeHeaderToAppend = this.buildSchemeHeaderElement(scheme["id"], "icon-def", true);
             let appendedActiveSchemeHeader = $(activeSchemeHeaderToAppend).appendTo(activeSchemeHeader);
             */
-
-            messageViewerManager.addNewActiveScheme(scheme["id"]);
-
-            let allSchemeHeaders = appendedOtherSchemeHeaders;
 
             $(allSchemeHeaders).find("i.scheme-name").on("click", event => {
                 let schemeHeaderContainer = $(event.target).parents(".scheme-header"); // coding scheme header - container for buttons and name of particular scheme
@@ -1057,11 +1053,10 @@ var messageViewerManager = {
                 let button = column.find(".edit-scheme-button");
 
                 messageViewerManager.bindEditSchemeButtonListener(button, newDataset["schemes"][schemeKey]);
-
-                if (schemeKey === (scheme.id + "")) {
-                    column.find("i.scheme-name").trigger("click");
-                }
             });
+
+            // Switch the active scheme to be the new one.
+            messageViewerManager.changeActiveScheme(newScheme.id);
 
             let sortButton = $(".sort-btn");
             sortButton.off("click");
