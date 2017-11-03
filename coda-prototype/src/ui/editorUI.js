@@ -254,7 +254,6 @@ var codeEditorManager = {
                     .removeClass("has-error");
 
                 newDataset.schemes[newId] = tempScheme;
-                messageViewerManager.codeSchemeOrder.push(String(newId));
                 messageViewerManager.addNewSchemeColumn(tempScheme);
 
                 undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
