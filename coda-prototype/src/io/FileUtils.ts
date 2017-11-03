@@ -164,9 +164,12 @@ class FileUtils {
                 }
 
                 let parsedObjects = parse.data;
-                let dataset = new Dataset();
-                let events = new Map();
-                let nextEvent = null;
+                let dataset: Dataset = new Dataset();
+                let events: Map<string, RawEvent> = new Map();
+                let nextEvent: RawEvent = null;
+
+                console.log("parsedObjects:");
+                console.log(JSON.stringify(parsedObjects));
 
                 // If well-formed, the data file being imported has a row for each codable data item/coding scheme pair.
                 // Loop over each of these rows to build a dataset object.
@@ -187,7 +190,8 @@ class FileUtils {
                     // If this parsed row has the minimum information set required to construct an entry in the dataset,
                     // construct that entry and add it to the dataset.
                     // TODO: Break this into smaller functions?
-                    if (id && owner && data) {
+                    if (id && owner && data && eventRow["id"] !== "" && eventRow["owner"] !== ""
+                        && eventRow["data"] !== "") {
                         if (!dataset) {
                             dataset = new Dataset(); // TODO: Determine whether this check is necessary.
                         }
@@ -267,6 +271,8 @@ class FileUtils {
                         }
                     }
                 }
+
+                console.log("Imported dataset valid?", Dataset.validate(dataset));
 
                 resolve(dataset);
             });

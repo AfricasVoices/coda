@@ -236,16 +236,6 @@ describe("FileUtils", () => {
     // TODO: I think in this case we should do "best effort". Some tests where columns are missing might be needed here.
 
     // TODO: Test saving/loading a dataset
-    // it("should save and load an empty dataset", done => {
-    //     let inDataset = new Dataset();
-    //
-    //     FileUtils.saveDataset(inDataset);
-    //     FileUtils.loadDataset(undefined, "uuid-0").then(outDataset => {
-    //         expect(inDataset).toEqual(outDataset);
-    //         done();
-    //     }, done.fail);
-    // });
-
     // it("should validate an empty dataset?", done => {
     //     if (Dataset.validate(new Dataset())) {
     //         done();
@@ -261,23 +251,61 @@ describe("FileUtils", () => {
     //
     // });
 
-    it("should save and load the default dataset", done => {
-        Dataset.generateDefaultDataset("uuid-0", "test/sessions-numbered-100.json").then(inDataset => {
-            console.log(Dataset.validate(inDataset));
+    // it("should save and load the default dataset", done => {
+    //     Dataset.generateDefaultDataset("uuid-0", "test/sessions-numbered-100.json").then(inDataset => {
+    //         if (!Dataset.validate(inDataset)) {
+    //             done.fail("Default dataset is invalid");
+    //         }
+    //
+    //         FileUtils.saveDataset(inDataset);
+    //         FileUtils.loadDataset(undefined, "uuid-0").then(outDataset => {
+    //             outDataset.events.forEach(event =>
+    //                 event.decorations.forEach((decoration: EventDecoration) => {
+    //                     // console.log(decoration.code.id);
+    //                     // console.log(JSON.stringify(inDataset.schemes[decoration.scheme_id]));
+    //                     // console.log(JSON.stringify(inDataset.schemes[decoration.scheme_id].codes.get(decoration.code.id)));
+    //
+    //                     let code: Code = inDataset.schemes[decoration.scheme_id].codes.get(decoration.code.id);
+    //                     code.addEvent(event);
+    //                     decoration.changeCodeObj(code);
+    //
+    //                 })
+    //             );
+    //
+    //             expect(inDataset.events).toEqual(outDataset.events);
+    //             done();
+    //         }, done.fail);
+    //     }, done.fail);
+    // });
 
-            FileUtils.saveDataset(inDataset);
-            FileUtils.loadDataset(undefined, "uuid-0").then(outDataset => {
-                outDataset.events.forEach(
-                    event => event.decorations.forEach()
-                )
+    function print(x) {
+        console.log(JSON.stringify(x));
+    }
 
-                expect(inDataset.events).toEqual(outDataset.events);
-                done();
-            }, done.fail);
+    it("should save and load an empty dataset", done => {
+        let inDataset = new Dataset();
+
+        FileUtils.saveDataset(inDataset);
+        FileUtils.loadDataset(undefined, "uuid-0").then(outDataset => {
+            expect(inDataset).toEqual(outDataset);
+            done();
         }, done.fail);
     });
 
-    // it("should save and load a dataset which has one event", done => {
-    //     let inDataset = new Dataset();
-    // });
+    it("should save and load a dataset with one data item", done => {
+        let inDataset = new Dataset();
+        let newEvent = new RawEvent("name", "owner", new Date().toDateString(), "0", "data");
+        inDataset.events.set(newEvent.name, newEvent);
+
+        FileUtils.saveDataset(inDataset);
+        FileUtils.loadDataset(undefined, "uuid-0").then(outDataset => {
+
+            console.log("in vs out:");
+            print(inDataset);
+            print(outDataset);
+
+            expect(inDataset).toEqual(outDataset);
+            done();
+        }, done.fail);
+    });
 });
