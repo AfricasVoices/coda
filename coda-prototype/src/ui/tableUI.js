@@ -967,9 +967,6 @@ var messageViewerManager = {
     },
 
     addNewSchemeColumn: function(newScheme) {
-
-        if (newScheme["codes"].size === 0) return; // shouldnt happen because fields are validated
-
         regexMatcher.codeDataset(newScheme["id"]);
         if (messageViewerManager.codeSchemeOrder.length === 1) {
             // means the default scheme is being added
