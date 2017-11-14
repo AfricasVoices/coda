@@ -589,7 +589,6 @@ function initUI(dataset) {
         FileUtils.loadDataset(file, UUID).then(handleDatasetParsed, handleDatasetParseError);
 
         $("#dataset-file")[0].value = ""; // need to reset so the 'onchange' listener will catch reloading the same file
-
     });
 
     /**

@@ -178,6 +178,7 @@ class FileUtils {
                 let dataset = new Dataset();
                 let events = new Map();
                 let nextEvent = null;
+                let conflictingEvents: Set<RawEvent> = new Set();
 
                 // If well-formed, the data file being imported has a row for each codable data item/coding scheme pair.
                 // Loop over each of these rows to build a dataset object.
@@ -213,17 +214,21 @@ class FileUtils {
                             events.set(eventRow["id"], nextEvent);
                         } else {
                             nextEvent = events.get(eventRow["id"]);
+                        }
 
-                            if (eventRow["owner"] !== nextEvent.owner) {
-                                // TODO: Move this handler to the end of this method.
-                                switch (conflictingEventIdMode) {
-                                    case ConflictingEventIdMode.Fail:
-                                        reject({
-                                            name: "DuplicatedMessageIdsError",
-                                            // TODO: More data in here.
-                                        });
-                                        break;
-                                }
+                        if (eventRow["owner"] !== nextEvent.owner) {
+                            if (conflictingEventIdMode === ConflictingEventIdMode.NewIds) {
+                                let uniqueId = ""; // TODO
+                                nextEvent = new RawEvent(
+                                    uniqueId, eventRow["owner"], timestampData, eventRow["id"], eventRow["data"]
+                                );
+                                events.set(eventRow["id"], nextEvent);
+                            } else {
+                                conflictingEvents.add(nextEvent);
+                                conflictingEvents.add(new RawEvent(
+                                    eventRow["id"], eventRow["owner"], timestampData, eventRow["id"], eventRow["data"]
+                                ));
+                                continue;
                             }
                         }
 
@@ -290,6 +295,30 @@ class FileUtils {
                         }
                     }
                 }
+
+                if (conflictingEvents.size > 0) {
+                    if (conflictingEventIdMode === ConflictingEventIdMode.Fail) {
+                        reject({
+                            name: "DuplicatedMessageIdsError",
+                            conflictingEvents: conflictingEvents
+                        });
+                        return;
+                    } else if (conflictingEventIdMode === ConflictingEventIdMode.Delete) {
+
+                    }
+
+                }
+
+                // // TODO: Move this handler to the end of this method.
+                // switch (conflictingEventIdMode) {
+                //     case ConflictingEventIdMode.Fail:
+                //         reject({
+                //             name: "DuplicatedMessageIdsError",
+                //             // TODO: More data in here.
+                //         });
+                //         break;
+                // }
+
 
                 resolve(dataset);
             });
