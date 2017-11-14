@@ -3,7 +3,7 @@ declare let Papa;
 
 enum ConflictingEventIdMode {
     Fail,
-    Delete,
+    ChooseOne,
     NewIds
 }
 
@@ -174,14 +174,57 @@ class FileUtils {
                     return;
                 }
 
-                let parsedObjects = parse.data;
-                let dataset = new Dataset();
-                let events = new Map();
-                let nextEvent = null;
-                let conflictingEvents: Set<RawEvent> = new Set();
+                // Quietly remove rows which do not have enough information to convert to an event
+                // TODO: Warn the user when this happens?
+                let parsedObjects = parse.data.filter(eventRow => eventRow.hasOwnProperty("id") &&
+                    eventRow.hasOwnProperty("owner") && eventRow.hasOwnProperty("data"));
+
+                // Search for ids which are shared between multiple owners.
+                let observedEvents: Map<string, string> = new Map(); // Map of event id to owner
+                let conflictingIds: Set<string> = new Set();
+                let conflictingEventRows = [];
+                for (let eventRow of parsedObjects) {
+                    if (observedEvents.has(eventRow["id"])) {
+                        if (observedEvents.get(eventRow["id"]) !== eventRow["owner"]) {
+                            conflictingIds.add(eventRow["id"]);
+                            conflictingEventRows.push(eventRow);
+                        }
+                    } else {
+                        observedEvents.set(eventRow["id"], eventRow["owner"]);
+                    }
+                }
+
+                // Handle conflicting ids
+                switch (conflictingEventIdMode) {
+                    case ConflictingEventIdMode.Fail:
+                        reject({
+                            name: "DuplicatedMessageIdsError",
+                            conflictingMessages: conflictingEventRows.map(eventRow => {
+                                return {
+                                    id: eventRow["id"],
+                                    message: eventRow["data"]
+                                };
+                            })
+                        });
+                        return;
+                    case ConflictingEventIdMode.NewIds:
+                        parsedObjects
+                            .filter(eventRow => conflictingIds.has(eventRow["id"]))
+                            .forEach(eventRow => eventRow["id"] = String(Math.floor(Math.random() * 10000)));
+                        break;
+                    case ConflictingEventIdMode.ChooseOne:
+                        parsedObjects = parsedObjects.filter(
+                            eventRow => !conflictingIds.has(eventRow["id"]));
+                        conflictingIds.forEach(id => {
+                            parsedObjects.push(conflictingEventRows.filter(row => row["id"] === id)[0]);
+                        });
+                }
 
                 // If well-formed, the data file being imported has a row for each codable data item/coding scheme pair.
                 // Loop over each of these rows to build a dataset object.
+                let dataset = new Dataset();
+                let events = new Map();
+                let nextEvent = null;
                 for (let eventRow of parsedObjects) {
                     let id: boolean = eventRow.hasOwnProperty("id"),
                         timestamp: boolean = eventRow.hasOwnProperty("timestamp"),
@@ -196,129 +239,82 @@ class FileUtils {
                         deco_timestamp: boolean = eventRow.hasOwnProperty("deco_timestamp"),
                         deco_author: boolean = eventRow.hasOwnProperty("deco_author");
 
-                    // If this parsed row has the minimum information set required to construct an entry in the dataset,
-                    // construct that entry and add it to the dataset.
-                    // TODO: Break this into smaller functions?
-                    if (id && owner && data) {
-                        if (!dataset) {
-                            dataset = new Dataset(); // TODO: Determine whether this check is necessary.
+                    console.assert(id && owner && data);
+
+                    let timestampData = timestamp ? eventRow["timestamp"] : "";
+
+                    let isNewEvent = !events.has(eventRow["id"]);
+                    if (isNewEvent) {
+                        nextEvent = new RawEvent(
+                            eventRow["id"], eventRow["owner"], timestampData, eventRow["id"], eventRow["data"]
+                        );
+                        events.set(eventRow["id"], nextEvent);
+                    } else {
+                        nextEvent = events.get(eventRow["id"]);
+                    }
+
+                    if (!dataset.sessions.has(eventRow["owner"])) {
+                        let newSession = new Session(eventRow["owner"], [nextEvent]);
+                        dataset.sessions.set(eventRow["owner"], newSession);
+                    } else {
+                        let session = dataset.sessions.get(eventRow["owner"]);
+                        if (session.events.has(nextEvent["name"])) {
+                            session.events.set(nextEvent["name"], nextEvent);
+                        }
+                    }
+
+                    // If this parsed row has the minimum information set required to construct a code scheme entry,
+                    // construct that entry and add it to the dataset
+                    if (schemeId && schemeName && deco_codevalue && deco_codeId && deco_manual
+                        && eventRow["schemeId"].length > 0 && eventRow["schemeName"].length > 0
+                        && eventRow["deco_codeValue"].length > 0) {
+                        /* TODO: Understand this bit and document. It's adding a scheme if one does not exist,
+                                 but this requires knowing what a scheme here represents. */
+                        let newScheme;
+                        if (!dataset.schemes[eventRow["schemeId"]]) {
+                            newScheme = new CodeScheme(eventRow["schemeId"], eventRow["schemeName"], false);
+                            dataset.schemes[newScheme.id] = newScheme;
+                        } else {
+                            newScheme = dataset.schemes[eventRow["schemeId"]];
                         }
 
-                        let timestampData = timestamp ? eventRow["timestamp"] : "";
-
-                        let isNewEvent = !events.has(eventRow["id"]);
-                        if (isNewEvent) {
-                            nextEvent = new RawEvent(
-                                eventRow["id"], eventRow["owner"], timestampData, eventRow["id"], eventRow["data"]
+                        if (!newScheme.codes.has(eventRow["deco_codeId"])) {
+                            newScheme.codes.set(
+                                eventRow["deco_codeId"],
+                                new Code(newScheme, eventRow["deco_codeId"],
+                                    eventRow["deco_codeValue"], "", "", false)
                             );
-                            events.set(eventRow["id"], nextEvent);
-                        } else {
-                            nextEvent = events.get(eventRow["id"]);
                         }
 
-                        if (eventRow["owner"] !== nextEvent.owner) {
-                            if (conflictingEventIdMode === ConflictingEventIdMode.NewIds) {
-                                let uniqueId = ""; // TODO
-                                nextEvent = new RawEvent(
-                                    uniqueId, eventRow["owner"], timestampData, eventRow["id"], eventRow["data"]
-                                );
-                                events.set(eventRow["id"], nextEvent);
+                        let manual = eventRow["deco_manual"].toLocaleLowerCase() !== "false"; // manually coded
+
+                        let confidence;
+                        if (deco_confidence) {
+                            let defaultConfidence = 0.95; // TODO: log a warning when this default is used?
+                            if (eventRow["deco_confidence"].length === 0) {
+                                confidence = defaultConfidence;
                             } else {
-                                conflictingEvents.add(nextEvent);
-                                conflictingEvents.add(new RawEvent(
-                                    eventRow["id"], eventRow["owner"], timestampData, eventRow["id"], eventRow["data"]
-                                ));
-                                continue;
-                            }
-                        }
-
-                        if (!dataset.sessions.has(eventRow["owner"])) {
-                            let newSession = new Session(eventRow["owner"], [nextEvent]);
-                            dataset.sessions.set(eventRow["owner"], newSession);
-                        } else {
-                            let session = dataset.sessions.get(eventRow["owner"]);
-                            if (session.events.has(nextEvent["name"])) {
-                                session.events.set(nextEvent["name"], nextEvent);
-                            }
-                        }
-
-                        // If this parsed row has the minimum information set required to construct a code scheme entry,
-                        // construct that entry and add it to the dataset
-                        if (schemeId && schemeName && deco_codevalue && deco_codeId && deco_manual
-                            && eventRow["schemeId"].length > 0 && eventRow["schemeName"].length > 0
-                            && eventRow["deco_codeValue"].length > 0) {
-                            /* TODO: Understand this bit and document. It's adding a scheme if one does not exist,
-                                     but this requires knowing what a scheme here represents. */
-                            let newScheme;
-                            if (!dataset.schemes[eventRow["schemeId"]]) {
-                                newScheme = new CodeScheme(eventRow["schemeId"], eventRow["schemeName"], false);
-                                dataset.schemes[newScheme.id] = newScheme;
-                            } else {
-                                newScheme = dataset.schemes[eventRow["schemeId"]];
-                            }
-
-                            if (!newScheme.codes.has(eventRow["deco_codeId"])) {
-                                newScheme.codes.set(
-                                    eventRow["deco_codeId"],
-                                    new Code(newScheme, eventRow["deco_codeId"],
-                                        eventRow["deco_codeValue"], "", "", false)
-                                );
-                            }
-
-                            let manual = eventRow["deco_manual"].toLocaleLowerCase() !== "false"; // manually coded
-
-                            let confidence;
-                            if (deco_confidence) {
-                                let defaultConfidence = 0.95; // TODO: log a warning when this default is used?
-                                if (eventRow["deco_confidence"].length === 0) {
+                                let float = parseFloat(eventRow["deco_confidence"]);
+                                if (isNaN(float)) {
                                     confidence = defaultConfidence;
                                 } else {
-                                    let float = parseFloat(eventRow["deco_confidence"]);
-                                    if (isNaN(float)) {
-                                        confidence = defaultConfidence;
-                                    } else {
-                                        confidence = float;
-                                    }
+                                    confidence = float;
                                 }
-                            } else {
-                                confidence = undefined;
                             }
-
-                            nextEvent.decorate(
-                                newScheme.id, manual, uuid, newScheme.codes.get(eventRow["deco_codeId"]), confidence
-                            );
+                        } else {
+                            confidence = undefined;
                         }
 
-                        if (isNewEvent) {
-                            dataset.eventOrder.push(nextEvent.name);
-                            dataset.events.set(nextEvent.name, nextEvent);
-                        }
-                    }
-                }
-
-                if (conflictingEvents.size > 0) {
-                    if (conflictingEventIdMode === ConflictingEventIdMode.Fail) {
-                        reject({
-                            name: "DuplicatedMessageIdsError",
-                            conflictingEvents: conflictingEvents
-                        });
-                        return;
-                    } else if (conflictingEventIdMode === ConflictingEventIdMode.Delete) {
-
+                        nextEvent.decorate(
+                            newScheme.id, manual, uuid, newScheme.codes.get(eventRow["deco_codeId"]), confidence
+                        );
                     }
 
+                    if (isNewEvent) {
+                        dataset.eventOrder.push(nextEvent.name);
+                        dataset.events.set(nextEvent.name, nextEvent);
+                    }
                 }
-
-                // // TODO: Move this handler to the end of this method.
-                // switch (conflictingEventIdMode) {
-                //     case ConflictingEventIdMode.Fail:
-                //         reject({
-                //             name: "DuplicatedMessageIdsError",
-                //             // TODO: More data in here.
-                //         });
-                //         break;
-                // }
-
 
                 resolve(dataset);
             });

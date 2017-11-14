@@ -576,8 +576,8 @@ function initUI(dataset) {
                     console.log(JSON.stringify(errors));
                     break;
                 case "DuplicatedMessageIdsError":
-                    UIUtils.displayAlertAsError("Error: Not all message ids are unique. Each message should have its" +
-                        "own unique id.");
+                    UIUtils.displayAlertAsError("Error: Not all message ids are unique. " +
+                        "Each message should have its own unique id.");
                     console.log("Error: Non-unique message ids");
                     break;
                 default:
@@ -586,7 +586,7 @@ function initUI(dataset) {
             }
         }
 
-        FileUtils.loadDataset(file, UUID).then(handleDatasetParsed, handleDatasetParseError);
+        FileUtils.loadDataset(file, UUID, ConflictingEventIdMode.NewIds).then(handleDatasetParsed, handleDatasetParseError);
 
         $("#dataset-file")[0].value = ""; // need to reset so the 'onchange' listener will catch reloading the same file
     });
