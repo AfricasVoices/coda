@@ -561,17 +561,29 @@ function initUI(dataset) {
          * Notifies the user that parsing the dataset file failed, via the alert banner.
          * Prints the first 100 parse errors to the console.
          */
-        function handleDatasetParseError(parseErrors) {
-            UIUtils.displayAlertAsError("Something is wrong with the data format. " +
-                "Change a few things up, refresh and try again.");
+        function handleDatasetParseError(error) {
+            switch (error.name) {
+                case "ParseError":
+                    UIUtils.displayAlertAsError("Something is wrong with the data format. " +
+                        "Change a few things up, refresh and try again.");
 
-            let errors = parseErrors;
-            if (errors.length > 100) { // only report first 100 wrong lines
-                errors = parseErrors.slice(0, 100);
+                    let errors = error.parseErrors;
+                    if (errors.length > 100) { // only report first 100 wrong lines
+                        errors = error.parseErrors.slice(0, 100);
+                    }
+
+                    console.log("ERROR: CANNOT PARSE CSV");
+                    console.log(JSON.stringify(errors));
+                    break;
+                case "DuplicatedMessageIdsError":
+                    UIUtils.displayAlertAsError("Error: Not all message ids are unique. Each message should have its" +
+                        "own unique id.");
+                    console.log("Error: Non-unique message ids");
+                    break;
+                default:
+                    UIUtils.displayAlertAsError("Something is wrong with the data format");
+                    console.log("An unexpected error type occurred. The error was:", error);
             }
-
-            console.log("ERROR: CANNOT PARSE CSV");
-            console.log(JSON.stringify(errors));
         }
 
         FileUtils.loadDataset(file, UUID).then(handleDatasetParsed, handleDatasetParseError);

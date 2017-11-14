@@ -1,6 +1,12 @@
 declare let UIUtils;
 declare let Papa;
 
+enum ConflictingEventIdMode {
+    Fail,
+    Delete,
+    NewIds
+}
+
 class FileUtils {
     /**
      * Saves the given string to a file. The file is determined by a file selector UI.
@@ -148,10 +154,12 @@ class FileUtils {
      * Note that a successfully parsed Dataset object is not necessarily valid.
      * @param {File} file File to be read and parsed.
      * @param {string} uuid TODO
+     * @param conflictingEventIdMode
      * @returns {Promise<Dataset>} Resolves with a parsed dataset if the file was successfully loaded and parsed,
      * or rejects with the parse errors if the parse failed. FIXME: If the file doesn't load then nothing will happen.
      */
-    static loadDataset(file: File, uuid: string): Promise<Dataset> {
+    static loadDataset(file: File, uuid: string,
+                       conflictingEventIdMode: ConflictingEventIdMode = ConflictingEventIdMode.Fail): Promise<Dataset> {
         return new Promise((resolve, reject) => {
             FileUtils.readFileAsText(file).then(readResult => {
                 // Attempt to parse the dataset read from the file.
@@ -159,7 +167,10 @@ class FileUtils {
 
                 // If parsing failed, reject.
                 if (parse.errors.length > 0) {
-                    reject(parse.errors);
+                    reject({
+                        name: "ParseError",
+                        parseErrors: parse.errors
+                    });
                     return;
                 }
 
@@ -202,6 +213,18 @@ class FileUtils {
                             events.set(eventRow["id"], nextEvent);
                         } else {
                             nextEvent = events.get(eventRow["id"]);
+
+                            if (eventRow["owner"] !== nextEvent.owner) {
+                                // TODO: Move this handler to the end of this method.
+                                switch (conflictingEventIdMode) {
+                                    case ConflictingEventIdMode.Fail:
+                                        reject({
+                                            name: "DuplicatedMessageIdsError",
+                                            // TODO: More data in here.
+                                        });
+                                        break;
+                                }
+                            }
                         }
 
                         if (!dataset.sessions.has(eventRow["owner"])) {
