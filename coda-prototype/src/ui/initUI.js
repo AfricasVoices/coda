@@ -580,11 +580,16 @@ function initUI(dataset) {
 
                     // Display the conflicting messages in a table in the error modal.
                     error.conflictingMessages.sort((a, b) => a.id.localeCompare(b.id));
+                    d3
+                        .select("#duplicatedMessageIdsTable")
+                        .select("tbody")
+                        .selectAll("tr")
+                        .remove();
+
                     let trs = d3
                         .select("#duplicatedMessageIdsTable")
                         .select("tbody")
                         .selectAll("tr")
-                        .remove()
                         .data(error.conflictingMessages)
                         .enter()
                         .append("tr")
@@ -609,6 +614,12 @@ function initUI(dataset) {
                                 .loadDataset(file, UUID, ConflictingEventIdMode.ChooseOne)
                                 .then(handleDatasetParsed, handleDatasetParseError)
                         );
+
+                    // Scroll the table back to the top when the modal is dismissed.
+                    $("#duplicatedMessageIdsModal")
+                        .off("hide.bs.modal")
+                        .on("hide.bs.modal", () =>
+                            window.setTimeout(() => $("#duplicatedMessageIdsTableContainer").scrollTop(0), 100));
 
                     $("#duplicatedMessageIdsModal").modal("show");
                     break;
