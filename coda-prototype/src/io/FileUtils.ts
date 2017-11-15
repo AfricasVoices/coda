@@ -180,17 +180,19 @@ class FileUtils {
                     eventRow.hasOwnProperty("owner") && eventRow.hasOwnProperty("data"));
 
                 // Search for ids which are shared between multiple owners.
-                let observedEvents: Map<string, string> = new Map(); // Map of event id to owner
-                let conflictingIds: Set<string> = new Set();
+                type id = string
+                let observedEvents: Map<id, { id: id, owner: string, data: string }> = new Map();
+                let conflictingIds: Set<id> = new Set();
                 let conflictingEventRows = [];
                 for (let eventRow of parsedObjects) {
                     if (observedEvents.has(eventRow["id"])) {
-                        if (observedEvents.get(eventRow["id"]) !== eventRow["owner"]) {
+                        if (observedEvents.get(eventRow["id"])["owner"] !== eventRow["owner"]) {
                             conflictingIds.add(eventRow["id"]);
                             conflictingEventRows.push(eventRow);
+                            conflictingEventRows.push(observedEvents.get(eventRow["id"]));
                         }
                     } else {
-                        observedEvents.set(eventRow["id"], eventRow["owner"]);
+                        observedEvents.set(eventRow["id"], eventRow);
                     }
                 }
 
@@ -210,7 +212,7 @@ class FileUtils {
                     case ConflictingEventIdMode.NewIds:
                         parsedObjects
                             .filter(eventRow => conflictingIds.has(eventRow["id"]))
-                            .forEach(eventRow => eventRow["id"] = String(Math.floor(Math.random() * 10000)));
+                            .forEach(eventRow => eventRow["id"] = String(Math.floor(Math.random() * Math.pow(10, 10)))); // TODO: ensure unique
                         break;
                     case ConflictingEventIdMode.ChooseOne:
                         parsedObjects = parsedObjects.filter(
