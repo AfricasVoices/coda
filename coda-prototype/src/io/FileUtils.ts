@@ -196,30 +196,32 @@ class FileUtils {
                     }
                 }
 
-                // Handle conflicting ids
-                switch (conflictingEventIdMode) {
-                    case ConflictingEventIdMode.Fail:
-                        reject({
-                            name: "DuplicatedMessageIdsError",
-                            conflictingMessages: conflictingEventRows.map(eventRow => {
-                                return {
-                                    id: eventRow["id"],
-                                    message: eventRow["data"]
-                                };
-                            })
-                        });
-                        return;
-                    case ConflictingEventIdMode.NewIds:
-                        parsedObjects
-                            .filter(eventRow => conflictingIds.has(eventRow["id"]))
-                            .forEach(eventRow => eventRow["id"] = String(Math.floor(Math.random() * Math.pow(10, 10)))); // TODO: ensure unique
-                        break;
-                    case ConflictingEventIdMode.ChooseOne:
-                        parsedObjects = parsedObjects.filter(
-                            eventRow => !conflictingIds.has(eventRow["id"]));
-                        conflictingIds.forEach(id => {
-                            parsedObjects.push(conflictingEventRows.filter(row => row["id"] === id)[0]);
-                        });
+                // Handle conflicting ids, if they exist.
+                if (conflictingIds.size > 0) {
+                    switch (conflictingEventIdMode) {
+                        case ConflictingEventIdMode.Fail:
+                            reject({
+                                name: "DuplicatedMessageIdsError",
+                                conflictingMessages: conflictingEventRows.map(eventRow => {
+                                    return {
+                                        id: eventRow["id"],
+                                        message: eventRow["data"]
+                                    };
+                                })
+                            });
+                            return;
+                        case ConflictingEventIdMode.NewIds:
+                            parsedObjects
+                                .filter(eventRow => conflictingIds.has(eventRow["id"]))
+                                .forEach(eventRow => eventRow["id"] = String(Math.floor(Math.random() * Math.pow(10, 10)))); // TODO: ensure unique
+                            break;
+                        case ConflictingEventIdMode.ChooseOne:
+                            parsedObjects = parsedObjects.filter(
+                                eventRow => !conflictingIds.has(eventRow["id"]));
+                            conflictingIds.forEach(id => {
+                                parsedObjects.push(conflictingEventRows.filter(row => row["id"] === id)[0]);
+                            });
+                    }
                 }
 
                 // If well-formed, the data file being imported has a row for each codable data item/coding scheme pair.
