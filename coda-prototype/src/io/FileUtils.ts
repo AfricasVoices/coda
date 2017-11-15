@@ -182,34 +182,17 @@ class FileUtils {
                 let parsedObjects = parse.data.filter(eventRow => eventRow.hasOwnProperty("id") &&
                     eventRow.hasOwnProperty("owner") && eventRow.hasOwnProperty("data"));
 
-                // Search for messages which have non-unique ids, by looking for pairs of messages which have the same
-                // id but different owners.
-                // It is necessary to allow multiple rows with the same id and owner in order to load a dataset with
-                // multiple code schemes.
-                type id = string
-                let observedEvents: Map<id, { id: id, owner: string, data: string }> = new Map();
-                let conflictingIds: Set<id> = new Set();
-                let conflictingEventRows = [];
-                for (let eventRow of parsedObjects) {
-                    if (observedEvents.has(eventRow["id"])) {
-                        if (observedEvents.get(eventRow["id"])["owner"] !== eventRow["owner"]) {
-                            conflictingIds.add(eventRow["id"]);
-                            conflictingEventRows.push(eventRow);
-                            conflictingEventRows.push(observedEvents.get(eventRow["id"]));
-                        }
-                    } else {
-                        observedEvents.set(eventRow["id"], eventRow);
-                    }
-                }
+                let conflicts: { conflictingEventRows: Array<{}>; conflictingIds: Set<string> } =
+                    FileUtils.findConflictingMessagesInParsedData(parsedObjects);
 
                 // If we have found non-unique message ids, handle this either by failing or by attempting clean-up
                 // of the dataset.
-                if (conflictingIds.size > 0) {
+                if (conflicts.conflictingIds.size > 0) {
                     switch (duplicatedMessageIdMode) {
                         case DuplicatedMessageIdMode.Fail:
                             reject({
                                 name: "DuplicatedMessageIdsError",
-                                conflictingMessages: conflictingEventRows.map(eventRow => {
+                                conflictingMessages: conflicts.conflictingEventRows.map(eventRow => {
                                     return {
                                         id: eventRow["id"],
                                         message: eventRow["data"]
@@ -218,15 +201,23 @@ class FileUtils {
                             });
                             return;
                         case DuplicatedMessageIdMode.NewIds:
+                            // Generate a new, *unique* id for each of the conflicting rows
                             parsedObjects
-                                .filter(eventRow => conflictingIds.has(eventRow["id"]))
-                                .forEach(eventRow => eventRow["id"] = String(Math.floor(Math.random() * Math.pow(10, 10)))); // TODO: ensure unique
+                                .filter(eventRow => conflicts.conflictingIds.has(eventRow["id"]))
+                                .forEach(eventRow => {
+                                    let newId: string = "";
+                                    do
+                                        newId = String(Math.floor(Math.random() * Math.pow(10, 10)));
+                                    while (parsedObjects.filter(row => row["id"] === newId).length > 0);
+
+                                    eventRow["id"] = newId;
+                                });
                             break;
                         case DuplicatedMessageIdMode.ChooseOne:
                             parsedObjects = parsedObjects.filter(
-                                eventRow => !conflictingIds.has(eventRow["id"]));
-                            conflictingIds.forEach(id => {
-                                parsedObjects.push(conflictingEventRows.filter(row => row["id"] === id)[0]);
+                                eventRow => !conflicts.conflictingIds.has(eventRow["id"]));
+                            conflicts.conflictingIds.forEach(id => {
+                                parsedObjects.push(conflicts.conflictingEventRows.filter(row => row["id"] === id)[0]);
                             });
                             break;
                         default:
@@ -339,6 +330,41 @@ class FileUtils {
                 resolve(dataset);
             });
         });
+    }
+
+    /**
+     * Searches a Papa-parsed dataset-file object for messages with the same id.
+     * @param parsedObjects Array to search for non-unique message ids.
+     * @returns {{conflictingEventRows: Array<{ id: string, owner: string, data: string }>,
+     * conflictingIds: Set<string>}}
+     */
+    private static findConflictingMessagesInParsedData(parsedObjects: Array<{ id: string, owner: string, data: string }>): { conflictingEventRows: Array<{ id: string, owner: string, data: string }>, conflictingIds: Set<string> } {
+        type id = string
+
+        let observedEvents: Map<id, { id: id, owner: string, data: string }> = new Map();
+        let conflictingIds: Set<id> = new Set();
+        let conflictingEventRows: Array<{ id: id, owner: string, data: string }> = [];
+
+        // Search for messages which have non-unique ids, by looking for pairs of messages which have the same
+        // id but different owners.
+        // It is necessary to allow multiple rows with the same id and owner in order to load a dataset with
+        // multiple code schemes.
+        for (let eventRow of parsedObjects) {
+            if (observedEvents.has(eventRow["id"])) {
+                if (observedEvents.get(eventRow["id"])["owner"] !== eventRow["owner"]) {
+                    conflictingIds.add(eventRow["id"]);
+                    conflictingEventRows.push(eventRow);
+                    conflictingEventRows.push(observedEvents.get(eventRow["id"]));
+                }
+            } else {
+                observedEvents.set(eventRow["id"], eventRow);
+            }
+        }
+
+        return {
+            conflictingEventRows: conflictingEventRows,
+            conflictingIds: conflictingIds
+        };
     }
 
     static loadCodeScheme(file: File): Promise<CodeScheme> {
