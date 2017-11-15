@@ -579,7 +579,10 @@ function initUI(dataset) {
                     console.log("Error: Non-unique message ids:", error.conflictingMessages);
 
                     // Display the conflicting messages in a table in the error modal.
+
+                    // Sort on id to place messages with the same id next to each other
                     error.conflictingMessages.sort((a, b) => a.id.localeCompare(b.id));
+
                     d3
                         .select("#duplicatedMessageIdsTable")
                         .select("tbody")
@@ -603,7 +606,7 @@ function initUI(dataset) {
                         .off("click")
                         .on("click", () =>
                             FileUtils
-                                .loadDataset(file, UUID, ConflictingEventIdMode.NewIds)
+                                .loadDataset(file, UUID, DuplicatedMessageIdMode.NewIds)
                                 .then(handleDatasetParsed, handleDatasetParseError)
                         );
 
@@ -611,7 +614,7 @@ function initUI(dataset) {
                         .off("click")
                         .on("click", () =>
                             FileUtils
-                                .loadDataset(file, UUID, ConflictingEventIdMode.ChooseOne)
+                                .loadDataset(file, UUID, DuplicatedMessageIdMode.ChooseOne)
                                 .then(handleDatasetParsed, handleDatasetParseError)
                         );
 

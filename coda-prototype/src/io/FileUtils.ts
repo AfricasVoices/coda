@@ -1,10 +1,13 @@
 declare let UIUtils;
 declare let Papa;
 
-enum ConflictingEventIdMode {
-    Fail,
-    ChooseOne,
-    NewIds
+/**
+ * Options for handling multiple messages which have the same id.
+ */
+enum DuplicatedMessageIdMode {
+    Fail, // Stops importing the dataset, and rejects with an error object containing the problematic messages.
+    ChooseOne, // For each group of messages with the same id, one message is arbitrarily selected and the rest deleted.
+    NewIds // All messages are kept, but messages with conflicting ids are randomly assigned new ids.
 }
 
 class FileUtils {
@@ -154,18 +157,18 @@ class FileUtils {
      * Note that a successfully parsed Dataset object is not necessarily valid.
      * @param {File} file File to be read and parsed.
      * @param {string} uuid TODO
-     * @param conflictingEventIdMode
+     * @param duplicatedMessageIdMode @see {@link DuplicatedMessageIdMode} for details.
      * @returns {Promise<Dataset>} Resolves with a parsed dataset if the file was successfully loaded and parsed,
      * or rejects with the parse errors if the parse failed. FIXME: If the file doesn't load then nothing will happen.
      */
     static loadDataset(file: File, uuid: string,
-                       conflictingEventIdMode: ConflictingEventIdMode = ConflictingEventIdMode.Fail): Promise<Dataset> {
+                       duplicatedMessageIdMode: DuplicatedMessageIdMode = DuplicatedMessageIdMode.Fail): Promise<Dataset> {
         return new Promise((resolve, reject) => {
             FileUtils.readFileAsText(file).then(readResult => {
                 // Attempt to parse the dataset read from the file.
                 let parse = Papa.parse(readResult, {header: true});
 
-                // If parsing failed, reject.
+                // If parsing failed, reject with the parse errors.
                 if (parse.errors.length > 0) {
                     reject({
                         name: "ParseError",
@@ -175,11 +178,14 @@ class FileUtils {
                 }
 
                 // Quietly remove rows which do not have enough information to convert to an event
-                // TODO: Warn the user when this happens?
+                // TODO: Warn the user when this happens? Coda has never done this in the past.
                 let parsedObjects = parse.data.filter(eventRow => eventRow.hasOwnProperty("id") &&
                     eventRow.hasOwnProperty("owner") && eventRow.hasOwnProperty("data"));
 
-                // Search for ids which are shared between multiple owners.
+                // Search for messages which have non-unique ids, by looking for pairs of messages which have the same
+                // id but different owners.
+                // It is necessary to allow multiple rows with the same id and owner in order to load a dataset with
+                // multiple code schemes.
                 type id = string
                 let observedEvents: Map<id, { id: id, owner: string, data: string }> = new Map();
                 let conflictingIds: Set<id> = new Set();
@@ -196,10 +202,11 @@ class FileUtils {
                     }
                 }
 
-                // Handle conflicting ids, if they exist.
+                // If we have found non-unique message ids, handle this either by failing or by attempting clean-up
+                // of the dataset.
                 if (conflictingIds.size > 0) {
-                    switch (conflictingEventIdMode) {
-                        case ConflictingEventIdMode.Fail:
+                    switch (duplicatedMessageIdMode) {
+                        case DuplicatedMessageIdMode.Fail:
                             reject({
                                 name: "DuplicatedMessageIdsError",
                                 conflictingMessages: conflictingEventRows.map(eventRow => {
@@ -210,17 +217,26 @@ class FileUtils {
                                 })
                             });
                             return;
-                        case ConflictingEventIdMode.NewIds:
+                        case DuplicatedMessageIdMode.NewIds:
                             parsedObjects
                                 .filter(eventRow => conflictingIds.has(eventRow["id"]))
                                 .forEach(eventRow => eventRow["id"] = String(Math.floor(Math.random() * Math.pow(10, 10)))); // TODO: ensure unique
                             break;
-                        case ConflictingEventIdMode.ChooseOne:
+                        case DuplicatedMessageIdMode.ChooseOne:
                             parsedObjects = parsedObjects.filter(
                                 eventRow => !conflictingIds.has(eventRow["id"]));
                             conflictingIds.forEach(id => {
                                 parsedObjects.push(conflictingEventRows.filter(row => row["id"] === id)[0]);
                             });
+                            break;
+                        default:
+                            console.log("Error: An unknown duplicated message id mode was specified. Given mode was:",
+                                duplicatedMessageIdMode);
+                            reject({
+                                name: "UnrecognisedDuplicatedMessageIdMode",
+                                specifiedMode: duplicatedMessageIdMode
+                            });
+                            return;
                     }
                 }
 
