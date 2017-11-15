@@ -549,8 +549,7 @@ function initUI(dataset) {
                     "timestamp": new Date()
                 });
 
-                UIUtils.displayAlertAsError("Something is wrong with the data format. " +
-                    "Change a few things up, refresh and try again.");
+                UIUtils.displayAlertAsError(UIUtils.defaultLoadErrorMessage);
 
                 console.log("ERROR: Dataset object is empty or has no events.");
                 console.log(dataset);
@@ -564,8 +563,7 @@ function initUI(dataset) {
         function handleDatasetParseError(error) {
             switch (error.name) {
                 case "ParseError":
-                    UIUtils.displayAlertAsError("Something is wrong with the data format. " +
-                        "Change a few things up, refresh and try again.");
+                    UIUtils.displayAlertAsError(UIUtils.defaultLoadErrorMessage);
 
                     let errors = error.parseErrors;
                     if (errors.length > 100) { // only report first 100 wrong lines
@@ -626,7 +624,7 @@ function initUI(dataset) {
                     $("#duplicatedMessageIdsModal").modal("show");
                     break;
                 default:
-                    UIUtils.displayAlertAsError("Something is wrong with the data format");
+                    UIUtils.displayAlertAsError(UIUtils.defaultLoadErrorMessage);
                     console.log("An unexpected error type occurred. The error was:", error);
             }
         }
@@ -674,7 +672,7 @@ function initUI(dataset) {
                 let errorText = isDuplicate
                     ? "Can't import duplicate coding scheme (ID: '" + newScheme["id"] + "')." +
                     " To update an existing coding scheme access it via code editor."
-                    : "Something is wrong with the data format. Change a few things up, refresh and try again.";
+                    : UIUtils.defaultLoadErrorMessage;
                 UIUtils.displayAlertAsError(errorText);
             } else {
                 // todo: what is the behaviour when scheme id is a duplicate - overwrite??
@@ -695,8 +693,7 @@ function initUI(dataset) {
         }
 
         function handleSchemeParseError(error) {
-            UIUtils.displayAlertAsError("Something is wrong with the scheme data format. " +
-                "Change a few things up, refresh and try again.");
+            UIUtils.displayAlertAsError(UIUtils.defaultLoadErrorMessage);
 
             if (error.name === "ParseError") {
                 let parseErrors = error.parseErrors;
@@ -827,8 +824,7 @@ function initUI(dataset) {
         }
 
         function handleSchemeParseError(error) {
-            UIUtils.displayAlertAsError("Something is wrong with the scheme data format. " +
-                "Change a few things up, refresh and try again.");
+            UIUtils.displayAlertAsError(UIUtils.defaultLoadErrorMessage);
 
             if (error.name === "ParseError") {
                 console.log("ERROR: Cannot parse scheme file.");

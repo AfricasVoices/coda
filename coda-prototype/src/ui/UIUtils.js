@@ -537,6 +537,9 @@ var UIUtils = (function() {
             alert.hide();
             $("#alert-content").empty();
             $(".tableFloatingHeaderOriginal").show();
-        }
+        },
+
+        defaultLoadErrorMessage: "Cannot load this file due to a problem with the data format. " +
+        "If you think this is an error, please contact the developers with a copy of the file you're trying to load."
     };
 })();
