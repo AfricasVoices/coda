@@ -579,6 +579,7 @@ function initUI(dataset) {
                     console.log("Error: Non-unique message ids:", error.conflictingMessages);
 
                     // Display the conflicting messages in a table in the error modal.
+                    error.conflictingMessages.sort((a, b) => a.id.localeCompare(b.id));
                     let trs = d3
                         .select("#duplicatedMessageIdsTable")
                         .select("tbody")
