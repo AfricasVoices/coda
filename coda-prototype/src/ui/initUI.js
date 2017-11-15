@@ -578,7 +578,6 @@ function initUI(dataset) {
                 case "DuplicatedMessageIdsError":
                     console.log("Error: Non-unique message ids:", error.conflictingMessages);
 
-
                     // Sort on id to place messages with the same id next to each other
                     error.conflictingMessages.sort((a, b) => a.id.localeCompare(b.id));
 
