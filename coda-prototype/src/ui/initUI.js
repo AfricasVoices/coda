@@ -579,9 +579,23 @@ function initUI(dataset) {
                     UIUtils.displayAlertAsError("Error: Not all message ids are unique. " +
                         "Each message should have its own unique id.");
 
-                    FileUtils
-                        .loadDataset(file, UUID, ConflictingEventIdMode.NewIds)
-                        .then(handleDatasetParsed, handleDatasetParseError);
+                    let trs = d3
+                        .select("#duplicatedMessageIdsTable")
+                        .select("tbody")
+                        .selectAll("tr")
+                        .data(error.conflictingMessages)
+                        .enter()
+                        .append("tr")
+                        .attr("class", (p, i) => i === 0 || p.id !== error.conflictingMessages[i - 1].id ? "row-line" : "");
+
+                    trs.append("td").text(p => p.id);
+                    trs.append("td").text(p => p.message);
+
+                    $("#duplicatedMessageIdsModal").modal("show");
+
+                    // FileUtils
+                    //     .loadDataset(file, UUID, ConflictingEventIdMode.NewIds)
+                    //     .then(handleDatasetParsed, handleDatasetParseError);
 
                     console.log("Error: Non-unique message ids:", error.conflictingMessages);
                     break;

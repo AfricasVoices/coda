@@ -44,6 +44,7 @@ SOFTWARE.
     <script src="external/papaparse/papaparse.js"></script>
     <script src="external/grunticon/grunticon.loader.js"></script>
     <script src="external/uuid/js-uuid.js"></script>
+    <script src="node_modules/d3/build/d3.min.js"></script>
 
 
     <!-- Toolbar UI -->
@@ -109,6 +110,44 @@ SOFTWARE.
     </div>
 </div>
 
+<div class="modal fade" id="duplicatedMessageIdsModal" role="dialog">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Import Error</h4>
+            </div>
+
+            <div class="modal-body">
+                <div>The selected dataset contains non-unique message ids.</div>
+                <div>These are the ids and messages which conflict:</div>
+
+                <div id="duplicatedMessageIdsTableContainer">
+                    <table id="duplicatedMessageIdsTable">
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Message</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+
+                        </tbody>
+                    </table>
+                </div>
+
+                <div>Coda can attempt to fix this by generating new IDs for the conflicting messages,
+                    or by deleting all but one of each of the duplicate entries.
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Cancel import</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Generate New IDs</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Delete Duplicates</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Navbar -->
 <nav class="navbar navbar-default navbar-fixed-top">

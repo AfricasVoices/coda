@@ -480,3 +480,19 @@ i.scheme-name.active-scheme {
     min-width: 266px;
     /* HAVE TO KEEP MIN-WIDTH AS SET BY STICKYTABLEHEADERS */
 }
+
+#duplicatedMessageIdsTable > * > tr.row-line > td {
+    border-top: 1px solid lightgray;
+}
+
+#duplicatedMessageIdsTableContainer {
+    max-height: 200px;
+    margin: 16px 2px;
+    overflow-y: scroll;
+    overflow-x: hidden;
+}
+
+#duplicatedMessageIdsTable {
+    width: 100%;
+    border-spacing: 8px;
+}
