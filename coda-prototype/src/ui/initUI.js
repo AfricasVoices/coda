@@ -576,28 +576,40 @@ function initUI(dataset) {
                     console.log(JSON.stringify(errors));
                     break;
                 case "DuplicatedMessageIdsError":
-                    UIUtils.displayAlertAsError("Error: Not all message ids are unique. " +
-                        "Each message should have its own unique id.");
+                    console.log("Error: Non-unique message ids:", error.conflictingMessages);
 
+                    // Display the conflicting messages in a table in the error modal.
                     let trs = d3
                         .select("#duplicatedMessageIdsTable")
                         .select("tbody")
                         .selectAll("tr")
+                        .remove()
                         .data(error.conflictingMessages)
                         .enter()
                         .append("tr")
-                        .attr("class", (p, i) => i === 0 || p.id !== error.conflictingMessages[i - 1].id ? "row-line" : "");
+                        .attr("class", // Add a line separating each group of conflicting messages.
+                            (p, i) => i === 0 || p.id !== error.conflictingMessages[i - 1].id ? "row-line" : "");
 
                     trs.append("td").text(p => p.id);
                     trs.append("td").text(p => p.message);
 
+                    $("#duplicatedMessageIdsNewIds")
+                        .off("click")
+                        .on("click", () =>
+                            FileUtils
+                                .loadDataset(file, UUID, ConflictingEventIdMode.NewIds)
+                                .then(handleDatasetParsed, handleDatasetParseError)
+                        );
+
+                    $("#duplicatedMessageIdsChooseOne")
+                        .off("click")
+                        .on("click", () =>
+                            FileUtils
+                                .loadDataset(file, UUID, ConflictingEventIdMode.ChooseOne)
+                                .then(handleDatasetParsed, handleDatasetParseError)
+                        );
+
                     $("#duplicatedMessageIdsModal").modal("show");
-
-                    // FileUtils
-                    //     .loadDataset(file, UUID, ConflictingEventIdMode.NewIds)
-                    //     .then(handleDatasetParsed, handleDatasetParseError);
-
-                    console.log("Error: Non-unique message ids:", error.conflictingMessages);
                     break;
                 default:
                     UIUtils.displayAlertAsError("Something is wrong with the data format");
