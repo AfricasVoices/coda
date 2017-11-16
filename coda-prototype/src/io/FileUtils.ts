@@ -250,8 +250,6 @@ class FileUtils {
                         deco_timestamp: boolean = eventRow.hasOwnProperty("deco_timestamp"),
                         deco_author: boolean = eventRow.hasOwnProperty("deco_author");
 
-                    console.assert(id && owner && data);
-
                     let timestampData = timestamp ? eventRow["timestamp"] : "";
 
                     let isNewEvent = !events.has(eventRow["id"]);
