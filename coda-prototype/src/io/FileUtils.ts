@@ -1,6 +1,15 @@
 declare let UIUtils;
 declare let Papa;
 
+/**
+ * Options for handling multiple messages which have the same id.
+ */
+enum DuplicatedMessageIdMode {
+    Fail, // Stops importing the dataset, and rejects with an error object containing the problematic messages.
+    ChooseOne, // For each group of messages with the same id, one message is arbitrarily selected and the rest deleted.
+    NewIds // All messages are kept, but messages with conflicting ids are randomly assigned new ids.
+}
+
 class FileUtils {
     /**
      * Saves the given string to a file. The file is determined by a file selector UI.
@@ -148,28 +157,85 @@ class FileUtils {
      * Note that a successfully parsed Dataset object is not necessarily valid.
      * @param {File} file File to be read and parsed.
      * @param {string} uuid TODO
+     * @param duplicatedMessageIdMode @see {@link DuplicatedMessageIdMode} for details.
      * @returns {Promise<Dataset>} Resolves with a parsed dataset if the file was successfully loaded and parsed,
      * or rejects with the parse errors if the parse failed. FIXME: If the file doesn't load then nothing will happen.
      */
-    static loadDataset(file: File, uuid: string): Promise<Dataset> {
+    static loadDataset(file: File, uuid: string,
+                       duplicatedMessageIdMode: DuplicatedMessageIdMode = DuplicatedMessageIdMode.Fail): Promise<Dataset> {
         return new Promise((resolve, reject) => {
             FileUtils.readFileAsText(file).then(readResult => {
                 // Attempt to parse the dataset read from the file.
                 let parse = Papa.parse(readResult, {header: true});
 
-                // If parsing failed, reject.
+                // If parsing failed, reject with the parse errors.
                 if (parse.errors.length > 0) {
-                    reject(parse.errors);
+                    reject({
+                        name: "ParseError",
+                        parseErrors: parse.errors
+                    });
                     return;
                 }
 
-                let parsedObjects = parse.data;
-                let dataset = new Dataset();
-                let events = new Map();
-                let nextEvent = null;
+                // Quietly remove rows which do not have enough information to convert to an event
+                // TODO: Warn the user when this happens? Coda has never done this in the past.
+                let parsedObjects = parse.data.filter(eventRow => eventRow.hasOwnProperty("id") &&
+                    eventRow.hasOwnProperty("owner") && eventRow.hasOwnProperty("data"));
+
+                let conflicts: { conflictingEventRows: Array<{}>; conflictingIds: Set<string> } =
+                    FileUtils.findConflictingMessagesInParsedData(parsedObjects);
+
+                // If we have found non-unique message ids, handle this either by failing or by attempting clean-up
+                // of the dataset.
+                if (conflicts.conflictingIds.size > 0) {
+                    switch (duplicatedMessageIdMode) {
+                        case DuplicatedMessageIdMode.Fail:
+                            reject({
+                                name: "DuplicatedMessageIdsError",
+                                conflictingMessages: conflicts.conflictingEventRows.map(eventRow => {
+                                    return {
+                                        id: eventRow["id"],
+                                        message: eventRow["data"]
+                                    };
+                                })
+                            });
+                            return;
+                        case DuplicatedMessageIdMode.NewIds:
+                            // Generate a new, *unique* id for each of the conflicting rows
+                            parsedObjects
+                                .filter(eventRow => conflicts.conflictingIds.has(eventRow["id"]))
+                                .forEach(eventRow => {
+                                    let newId: string = "";
+                                    do
+                                        newId = String(Math.floor(Math.random() * Math.pow(10, 10)));
+                                    while (parsedObjects.filter(row => row["id"] === newId).length > 0);
+
+                                    eventRow["id"] = newId;
+                                });
+                            break;
+                        case DuplicatedMessageIdMode.ChooseOne:
+                            parsedObjects = parsedObjects.filter(
+                                eventRow => !conflicts.conflictingIds.has(eventRow["id"]));
+                            conflicts.conflictingIds.forEach(id => {
+                                parsedObjects.push(conflicts.conflictingEventRows.filter(row => row["id"] === id)[0]);
+                            });
+                            break;
+                        default:
+                            console.log("Error: An unknown duplicated message id mode was specified. Given mode was:",
+                                duplicatedMessageIdMode);
+                            reject({
+                                name: "UnrecognisedDuplicatedMessageIdMode",
+                                specifiedMode: duplicatedMessageIdMode
+                            });
+                            return;
+                    }
+                }
 
                 // If well-formed, the data file being imported has a row for each codable data item/coding scheme pair.
                 // Loop over each of these rows to build a dataset object.
+                let dataset = new Dataset();
+                let events = new Map();
+                let nextEvent = null;
                 for (let eventRow of parsedObjects) {
                     let id: boolean = eventRow.hasOwnProperty("id"),
                         timestamp: boolean = eventRow.hasOwnProperty("timestamp"),
@@ -184,93 +250,122 @@ class FileUtils {
                         deco_timestamp: boolean = eventRow.hasOwnProperty("deco_timestamp"),
                         deco_author: boolean = eventRow.hasOwnProperty("deco_author");
 
-                    // If this parsed row has the minimum information set required to construct an entry in the dataset,
-                    // construct that entry and add it to the dataset.
-                    // TODO: Break this into smaller functions?
-                    if (id && owner && data) {
-                        if (!dataset) {
-                            dataset = new Dataset(); // TODO: Determine whether this check is necessary.
+                    let timestampData = timestamp ? eventRow["timestamp"] : "";
+
+                    let isNewEvent = !events.has(eventRow["id"]);
+                    if (isNewEvent) {
+                        nextEvent = new RawEvent(
+                            eventRow["id"], eventRow["owner"], timestampData, eventRow["id"], eventRow["data"]
+                        );
+                        events.set(eventRow["id"], nextEvent);
+                    } else {
+                        nextEvent = events.get(eventRow["id"]);
+                    }
+
+                    // TODO: Move to Dataset API
+                    if (!dataset.sessions.has(eventRow["owner"])) {
+                        let newSession = new Session(eventRow["owner"], [nextEvent]);
+                        dataset.sessions.set(eventRow["owner"], newSession);
+                    } else {
+                        let session = dataset.sessions.get(eventRow["owner"]);
+                        if (session.events.has(nextEvent["name"])) {
+                            session.events.set(nextEvent["name"], nextEvent);
+                        }
+                    }
+
+                    // If this parsed row has the minimum information set required to construct a code scheme entry,
+                    // construct that entry and add it to the dataset
+                    if (schemeId && schemeName && deco_codevalue && deco_codeId && deco_manual
+                        && eventRow["schemeId"].length > 0 && eventRow["schemeName"].length > 0
+                        && eventRow["deco_codeValue"].length > 0) {
+                        /* TODO: Understand this bit and document. It's adding a scheme if one does not exist,
+                                 but this requires knowing what a scheme here represents. */
+                        let newScheme;
+                        // TODO: Move to Dataset API
+                        if (!dataset.schemes[eventRow["schemeId"]]) {
+                            newScheme = new CodeScheme(eventRow["schemeId"], eventRow["schemeName"], false);
+                            dataset.schemes[newScheme.id] = newScheme;
+                        } else {
+                            newScheme = dataset.schemes[eventRow["schemeId"]];
                         }
 
-                        let timestampData = timestamp ? eventRow["timestamp"] : "";
-
-                        let isNewEvent = !events.has(eventRow["id"]);
-                        if (isNewEvent) {
-                            nextEvent = new RawEvent(
-                                eventRow["id"], eventRow["owner"], timestampData, eventRow["id"], eventRow["data"]
+                        if (!newScheme.codes.has(eventRow["deco_codeId"])) {
+                            newScheme.codes.set(
+                                eventRow["deco_codeId"],
+                                new Code(newScheme, eventRow["deco_codeId"],
+                                    eventRow["deco_codeValue"], "", "", false)
                             );
-                            events.set(eventRow["id"], nextEvent);
-                        } else {
-                            nextEvent = events.get(eventRow["id"]);
                         }
 
-                        if (!dataset.sessions.has(eventRow["owner"])) {
-                            let newSession = new Session(eventRow["owner"], [nextEvent]);
-                            dataset.sessions.set(eventRow["owner"], newSession);
-                        } else {
-                            let session = dataset.sessions.get(eventRow["owner"]);
-                            if (session.events.has(nextEvent["name"])) {
-                                session.events.set(nextEvent["name"], nextEvent);
-                            }
-                        }
+                        let manual = eventRow["deco_manual"].toLocaleLowerCase() !== "false"; // manually coded
 
-                        // If this parsed row has the minimum information set required to construct a code scheme entry,
-                        // construct that entry and add it to the dataset
-                        if (schemeId && schemeName && deco_codevalue && deco_codeId && deco_manual
-                            && eventRow["schemeId"].length > 0 && eventRow["schemeName"].length > 0
-                            && eventRow["deco_codeValue"].length > 0) {
-                            /* TODO: Understand this bit and document. It's adding a scheme if one does not exist,
-                                     but this requires knowing what a scheme here represents. */
-                            let newScheme;
-                            if (!dataset.schemes[eventRow["schemeId"]]) {
-                                newScheme = new CodeScheme(eventRow["schemeId"], eventRow["schemeName"], false);
-                                dataset.schemes[newScheme.id] = newScheme;
+                        let confidence;
+                        if (deco_confidence) {
+                            let defaultConfidence = 0.95; // TODO: log a warning when this default is used?
+                            if (eventRow["deco_confidence"].length === 0) {
+                                confidence = defaultConfidence;
                             } else {
-                                newScheme = dataset.schemes[eventRow["schemeId"]];
-                            }
-
-                            if (!newScheme.codes.has(eventRow["deco_codeId"])) {
-                                newScheme.codes.set(
-                                    eventRow["deco_codeId"],
-                                    new Code(newScheme, eventRow["deco_codeId"],
-                                        eventRow["deco_codeValue"], "", "", false)
-                                );
-                            }
-
-                            let manual = eventRow["deco_manual"].toLocaleLowerCase() !== "false"; // manually coded
-
-                            let confidence;
-                            if (deco_confidence) {
-                                let defaultConfidence = 0.95; // TODO: log a warning when this default is used?
-                                if (eventRow["deco_confidence"].length === 0) {
+                                let float = parseFloat(eventRow["deco_confidence"]);
+                                if (isNaN(float)) {
                                     confidence = defaultConfidence;
                                 } else {
-                                    let float = parseFloat(eventRow["deco_confidence"]);
-                                    if (isNaN(float)) {
-                                        confidence = defaultConfidence;
-                                    } else {
-                                        confidence = float;
-                                    }
+                                    confidence = float;
                                 }
-                            } else {
-                                confidence = undefined;
                             }
-
-                            nextEvent.decorate(
-                                newScheme.id, manual, uuid, newScheme.codes.get(eventRow["deco_codeId"]), confidence
-                            );
+                        } else {
+                            confidence = undefined;
                         }
 
-                        if (isNewEvent) {
-                            dataset.eventOrder.push(nextEvent.name);
-                            dataset.events.set(nextEvent.name, nextEvent);
-                        }
+                        nextEvent.decorate(
+                            newScheme.id, manual, uuid, newScheme.codes.get(eventRow["deco_codeId"]), confidence
+                        );
+                    }
+
+                    if (isNewEvent) {
+                        // TODO: Move to Dataset API
+                        dataset.eventOrder.push(nextEvent.name);
+                        dataset.events.set(nextEvent.name, nextEvent);
                     }
                 }
 
                 resolve(dataset);
             });
         });
+    }
+
+    /**
+     * Searches a Papa-parsed dataset-file object for messages with the same id.
+     * @param parsedObjects Array to search for non-unique message ids.
+     * @returns {{conflictingEventRows: Array<{ id: string, owner: string, data: string }>,
+     * conflictingIds: Set<string>}}
+     */
+    private static findConflictingMessagesInParsedData(parsedObjects: Array<{ id: string, owner: string, data: string }>): { conflictingEventRows: Array<{ id: string, owner: string, data: string }>, conflictingIds: Set<string> } {
+        type id = string
+
+        let observedEvents: Map<id, { id: id, owner: string, data: string }> = new Map();
+        let conflictingIds: Set<id> = new Set();
+        let conflictingEventRows: Array<{ id: id, owner: string, data: string }> = [];
+
+        // Search for messages which have non-unique ids, by looking for pairs of messages which have the same
+        // id but different owners.
+        // It is necessary to allow multiple rows with the same id and owner in order to load a dataset with
+        // multiple code schemes.
+        for (let eventRow of parsedObjects) {
+            if (observedEvents.has(eventRow["id"])) {
+                if (observedEvents.get(eventRow["id"])["owner"] !== eventRow["owner"]) {
+                    conflictingIds.add(eventRow["id"]);
+                    conflictingEventRows.push(eventRow);
+                    conflictingEventRows.push(observedEvents.get(eventRow["id"]));
+                }
+            } else {
+                observedEvents.set(eventRow["id"], eventRow);
+            }
+        }
+
+        return {
+            conflictingEventRows: conflictingEventRows,
+            conflictingIds: conflictingIds
+        };
     }
 
     static loadCodeScheme(file: File): Promise<CodeScheme> {

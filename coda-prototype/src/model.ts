@@ -110,7 +110,6 @@ class Dataset {
 
         let hasEventOrder = dataset.eventOrder && dataset.eventOrder.length > 0;
 
-
         return sessionsObjValid && eventsObjValid && hasEventOrder && hasSchemes;
     }
 

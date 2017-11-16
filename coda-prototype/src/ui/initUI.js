@@ -549,8 +549,7 @@ function initUI(dataset) {
                     "timestamp": new Date()
                 });
 
-                UIUtils.displayAlertAsError("Something is wrong with the data format. " +
-                    "Change a few things up, refresh and try again.");
+                UIUtils.displayAlertAsError(UIUtils.defaultLoadErrorMessage);
 
                 console.log("ERROR: Dataset object is empty or has no events.");
                 console.log(dataset);
@@ -561,23 +560,78 @@ function initUI(dataset) {
          * Notifies the user that parsing the dataset file failed, via the alert banner.
          * Prints the first 100 parse errors to the console.
          */
-        function handleDatasetParseError(parseErrors) {
-            UIUtils.displayAlertAsError("Something is wrong with the data format. " +
-                "Change a few things up, refresh and try again.");
+        function handleDatasetParseError(error) {
+            switch (error.name) {
+                case "ParseError":
+                    UIUtils.displayAlertAsError(UIUtils.defaultLoadErrorMessage);
 
-            let errors = parseErrors;
-            if (errors.length > 100) { // only report first 100 wrong lines
-                errors = parseErrors.slice(0, 100);
+                    let errors = error.parseErrors;
+                    if (errors.length > 100) { // only report first 100 wrong lines
+                        errors = error.parseErrors.slice(0, 100);
+                    }
+
+                    console.log("ERROR: CANNOT PARSE CSV");
+                    console.log(JSON.stringify(errors));
+                    break;
+                case "DuplicatedMessageIdsError":
+                    console.log("Error: Non-unique message ids:", error.conflictingMessages);
+
+                    // Sort on id to place messages with the same id next to each other
+                    error.conflictingMessages.sort((a, b) => a.id.localeCompare(b.id));
+
+                    // Display the conflicting messages in a table on the error modal.
+                    d3
+                        .select("#duplicatedMessageIdsTable")
+                        .select("tbody")
+                        .selectAll("tr")
+                        .remove();
+
+                    let trs = d3
+                        .select("#duplicatedMessageIdsTable")
+                        .select("tbody")
+                        .selectAll("tr")
+                        .data(error.conflictingMessages)
+                        .enter()
+                        .append("tr")
+                        .attr("class", // Add a line separating each group of conflicting messages.
+                            (p, i) => i === 0 || p.id !== error.conflictingMessages[i - 1].id ? "row-line" : "");
+
+                    trs.append("td").text(p => p.id);
+                    trs.append("td").text(p => p.message);
+
+                    $("#duplicatedMessageIdsNewIds")
+                        .off("click")
+                        .on("click", () =>
+                            FileUtils
+                                .loadDataset(file, UUID, DuplicatedMessageIdMode.NewIds)
+                                .then(handleDatasetParsed, handleDatasetParseError)
+                        );
+
+                    $("#duplicatedMessageIdsChooseOne")
+                        .off("click")
+                        .on("click", () =>
+                            FileUtils
+                                .loadDataset(file, UUID, DuplicatedMessageIdMode.ChooseOne)
+                                .then(handleDatasetParsed, handleDatasetParseError)
+                        );
+
+                    // Scroll the table back to the top when the modal is dismissed.
+                    $("#duplicatedMessageIdsModal")
+                        .off("hide.bs.modal")
+                        .on("hide.bs.modal", () =>
+                            window.setTimeout(() => $("#duplicatedMessageIdsTableContainer").scrollTop(0), 100));
+
+                    $("#duplicatedMessageIdsModal").modal("show");
+                    break;
+                default:
+                    UIUtils.displayAlertAsError(UIUtils.defaultLoadErrorMessage);
+                    console.log("An unexpected error type occurred. The error was:", error);
             }
-
-            console.log("ERROR: CANNOT PARSE CSV");
-            console.log(JSON.stringify(errors));
         }
 
         FileUtils.loadDataset(file, UUID).then(handleDatasetParsed, handleDatasetParseError);
 
         $("#dataset-file")[0].value = ""; // need to reset so the 'onchange' listener will catch reloading the same file
-
     });
 
     /**
@@ -618,7 +672,7 @@ function initUI(dataset) {
                 let errorText = isDuplicate
                     ? "Can't import duplicate coding scheme (ID: '" + newScheme["id"] + "')." +
                     " To update an existing coding scheme access it via code editor."
-                    : "Something is wrong with the data format. Change a few things up, refresh and try again.";
+                    : UIUtils.defaultLoadErrorMessage;
                 UIUtils.displayAlertAsError(errorText);
             } else {
                 // todo: what is the behaviour when scheme id is a duplicate - overwrite??
@@ -639,8 +693,7 @@ function initUI(dataset) {
         }
 
         function handleSchemeParseError(error) {
-            UIUtils.displayAlertAsError("Something is wrong with the scheme data format. " +
-                "Change a few things up, refresh and try again.");
+            UIUtils.displayAlertAsError(UIUtils.defaultLoadErrorMessage);
 
             if (error.name === "ParseError") {
                 let parseErrors = error.parseErrors;
@@ -771,8 +824,7 @@ function initUI(dataset) {
         }
 
         function handleSchemeParseError(error) {
-            UIUtils.displayAlertAsError("Something is wrong with the scheme data format. " +
-                "Change a few things up, refresh and try again.");
+            UIUtils.displayAlertAsError(UIUtils.defaultLoadErrorMessage);
 
             if (error.name === "ParseError") {
                 console.log("ERROR: Cannot parse scheme file.");
