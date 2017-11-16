@@ -262,6 +262,7 @@ class FileUtils {
                         nextEvent = events.get(eventRow["id"]);
                     }
 
+                    // TODO: Move to Dataset API
                     if (!dataset.sessions.has(eventRow["owner"])) {
                         let newSession = new Session(eventRow["owner"], [nextEvent]);
                         dataset.sessions.set(eventRow["owner"], newSession);
@@ -280,6 +281,7 @@ class FileUtils {
                         /* TODO: Understand this bit and document. It's adding a scheme if one does not exist,
                                  but this requires knowing what a scheme here represents. */
                         let newScheme;
+                        // TODO: Move to Dataset API
                         if (!dataset.schemes[eventRow["schemeId"]]) {
                             newScheme = new CodeScheme(eventRow["schemeId"], eventRow["schemeName"], false);
                             dataset.schemes[newScheme.id] = newScheme;
@@ -320,6 +322,7 @@ class FileUtils {
                     }
 
                     if (isNewEvent) {
+                        // TODO: Move to Dataset API
                         dataset.eventOrder.push(nextEvent.name);
                         dataset.events.set(nextEvent.name, nextEvent);
                     }
