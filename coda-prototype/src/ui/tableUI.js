@@ -567,6 +567,10 @@ var messageViewerManager = {
     },
 
     changeActiveScheme: function(schemeId) {
+        if (messageViewerManager.activeScheme === schemeId) {
+            // Changing to the currently active scheme, so no need to do any work.
+            return;
+        }
 
         if (!schemeId) {
             /*
