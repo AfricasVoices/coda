@@ -59,10 +59,10 @@ const VALID_NAME_FORMAT = /(^[a-zA-Z0-9]+([" "]?[a-zA-Z0-9])*)([/\-_][a-zA-Z0-9]
 
 class Dataset {
     // TODO: understand and document what each of these things does.
-    sessions: Map<string, Session> = new Map();
-    schemes = {}; // TODO: Why isn't this a map from string to CodeScheme??
-    events: Map<string, RawEvent> = new Map();
-    eventOrder: Array<string> = [];
+    private sessions: Map<string, Session> = new Map();
+    private schemes = {}; // TODO: Why isn't this a map from string to CodeScheme??
+    private events: Map<string, RawEvent> = new Map();
+    private eventOrder: Array<string> = [];
     // TODO: Add a sort order property here? It makes sense for this to be in Dataset, which is where the sorting
     // TODO: functions and eventOrder property currently are.
 
@@ -97,11 +97,16 @@ class Dataset {
         return this.schemes;
     }
 
+    getSchemesAsArray(): Array<CodeScheme> { // TODO: Having solved the above problem, delete the above function and
+        // TODO: rename this function to getSchemes()
+        return Object.keys(this.schemes).map(key => this.schemes[key]);
+    }
+
     hasScheme(schemeId: string): boolean {
         return this.schemes.hasOwnProperty(schemeId);
     }
 
-    addScheme(scheme: CodeScheme) {
+    addScheme(scheme: CodeScheme) { // TODO: Return a boolean indicating whether or not the scheme was overwritten?
         this.schemes[scheme.id] = scheme;
     }
 

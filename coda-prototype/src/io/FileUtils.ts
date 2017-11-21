@@ -40,8 +40,8 @@ class FileUtils {
 
         // For each 'event', add a row to the output for each scheme if schemes exist, or a single row if not.
         // TODO: Write this in a less-yucky way such that pushing many empty strings is not required
-        for (let event of dataset.events.values()) {
-            if (Object.keys(dataset.schemes).length === 0) { // If there are no schemes:
+        for (let event of dataset.getEventsInSortOrder()) {
+            if (dataset.schemeCount() === 0) {
                 let newEventData = [];
                 newEventData.push(event.name);
                 newEventData.push(event.timestamp);
@@ -58,18 +58,18 @@ class FileUtils {
 
                 eventJSON["data"].push(newEventData);
             } else { // Append this row with data for each scheme.
-                for (let schemeKey of Object.keys(dataset.schemes)) {
+                for (let scheme of dataset.getSchemesAsArray()) {
                     let newEventData = [];
                     newEventData.push(event.name);
                     newEventData.push(event.timestamp);
                     newEventData.push(event.owner);
                     newEventData.push(event.data);
-                    newEventData.push(schemeKey);
-                    newEventData.push(dataset.schemes[schemeKey].name);
+                    newEventData.push(scheme.id);
+                    newEventData.push(scheme.name);
 
-                    if (event.decorations.has(schemeKey)) {
+                    if (event.decorations.has(scheme.id)) {
                         // If this row has been coded under this scheme, include its coding
-                        let decoration = event.decorations.get(schemeKey);
+                        let decoration = event.decorations.get(scheme.id);
                         if (decoration.code != null) {
                             newEventData.push(decoration.code.value);
                             newEventData.push(decoration.code.id);
