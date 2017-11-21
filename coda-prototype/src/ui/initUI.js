@@ -140,7 +140,6 @@ function initDataset(storageObj) {
                     });
 
                     properDataset.schemes = schemes;
-                    properDataset.eventCount = eventCount;
                     console.log(properDataset);
                     return properDataset;
 
