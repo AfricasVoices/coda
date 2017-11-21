@@ -115,7 +115,7 @@ var codeEditorManager = {
         $("#delete-scheme-button").on("click", () => {
             let nextActiveSchemeId = codeEditorManager.deleteScheme(tempScheme.id + "");
             activeSchemeId = nextActiveSchemeId;
-            messageViewerManager.activeScheme = nextActiveSchemeId;
+            messageViewerManager.activeSchemeId = nextActiveSchemeId;
 
             codeEditorManager.editorContainer.hide();
             codeEditorManager.editorContainer.find("tbody").empty();
@@ -164,7 +164,7 @@ var codeEditorManager = {
         addSchemeButton.on("click", function() {
 
             // TODO: cleverly assign scheme ids
-            var newId = UIUtils.randomId(Object.keys(newDataset.schemes));
+            var newId = UIUtils.randomId(newDataset.getSchemeIds());
             tempScheme = new CodeScheme(newId, "", true);
             $("#color-pick").colorpicker("setValue", "#ffffff");
 
@@ -258,7 +258,7 @@ var codeEditorManager = {
                     .removeClass("has-feedback")
                     .removeClass("has-error");
 
-                newDataset.schemes[newId] = tempScheme;
+                newDataset.schemes[newId] = tempScheme; // TODO: Understand, and Move to Dataset API
                 messageViewerManager.addNewSchemeColumn(tempScheme);
 
                 undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
@@ -380,11 +380,10 @@ var codeEditorManager = {
             header.find(".scheme-name").text(tempScheme["name"]);
 
             // update the original scheme
-            newDataset.schemes[tempScheme["id"]].copyCodesFrom(tempScheme);
+            newDataset.schemes[tempScheme["id"]].copyCodesFrom(tempScheme); // TODO: Move to Dataset API?
 
             // code and re-sort dataset
             regexMatcher.codeDataset(tempScheme["id"]);
-            //newDataset.events = messageViewerManager.currentSort(newDataset.events, tempScheme, true);
             if (messageViewerManager.currentSort === messageViewerManager.sortUtils.sortEventsByConfidenceOnly) {
                 newDataset.sortEventsByConfidenceOnly(tempScheme["id"]);
             }
@@ -400,7 +399,7 @@ var codeEditorManager = {
                 "category": "SCHEME",
                 "message": "Saved scheme",
                 "messageDetails": {"scheme": tempScheme["id"]},
-                "data": newDataset.schemes[tempScheme["id"]].toJSON(),
+                "data": newDataset.getScheme(tempScheme["id"]).toJSON(),
                 "timestamp": new Date()
             });
 
@@ -409,11 +408,16 @@ var codeEditorManager = {
             let decoTableTbody = "";
 
             let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-            let stoppingCondition = (messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventOrder.length) ? newDataset.eventOrder.length : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
+            let stoppingCondition = (messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventCount()) ? newDataset.eventCount() : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
             for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < stoppingCondition; i++) {
-                let eventKey = newDataset.eventOrder[i];
-                messageTableTbody += messageViewerManager.buildMessageTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.activeScheme);
-                decoTableTbody += messageViewerManager.buildDecorationTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.codeSchemeOrder.slice(1));
+                let event = newDataset.getEventAtPosition(i);
+                if (event === undefined) {
+                    console.log("ERROR: No event exists at position " + i);
+                    continue;
+                }
+
+                messageTableTbody += messageViewerManager.buildMessageTableRow(event, i, event.owner, messageViewerManager.activeSchemeId);
+                decoTableTbody += messageViewerManager.buildDecorationTableRow(event, i, event.owner, messageViewerManager.codeSchemeOrder.slice(1));
             }
 
             let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
@@ -812,7 +816,7 @@ var codeEditorManager = {
     },
 
     deleteScheme: function(schemeId) {
-        let schemeSnapshot = CodeScheme.clone(newDataset.schemes[schemeId]);
+        let schemeSnapshot = CodeScheme.clone(newDataset.getScheme(schemeId));
 
         // delegate uglifying to datastructure
         newDataset.deleteScheme(schemeId);
@@ -822,18 +826,18 @@ var codeEditorManager = {
         let schemeOrderIndex = messageViewerManager.codeSchemeOrder.indexOf(schemeId);
         if (schemeOrderIndex > -1) messageViewerManager.codeSchemeOrder.splice(schemeOrderIndex, 1);
         activeSchemeId = messageViewerManager.codeSchemeOrder[0];
-        messageViewerManager.activeScheme = messageViewerManager.codeSchemeOrder[0];
+        messageViewerManager.activeSchemeId = messageViewerManager.codeSchemeOrder[0];
 
-        if (Object.keys(newDataset.schemes).length === 0) {
+        if (newDataset.schemeCount() === 0) {
             // create new default coding scheme
             let newScheme = new CodeScheme(UIUtils.randomId([]) + "", "default", true);
             newScheme.codes.set(newScheme.id + "-" + "1", new Code(newScheme, newScheme.id + "-" + "1", "test", "#ffffff", "", false));
-            newDataset.schemes[newScheme.id] = newScheme;
+            newDataset.schemes[newScheme.id] = newScheme; // TODO: Move to Dataset API
 
             messageViewerManager.codeSchemeOrder.push(newScheme.id + "");
             messageViewerManager.addNewActiveScheme(newScheme.id);
             schemeId = newScheme.id + "";
-            messageViewerManager.activeScheme = newScheme.id + "";
+            messageViewerManager.activeSchemeId = newScheme.id + "";
 
             // save for UNDO and in storage
             undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);

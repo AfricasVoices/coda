@@ -60,9 +60,56 @@ const VALID_NAME_FORMAT = /(^[a-zA-Z0-9]+([" "]?[a-zA-Z0-9])*)([/\-_][a-zA-Z0-9]
 class Dataset {
     // TODO: understand and document what each of these things does.
     sessions: Map<string, Session> = new Map();
-    schemes = {};
+    schemes = {}; // TODO: Why isn't this a map from string to CodeScheme??
     events: Map<string, RawEvent> = new Map();
     eventOrder: Array<string> = [];
+
+    getScheme(schemeId: string): CodeScheme | undefined {
+        return this.schemes[schemeId];
+    }
+
+    // TODO: This punches a hole in the getter/setter defences. Refactor users of this method such that
+    // TODO: this method can be removed.
+    getSchemes(): {} {
+        return this.schemes;
+    }
+
+    hasScheme(schemeId: string): boolean {
+        return this.schemes.hasOwnProperty(schemeId);
+    }
+
+    getSchemeIds(): Array<string> {
+        return Object.keys(this.schemes);
+    }
+
+    schemeCount(): number {
+        return this.getSchemeIds().length;
+    }
+
+    getEvent(eventId: string): RawEvent | undefined {
+        return this.events.get(eventId);
+    }
+
+    getEventAtPosition(i: number): RawEvent | undefined {
+        let eventId = this.eventOrder[i];
+        return this.getEvent(eventId);
+    }
+
+    getEventsInSortOrder(): Array<RawEvent | undefined> {
+        return this.eventOrder.map(eventId => this.events.get(eventId));
+    }
+
+    getPositionForEvent(eventId: string): number | undefined {
+        let position = this.eventOrder.indexOf(eventId);
+        return position === -1 ? undefined : position;
+    }
+
+    eventCount(): number {
+        // TODO: Once writing to private members has been implemented, check if this assert is still needed.
+        // TODO: Currently using eventOrder.length of events.size only because the code this replaces used eventOrder.length
+        console.assert(this.eventOrder.length === this.events.size);
+        return this.eventOrder.length;
+    }
 
     static validate(dataset: Dataset): boolean {
         let sessions = dataset.sessions;

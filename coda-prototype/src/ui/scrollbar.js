@@ -37,6 +37,7 @@ var scrollbarManager = {
     scale: 1,
     scrollThumb: $("#scrollthumb"),
 
+    // TODO: sessionData is unused; remove it (WS cannot auto-refactor this)
     init: function(sessionData, scrollbarEl, subsamplingNum) {
 
         console.time("scrollbar init");
@@ -65,7 +66,7 @@ var scrollbarManager = {
         $("body").hide();
 
         //this.subsamplingNum = Math.ceil(newDataset.eventOrder.length/(scrollbarEl.height-4));
-        this.subsamplingNum = Math.floor(newDataset.eventOrder.length / (scrollbarEl.height - 4));
+        this.subsamplingNum = Math.floor(newDataset.eventCount() / (scrollbarEl.height - 4));
 
         $("#scrollbar").drawRect({
             //strokeStyle: '#ddd',
@@ -80,8 +81,9 @@ var scrollbarManager = {
         });
 
         // todo make schemes an array not object so there is a concept of order
-
-        this.redraw(newDataset, Object.keys(newDataset.schemes)[0]);
+        // TODO: This arbitrarily selects a scheme to render in the sidebar. Will this be the active scheme?
+        // TODO: Find out if messageViewerManager.activeSchemeId works here.
+        this.redraw(newDataset, newDataset.getSchemeIds()[0]);
 
         // todo check if no schemes are loaded in - if not, then dont draw the lines!
         console.timeEnd("scrollbar init");
@@ -96,8 +98,7 @@ var scrollbarManager = {
             colors = this.subsample(dataset, activeSchemeId);
         } else {
             let color;
-            dataset.eventOrder.forEach(eventKey => {
-                let event = dataset.events.get(eventKey);
+            dataset.getEventsInSortOrder().forEach(event => {
                 if (event) {
                     if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code) {
                         color = this.adjustSaturation(event.decorations.get(activeSchemeId));
@@ -241,8 +242,7 @@ var scrollbarManager = {
         // CHECK IF IT FITS INTO SCROLLBAR PX OF SUBSAMPLING NEEDED!
 
         var colors = [];
-        dataset.eventOrder.forEach(eventKey => {
-            let event = dataset.events.get(eventKey);
+        dataset.getEventsInSortOrder().forEach(event => {
             if (event) {
                 if (colors.length === this.subsamplingNum) {
                     sampleColours.push(colors[UIUtils.randomInteger(0, colors.length - 1)]);
@@ -258,7 +258,6 @@ var scrollbarManager = {
                     }
                 }
             }
-
         });
 
         return sampleColours;
@@ -298,11 +297,11 @@ var scrollbarManager = {
 
         // todo need to take scaling into account
         let percentage = scrollthumbLayer.y + scrollbarManager.thumbWidth === 6 ? 0 : Math.round(((thumbMid - 10) / (scrollbarManager.scrollbarEl.height - 20) * 100 )) / 100; // force it to 0 if top is 6px displaced, 2px for border, 4px for scrollthumb
-        let eventIndexToLoad = scrollthumbLayer.y > 2 ? Math.floor(newDataset.eventOrder.length * percentage) : 0;
+        let eventIndexToLoad = scrollthumbLayer.y > 2 ? Math.floor(newDataset.eventCount() * percentage) : 0;
         const halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
         let pagesToLoad = Math.floor(eventIndexToLoad / halfPage);
 
-        if ((pagesToLoad * halfPage + halfPage) >= newDataset.eventOrder.length) {
+        if ((pagesToLoad * halfPage + halfPage) >= newDataset.eventCount()) {
             pagesToLoad = pagesToLoad - 2;
         }
 
