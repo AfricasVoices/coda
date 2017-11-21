@@ -506,6 +506,7 @@ function initUI(dataset) {
             messageViewerManager.codeSchemeOrder = []; // TODO: What does this line do?
 
             if (dataset && dataset.eventCount() > 0) {
+                // TODO: Move this if to Dataset.generateDefaultScheme?
                 if (dataset.schemeCount() === 0) {
                     let defaultScheme = new CodeScheme("1", "default", false);
                     defaultScheme.codes.set(
@@ -515,8 +516,9 @@ function initUI(dataset) {
                             UIUtils.ascii("t"), false
                         )
                     );
-                    dataset.schemes[defaultScheme["id"]] = defaultScheme; // TODO: Move to Dataset API
+                    dataset.addScheme(defaultScheme);
                 }
+
                 newDataset = dataset;
                 newDataset.restoreDefaultSort();
                 messageViewerManager.buildTable(newDataset, messageViewerManager.rowsInTable, true);
@@ -690,7 +692,7 @@ function initUI(dataset) {
                     "timestamp": new Date()
                 });
 
-                newDataset.schemes[newScheme["id"]] = newScheme; // TODO: Move to Dataset API
+                newDataset.addScheme(newScheme);
                 messageViewerManager.addNewSchemeColumn(newScheme);
 
                 UIUtils.displayAlertAsSuccess("<strong>Success!</strong> New coding scheme was imported.");
@@ -815,7 +817,7 @@ function initUI(dataset) {
     // TODO: I don't think there is a scheme-duplicate button
     $("#scheme-duplicate").on("click", () => {
         let newScheme = tempScheme.duplicate(newDataset.getSchemeIds());
-        newDataset.schemes[newScheme.id] = newScheme; // TODO: Move to Dataset API
+        newDataset.addScheme(newScheme);
         messageViewerManager.addNewSchemeColumn(newScheme);
 
         let headerDecoColumn = $("#header-decoration-column");

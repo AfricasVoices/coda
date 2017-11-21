@@ -63,6 +63,29 @@ class Dataset {
     schemes = {}; // TODO: Why isn't this a map from string to CodeScheme??
     events: Map<string, RawEvent> = new Map();
     eventOrder: Array<string> = [];
+    // TODO: Add a sort order property here? It makes sense for this to be in Dataset, which is where the sorting
+    // TODO: functions and eventOrder property currently are.
+
+    addEvent(event: RawEvent) {
+        if (this.sessions.has(event.owner)) {
+            let session = this.sessions.get(event.owner);
+            // if (session.events.has(event.name)) {
+            // TODO: In FileUtils.loadDataset (where this was refactored from), this was wrapped in the above if
+            // TODO: statement. No idea why it was needed.
+            session.events.set(event.name, event);
+            // }
+        } else {
+            let session = new Session(event.owner, [event]);
+            this.sessions.set(event.owner, session);
+        }
+
+        if (!this.events.has(event.name)) {
+            this.eventOrder.push(event.name);
+            // TODO: If there is a sort order property, set it to not-sorted.
+        }
+
+        this.events.set(event.name, event);
+    }
 
     getScheme(schemeId: string): CodeScheme | undefined {
         return this.schemes[schemeId];
@@ -76,6 +99,10 @@ class Dataset {
 
     hasScheme(schemeId: string): boolean {
         return this.schemes.hasOwnProperty(schemeId);
+    }
+
+    addScheme(scheme: CodeScheme) {
+        this.schemes[scheme.id] = scheme;
     }
 
     getSchemeIds(): Array<string> {

@@ -262,31 +262,20 @@ class FileUtils {
                         nextEvent = events.get(eventRow["id"]);
                     }
 
-                    // TODO: Move to Dataset API
-                    if (!dataset.sessions.has(eventRow["owner"])) {
-                        let newSession = new Session(eventRow["owner"], [nextEvent]);
-                        dataset.sessions.set(eventRow["owner"], newSession);
-                    } else {
-                        let session = dataset.sessions.get(eventRow["owner"]);
-                        if (session.events.has(nextEvent["name"])) {
-                            session.events.set(nextEvent["name"], nextEvent);
-                        }
-                    }
+                    dataset.addEvent(nextEvent);
 
                     // If this parsed row has the minimum information set required to construct a code scheme entry,
                     // construct that entry and add it to the dataset
                     if (schemeId && schemeName && deco_codevalue && deco_codeId && deco_manual
                         && eventRow["schemeId"].length > 0 && eventRow["schemeName"].length > 0
                         && eventRow["deco_codeValue"].length > 0) {
-                        /* TODO: Understand this bit and document. It's adding a scheme if one does not exist,
-                                 but this requires knowing what a scheme here represents. */
+
                         let newScheme;
-                        // TODO: Move to Dataset API
-                        if (!dataset.schemes[eventRow["schemeId"]]) {
-                            newScheme = new CodeScheme(eventRow["schemeId"], eventRow["schemeName"], false);
-                            dataset.schemes[newScheme.id] = newScheme;
+                        if (dataset.hasScheme(eventRow["schemeId"])) {
+                            newScheme = dataset.getScheme(eventRow["schemeId"]);
                         } else {
-                            newScheme = dataset.schemes[eventRow["schemeId"]];
+                            newScheme = new CodeScheme(eventRow["schemeId"], eventRow["schemeName"], false);
+                            dataset.addScheme(newScheme);
                         }
 
                         if (!newScheme.codes.has(eventRow["deco_codeId"])) {
@@ -319,12 +308,6 @@ class FileUtils {
                         nextEvent.decorate(
                             newScheme.id, manual, uuid, newScheme.codes.get(eventRow["deco_codeId"]), confidence
                         );
-                    }
-
-                    if (isNewEvent) {
-                        // TODO: Move to Dataset API
-                        dataset.eventOrder.push(nextEvent.name);
-                        dataset.events.set(nextEvent.name, nextEvent);
                     }
                 }
 

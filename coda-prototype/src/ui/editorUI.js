@@ -258,7 +258,7 @@ var codeEditorManager = {
                     .removeClass("has-feedback")
                     .removeClass("has-error");
 
-                newDataset.schemes[newId] = tempScheme; // TODO: Understand, and Move to Dataset API
+                newDataset.addScheme(tempScheme);
                 messageViewerManager.addNewSchemeColumn(tempScheme);
 
                 undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
@@ -380,7 +380,7 @@ var codeEditorManager = {
             header.find(".scheme-name").text(tempScheme["name"]);
 
             // update the original scheme
-            newDataset.schemes[tempScheme["id"]].copyCodesFrom(tempScheme); // TODO: Move to Dataset API?
+            newDataset.getScheme(tempScheme.id).copyCodesFrom(tempScheme);
 
             // code and re-sort dataset
             regexMatcher.codeDataset(tempScheme["id"]);
@@ -832,7 +832,7 @@ var codeEditorManager = {
             // create new default coding scheme
             let newScheme = new CodeScheme(UIUtils.randomId([]) + "", "default", true);
             newScheme.codes.set(newScheme.id + "-" + "1", new Code(newScheme, newScheme.id + "-" + "1", "test", "#ffffff", "", false));
-            newDataset.schemes[newScheme.id] = newScheme; // TODO: Move to Dataset API
+            newDataset.addScheme(newScheme);
 
             messageViewerManager.codeSchemeOrder.push(newScheme.id + "");
             messageViewerManager.addNewActiveScheme(newScheme.id);
