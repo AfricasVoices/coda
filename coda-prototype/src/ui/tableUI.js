@@ -224,16 +224,15 @@ var messageViewerManager = {
 
     },
 
-    buildTable: function(data, rowsPerPage, hasDataChanged) {
-        if (!data) {
-
+    buildTable: function(dataset, rowsPerPage, hasDataChanged) {
+        if (!dataset) {
             let tableTbody = messageViewerManager.messageTable.find("tbody");
-            tableTbody.append("<tr><td colspan='3'>Start by loading in data from Dataset menu</td></tr>");
+            tableTbody.append("<tr><td colspan='3'>Start by loading in dataset from Dataset menu</td></tr>");
             return;
         }
 
         if (hasDataChanged == null) {
-            // checks if this is a result of UNDO/REDO action or new data was loaded in
+            // checks if this is a result of UNDO/REDO action or new dataset was loaded in
             hasDataChanged = true;
         }
 
@@ -250,7 +249,7 @@ var messageViewerManager = {
         /*
         Assume initial scheme order and active scheme
          */
-        let schemeOrder = Object.keys(data.schemes);
+        let schemeOrder = dataset.getSchemeIds(); // TODO: Is it acceptable that this order is arbitrary?
         let activeScheme = schemeOrder[0];
 
         this.codeSchemeOrder = schemeOrder;
@@ -268,7 +267,7 @@ var messageViewerManager = {
 
         // establish sorting
         let activeSortIcon = "icon-def'";
-        if (!hasDataChanged && data.schemes[messageViewerManager.activeSchemeId]) {
+        if (!hasDataChanged && dataset.getScheme(messageViewerManager.activeSchemeId)) {
             if (this.currentSort === this.sortUtils.sortEventsByConfidenceOnly) {
                 activeSortIcon = "icon-conf'";
                 newDataset.sortEventsByConfidenceOnly(messageViewerManager.activeSchemeId);
