@@ -1784,7 +1784,7 @@ var messageViewerManager = {
         sessionRow += "<td class='col-md-7 message-text'" + shadowStyle + "><p>" + eventText + "</p></td>";
         sessionRow += "<td class='col-md-4 decorations' style='background-color: " + rowColor + "'>";
 
-        sessionRow += UIUtils.decoRowColumn(newDataset.schemeCount(), newDataset.getSchemes(), eventObj);
+        sessionRow += UIUtils.decoRowColumn(newDataset.schemeCount(), eventObj);
         sessionRow += "</td>";
         sessionRow += "</td>";
         sessionRow += "</tr>";

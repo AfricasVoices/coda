@@ -91,14 +91,7 @@ class Dataset {
         return this.schemes[schemeId];
     }
 
-    // TODO: This punches a hole in the getter/setter defences. Refactor users of this method such that
-    // TODO: this method can be removed.
-    getSchemes(): {} {
-        return this.schemes;
-    }
-
-    getSchemesAsArray(): Array<CodeScheme> { // TODO: Having solved the above problem, delete the above function and
-        // TODO: rename this function to getSchemes()
+    getSchemes(): Array<CodeScheme> {
         return Object.keys(this.schemes).map(key => this.schemes[key]);
     }
 

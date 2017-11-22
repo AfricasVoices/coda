@@ -91,7 +91,7 @@ var UIUtils = (function() {
             }
         },
 
-        decoRowColumn: function(numCols, schemes, eventObj) {
+        decoRowColumn: function(numCols, event) {
             var decoCol = decoCol || "";
             var colAttrNum;
             if (numCols >= 1 && 12 >= numCols) {
@@ -132,7 +132,7 @@ var UIUtils = (function() {
                     decoCol += "<div class='col-md-" + colAttrNum + " col-sm-" + colAttrNum + " col-xs-" + colAttrNum + " deco-container' scheme='" + schemeId + "'>";
                     decoCol += "<div class='input-group'>";
                     var dis = schemeId === messageViewerManager.activeSchemeId ? "" : "disabled";
-                    if (eventObj.decorations.get(schemeId) && eventObj.decorations.get(schemeId).manual) {
+                    if (event.decorations.get(schemeId) && event.decorations.get(schemeId).manual) {
                         decoCol += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox' checked " + dis + "></span>";
                     } else {
                         decoCol += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox' " + dis + "></span>";
@@ -144,8 +144,8 @@ var UIUtils = (function() {
 
                     codes.forEach(function(codeObj) {
 
-                        if (eventObj["decorations"].has(schemeId)) {
-                            var currentEventCode = eventObj["decorations"].get(schemeId).code;
+                        if (event["decorations"].has(schemeId)) {
+                            var currentEventCode = event["decorations"].get(schemeId).code;
                             if (currentEventCode !== null && currentEventCode["value"] === codeObj["value"]) {
                                 optionsString += "<option id='" + codeObj["id"] + "' selected>" + codeObj["value"] + "</option>";
                                 selectClass = "coded";
@@ -154,7 +154,7 @@ var UIUtils = (function() {
                                 optionsString += "<option id='" + codeObj["id"] + "'>" + codeObj["value"] + "</option>";
                             }
                         } else {
-                            eventObj.decorate(schemeId);
+                            event.decorate(schemeId);
                             optionsString += "<option id='" + codeObj["id"] + "'>" + codeObj["value"] + "</option>";
                         }
                     });
@@ -175,8 +175,8 @@ var UIUtils = (function() {
 
             } else if (numCols > 12) {
                 let divOpen = "<div class='row'>";
-                let decoCol1 = "<div class='col-md-6 col-sm-6 col-lg-6 col-xs-6'>" + this.decoRowColumn(numCols / 2 >> 0, schemes, eventObj) + "</div>";
-                let decoCol2 = "<div class='col-md-6 col-sm-6 col-lg-6 col-xs-6'>" + this.decoRowColumn((numCols / 2 >> 0) + numCols % 2, schemes, eventObj) + "</div>";
+                let decoCol1 = "<div class='col-md-6 col-sm-6 col-lg-6 col-xs-6'>" + this.decoRowColumn(numCols / 2 >> 0, event) + "</div>";
+                let decoCol2 = "<div class='col-md-6 col-sm-6 col-lg-6 col-xs-6'>" + this.decoRowColumn((numCols / 2 >> 0) + numCols % 2, event) + "</div>";
                 return divOpen + decoCol1 + decoCol2 + "</div>";
             }
         },
