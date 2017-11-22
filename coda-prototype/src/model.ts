@@ -157,7 +157,7 @@ class Dataset {
 
         sessionsObjValid = sessionsObjValid && sessionsHaveValidEntries;
 
-        let hasSchemes = dataset.schemes && Object.keys(dataset.schemes).length > 0 && dataset.schemes.constructor === Object;
+        let hasSchemes = dataset.schemes && dataset.schemeCount() > 0 && dataset.schemes.constructor === Object;
 
         let events = dataset.events;
         let eventsObjValid = events && events instanceof Map;
@@ -174,10 +174,10 @@ class Dataset {
             } else if (hasSchemes) {
                 for (let deco of event.decorations.values()) {
                     // allow for undefined codes
-                    if (deco.code && deco.code.owner != dataset.schemes[deco.code.owner.id]) {
+                    if (deco.code && deco.code.owner != dataset.getScheme(deco.code.owner.id)) {
                         eventsHaveValidEntries = false;
                         console.log("Invalid event: decoration doesn't point to a valid CodeScheme");
-                    } else if (deco.code && deco.code != dataset.schemes[deco.code.owner.id].codes.get(deco.code.id)) {
+                    } else if (deco.code && deco.code != dataset.getScheme(deco.code.owner.id).codes.get(deco.code.id)) {
                         eventsHaveValidEntries = false;
                         console.log("Invalid event: decoration doesn't point to a valid Code");
                     }
@@ -196,8 +196,8 @@ class Dataset {
         let newSchemes = {};
 
         // clone schemes
-        Object.keys(old.schemes).forEach(scheme => {
-            newSchemes[scheme] = CodeScheme.clone(old.schemes[scheme]);
+        old.getSchemeIds().forEach(schemeId => {
+            newSchemes[schemeId] = CodeScheme.clone(old.schemes[schemeId]);
         });
 
         let newSessions: Map<string, Session> = new Map();
@@ -452,9 +452,9 @@ class Dataset {
             if (scheme instanceof CodeScheme) {
                 // should never happen
                 console.log("Warning: Scheme object is a CodeScheme! (should be plain Object)");
-                this.schemes[schemeKey] = scheme;
+                this.addScheme(scheme);
             } else {
-                this.schemes[schemeKey] = new CodeScheme(scheme.id, scheme.name, scheme.isNew, scheme.codes);
+                this.addScheme(new CodeScheme(scheme.id, scheme.name, scheme.isNew, scheme.codes));
             }
         });
 
