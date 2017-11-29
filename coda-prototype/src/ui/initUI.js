@@ -77,9 +77,9 @@ function initDataset(storageObj) {
                 "message": "Resuming coding dataset",
                 "messageDetails": "", // todo add identifier
                 "data": {
-                    "events": newDataset["events"].size,
-                    "schemes": Object.keys(newDataset["schemes"]).length,
-                    "sessions": newDataset["sessions"].size
+                    "events": newDataset.eventCount(),
+                    "schemes": newDataset.schemeCount(),
+                    "sessions": newDataset.sessionCount()
                 },
                 "timestamp": new Date()
             });
@@ -858,9 +858,9 @@ function initUI(dataset) {
             "message": "Saved dataset via button",
             "messageDetails": "", // todo add identifier
             "data": {
-                "events": dataset["events"].size,
-                "schemes": Object.keys(dataset["schemes"]).length,
-                "sessions": dataset["sessions"].size
+                "events": dataset.eventCount(),
+                "schemes": dataset.schemeCount(),
+                "sessions": dataset.sessionCount()
             },
             "timestamp": new Date()
         });

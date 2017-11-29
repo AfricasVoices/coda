@@ -260,7 +260,7 @@ var regexMatcher = {
         // if (newDataset.eventCount() === events.size) {
         // TODO: Previously this line was wrapped in the above if. However, I don't know why it's necessary.
         // TODO: Once the necessary setters have been written in Dataset, hopefully we can assert that this is not needed.
-        newDataset.getEventsInSortOrder().forEach(event => this.codeEvent(event, schemeId, eventWithCodeRegexes));
+        newDataset.getEventsInOrder().forEach(event => this.codeEvent(event, schemeId, eventWithCodeRegexes));
         // }
 
         /*

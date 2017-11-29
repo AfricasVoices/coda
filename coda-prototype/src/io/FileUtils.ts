@@ -40,7 +40,7 @@ class FileUtils {
 
         // For each 'event', add a row to the output for each scheme if schemes exist, or a single row if not.
         // TODO: Write this in a less-yucky way such that pushing many empty strings is not required
-        for (let event of dataset.getEventsInSortOrder()) {
+        for (let event of dataset.getEventsInOrder()) {
             if (dataset.schemeCount() === 0) {
                 let newEventData = [];
                 newEventData.push(event.name);

@@ -302,9 +302,9 @@ var messageViewerManager = {
         // setup listeners
         allSchemeHeaders.each((i, col) => {
             let column = $(col);
-            let schemeKey = column.attr("scheme");
+            let schemeId = column.attr("scheme");
             let button = column.find(".edit-scheme-button");
-            messageViewerManager.bindEditSchemeButtonListener(button, newDataset["schemes"][schemeKey]);
+            messageViewerManager.bindEditSchemeButtonListener(button, newDataset.getScheme(schemeId));
         });
 
         allSchemeHeaders.find("i.scheme-name").on("click", event => {
@@ -1065,10 +1065,10 @@ var messageViewerManager = {
 
             $(allSchemeHeaders).each((i, col) => {
                 let column = $(col);
-                let schemeKey = column.attr("scheme");
+                let schemeId = column.attr("scheme");
                 let button = column.find(".edit-scheme-button");
 
-                messageViewerManager.bindEditSchemeButtonListener(button, newDataset["schemes"][schemeKey]);
+                messageViewerManager.bindEditSchemeButtonListener(button, newDataset.getScheme(schemeId));
             });
 
             // Switch the active scheme to be the new one.
@@ -1130,10 +1130,10 @@ var messageViewerManager = {
 
             $("#decorations-header").find(".scheme-header").each((i, col) => {
                 let column = $(col);
-                let schemeKey = column.attr("scheme");
+                let schemeId = column.attr("scheme");
                 let button = column.find(".edit-scheme-button");
 
-                messageViewerManager.bindEditSchemeButtonListener(button, newDataset["schemes"][schemeKey]);
+                messageViewerManager.bindEditSchemeButtonListener(button, newDataset.getScheme(schemeId));
             });
 
             sortButton.off("click");
@@ -2097,8 +2097,8 @@ var messageViewerManager = {
 
     },
 
-    addNewActiveScheme(schemeKey) {
-        schemeKey = schemeKey + ""; //coerce to string
+    addNewActiveScheme(schemeId) {
+        schemeId = schemeId + ""; //coerce to string
 
         /*
         build active scheme header
@@ -2106,7 +2106,7 @@ var messageViewerManager = {
         let activeSchemeHeaderParent = $("#active-scheme-header");
         activeSchemeHeaderParent.empty();
 
-        let newHeader = $(messageViewerManager.buildSchemeHeaderElement(schemeKey, "icon-def", true))
+        let newHeader = $(messageViewerManager.buildSchemeHeaderElement(schemeId, "icon-def", true))
             .appendTo(activeSchemeHeaderParent);
 
         // init listeners
@@ -2123,7 +2123,7 @@ var messageViewerManager = {
             let column = $(col);
             let button = column.find(".edit-scheme-button");
 
-            messageViewerManager.bindEditSchemeButtonListener(button, newDataset["schemes"][schemeKey]);
+            messageViewerManager.bindEditSchemeButtonListener(button, newDataset.getScheme(schemeId));
 
         });
 
@@ -2150,7 +2150,7 @@ var messageViewerManager = {
             let newCheckbox = "";
 
             regexMatcher.unwrapHighlights($(row).find("p"));
-            let eventDeco = event.decorations.get(schemeKey);
+            let eventDeco = event.decorations.get(schemeId);
             if (eventDeco) {
 
                 if (eventDeco.code) {
@@ -2164,7 +2164,7 @@ var messageViewerManager = {
                     regexMatcher.wrapElement(event, regexMatcher.generateOrRegex(eventDeco.code.words), eventDeco.code.id);
                 }
 
-                if (event.decorations.get(schemeKey).manual) {
+                if (event.decorations.get(schemeId).manual) {
                     newCheckbox += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox' checked></span>";
                 } else {
                     newCheckbox += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox'></span>";
@@ -2174,7 +2174,7 @@ var messageViewerManager = {
                 newCheckbox += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox'></span>";
             }
 
-            let newSelectField = messageViewerManager.buildCodeSelectField(newDataset.getScheme(schemeKey), event, true);
+            let newSelectField = messageViewerManager.buildCodeSelectField(newDataset.getScheme(schemeId), event, true);
 
             activeSchemeSelectFieldInputGroup.append($(newCheckbox + newSelectField));
 
