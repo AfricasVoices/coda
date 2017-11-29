@@ -71,7 +71,7 @@ class Dataset {
         return this.sessions.size;
     }
 
-    addScheme(scheme: CodeScheme) { // TODO: Return a boolean indicating whether or not the scheme was overwritten?
+    addScheme(scheme: CodeScheme) {
         this.schemes.set(scheme.id, scheme);
     }
 
@@ -98,11 +98,10 @@ class Dataset {
     addEvent(event: RawEvent) {
         if (this.sessions.has(event.owner)) {
             let session = this.sessions.get(event.owner);
-            // if (session.events.has(event.name)) {
-            // TODO: In FileUtils.loadDataset (where this was refactored from), this was wrapped in the above if
-            // TODO: statement. No idea why it was needed.
-            session.events.set(event.name, event);
-            // }
+            // TODO: Why is this test needed? And what if it fails? (Refactored from FileUtils.loadDataset)
+            if (session.events.has(event.name)) {
+                session.events.set(event.name, event);
+            }
         } else {
             let session = new Session(event.owner, [event]);
             this.sessions.set(event.owner, session);

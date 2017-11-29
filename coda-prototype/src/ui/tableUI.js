@@ -1233,7 +1233,8 @@ var messageViewerManager = {
     },
 
     manageShortcuts: function(event) {
-        if (!editorOpen && messageViewerManager.activeSchemeId && activeRow && messageViewerManager.activeSchemeId.length > 0 && activeRow.length) {
+        if (!editorOpen && messageViewerManager.activeSchemeId && activeRow &&
+            messageViewerManager.activeSchemeId.length > 0 && activeRow.length) {
 
             var shortcuts = newDataset.getScheme(messageViewerManager.activeSchemeId).getShortcuts();
             if (shortcuts.has(event.keyCode)) {
