@@ -89,11 +89,8 @@ function initDataset(storageObj) {
         .catch(error => {
             if (error) console.log(error);
             console.time("Default data init");
-            // TODO: this example file can't actually be parsed by the "load dataset" button
             $.getJSON("./data/sessions-numbered-10000.json", function(data) {
-
                 // todo ensure ALL IDs are unique
-
                 newDataset = function(data) {
                     var decorations = {};
                     var eventCount = 0;

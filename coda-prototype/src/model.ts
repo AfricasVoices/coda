@@ -110,7 +110,6 @@ class Dataset {
 
         if (!this.events.has(event.name)) {
             this.eventOrder.push(event.name);
-            // TODO: If there is a sort order property, set it to not-sorted.
         }
 
         this.events.set(event.name, event);
@@ -135,10 +134,7 @@ class Dataset {
     }
 
     eventCount(): number {
-        // TODO: Once writing to private members has been implemented, check if this assert is still needed.
-        // TODO: Currently using eventOrder.length of events.size only because the code this replaces used eventOrder.length
-        console.assert(this.eventOrder.length === this.events.size);
-        return this.eventOrder.length;
+        return this.events.size;
     }
 
     static validate(dataset: Dataset): boolean {
@@ -448,7 +444,6 @@ class Dataset {
         restoredDataset.events = restoredEvents;
 
         return restoredDataset;
-
     }
 
     // TODO: I think this is deprecated in favour of restoreFromTypelessDataset. Remove?
