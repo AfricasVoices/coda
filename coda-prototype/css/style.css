@@ -206,7 +206,7 @@ div[class*=col-], #message-panel {
 }
 
 #scheme-save-btn-group {
-    margin-left: 10px;
+    margin-left: 15px;
 }
 
 .panel-heading > h4, .panel-heading > span {
@@ -246,7 +246,11 @@ div[class*=col-], #message-panel {
     bottom: 50px;
     position: absolute;
     width: 100%;
-    padding: 10px 10px 0px 10px;
+    padding: 10px 10px 0 15px;
+}
+
+#code-table {
+    margin-left: -10px;
 }
 
 .table > tbody > tr.active > td.message-text {
