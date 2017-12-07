@@ -85,7 +85,12 @@ var codeEditorManager = {
             }
         }, 1000, false);
 
-        $("#color-pick").colorpicker({component: $("#colorpicker-trigger"), container: editorContainer});
+        $("#color-pick").colorpicker({
+            component: $("#colorpicker-trigger"),
+            container: editorContainer,
+            useAlpha: false
+        });
+
         $("#color-pick").on("changeColor", function(event) {
 
             if (state.activeEditorRow && state.activeEditorRow.length > 0) {
@@ -99,7 +104,7 @@ var codeEditorManager = {
             $("#word-textarea").find(".tag").css({"background-color": event.color.toHex()});
             logColorChange(code, event.color); // will only run every N ms in order not to flood the activity log
         });
-        $("#color-pick").on("showPicker", (event) => {
+        $("#color-pick").on("showPicker", () => {
             $(".colorpicker").offset({top: 511, left: 1080 + $("body").scrollLeft()});
         });
 
@@ -553,6 +558,8 @@ var codeEditorManager = {
             tempScheme.codes.set(newId, codeObject); // todo: fix owner when saving to parent scheme - what does this mean
         }
 
+        let oldRow = $(".code-row[codeid='" + state.activeEditorRow + "']");
+        $(oldRow).css("background-color", "#ffffff");
         state.activeEditorRow = newId;
 
         $(".code-row").each(function(i, row) {
@@ -600,6 +607,7 @@ var codeEditorManager = {
 
         row.on("click", function() {
             let oldRow = $(".code-row[codeid='" + state.activeEditorRow + "']");
+            $(oldRow).css("background-color", "#ffffff");
             oldRow.removeClass("active");
 
             state.activeEditorRow = $(this).attr("codeid");
@@ -620,7 +628,6 @@ var codeEditorManager = {
     },
 
     updateCodePanel: function(codeObj) {
-
         // todo problem when new row is added - codeObj doesn't exist yet, so can't bind the event handler for tags
         // assume called with valid codeObject
 
