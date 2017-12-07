@@ -868,5 +868,75 @@ var codeEditorManager = {
             let newSchemeId = messageViewerManager.deleteSchemeColumn(schemeId);
             return newSchemeId;
         }
+    },
+
+    updateScheme(updatedScheme) {
+        // Update the current scheme with the scheme just uploaded
+        let oldActiveRowCodeId = $(".code-row.active").attr("codeid");
+
+        for (let [codeId, code] of tempScheme.codes.entries()) {
+            // update existing codes
+            let codeRow = $(".code-row[codeid='" + codeId + "']");
+            if (updatedScheme.codes.has(codeId)) {
+                let newCode = updatedScheme.codes.get(codeId);
+                newCode.owner = tempScheme;
+                codeRow.find(".code-input").attr("value", newCode.value);
+
+                if (newCode.shortcut.length > 0) {
+                    // don't set value to empty string, it still counts as value, fails validation and loses placeholder text
+                    codeRow.find(".shortcut-input").attr("value", String.fromCharCode(newCode.shortcut));
+                }
+
+                codeRow.find("td").attr("style", "background-color: " + (newCode.color ? newCode.color : "#ffffff"));
+                tempScheme.codes.set(codeId, newCode);
+                updatedScheme.codes.delete(codeId);
+            } else {
+                // not in the new scheme, remove row and set a new active row if necessary
+                // TODO: what was this, and why has been commented?
+                /*
+                let isActive = codeRow.hasClass("active");
+                if (isActive) {
+                    let newActiveRow = $(".code-row:last");
+                    newActiveRow.addClass("active");
+                    codeEditorManager.activeCode = newActiveRow.attr("code-id");
+                }
+                */
+
+                codeRow.remove();
+                tempScheme.codes.delete(codeId);
+            }
+        }
+
+        for (let [codeId, code] of updatedScheme.codes.entries()) {
+            // add new codes
+            code.owner = tempScheme;
+            codeEditorManager.addCodeInputRow(code.value, code.shortcut, code.color, codeId);
+            tempScheme.codes.set(codeId, code);
+        }
+
+        $("#scheme-name-input").val(updatedScheme.name);
+
+        let newActiveRowCodeId = $(".code-row.active").attr("codeid");
+        if (newActiveRowCodeId !== oldActiveRowCodeId) {
+            let newActiveRow = $(".code-row:last");
+            newActiveRow.addClass("active");
+        }
+
+        codeEditorManager.activeCode = newActiveRowCodeId;
+        codeEditorManager.updateCodePanel(tempScheme.codes.get(codeEditorManager.activeCode));
+
+        // TODO: what was this, and why has it been commented?
+        /*
+        let activeCode = tempScheme.codes.get($(".code-row.active").attr("code-id"));
+        if (activeCode) {
+            codeEditorManager.updateCodePanel(activeCode);
+        } else {
+            // make a row active and update the code panel accordingly
+            let newActiveRow = $(".code-row:last");
+            newActiveRow.addClass('active');
+            codeEditorManager.activeCode = newActiveRow.attr("code-id");
+            codeEditorManager.updateCodePanel(tempScheme.codes.get(codeEditorManager.activeCode.id));
+        }
+        */
     }
 };

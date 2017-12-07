@@ -735,81 +735,15 @@ function initUI(dataset) {
         console.log("Type: " + file.type);
         console.log("Size: " + file.size + " bytes");
 
-        function handleSchemeParsed(newScheme) {
+        function handleSchemeParsed(updatedScheme) {
             // If the uploaded scheme is not a new version of the scheme to be updated, fail.
-            if (newScheme.id !== tempScheme.id) {
+            if (updatedScheme.id !== tempScheme.id) {
                 console.log("ERROR: Trying to upload scheme with a wrong ID");
                 UIUtils.displayAlertAsError("Data scheme format error - wrong id");
                 return;
             }
 
-            // Update the current scheme with the scheme just uploaded
-            let oldActiveRowCodeId = $(".code-row.active").attr("codeid");
-
-            for (let [codeId, code] of tempScheme.codes.entries()) {
-                // update existing codes
-                let codeRow = $(".code-row[codeid='" + codeId + "']");
-                if (newScheme.codes.has(codeId)) {
-                    let newCode = newScheme.codes.get(codeId);
-                    newCode.owner = tempScheme;
-                    codeRow.find(".code-input").attr("value", newCode.value);
-
-                    if (newCode.shortcut.length > 0) {
-                        // don't set value to empty string, it still counts as value, fails validation and loses placeholder text
-                        codeRow.find(".shortcut-input").attr("value", String.fromCharCode(newCode.shortcut));
-                    }
-
-                    codeRow.find("td").attr("style", "background-color: " + (newCode.color ? newCode.color : "#ffffff"));
-                    tempScheme.codes.set(codeId, newCode);
-                    newScheme.codes.delete(codeId);
-                } else {
-                    // not in the new scheme, remove row and set a new active row if necessary
-                    // TODO: what was this, and why has been commented?
-                    /*
-                    let isActive = codeRow.hasClass("active");
-                    if (isActive) {
-                        let newActiveRow = $(".code-row:last");
-                        newActiveRow.addClass("active");
-                        codeEditorManager.activeCode = newActiveRow.attr("code-id");
-                    }
-                    */
-
-                    codeRow.remove();
-                    tempScheme.codes.delete(codeId);
-                }
-            }
-
-            for (let [codeId, code] of newScheme.codes.entries()) {
-                // add new codes
-                code.owner = tempScheme;
-                codeEditorManager.addCodeInputRow(code.value, code.shortcut, code.color, codeId);
-                tempScheme.codes.set(codeId, code);
-            }
-
-            $("#scheme-name-input").val(newScheme.name);
-
-            let newActiveRowCodeId = $(".code-row.active").attr("codeid");
-            if (newActiveRowCodeId !== oldActiveRowCodeId) {
-                let newActiveRow = $(".code-row:last");
-                newActiveRow.addClass("active");
-            }
-
-            codeEditorManager.activeCode = newActiveRowCodeId;
-            codeEditorManager.updateCodePanel(tempScheme.codes.get(codeEditorManager.activeCode));
-
-            // TODO: what was this, and why has it been commented?
-            /*
-            let activeCode = tempScheme.codes.get($(".code-row.active").attr("code-id"));
-            if (activeCode) {
-                codeEditorManager.updateCodePanel(activeCode);
-            } else {
-                // make a row active and update the code panel accordingly
-                let newActiveRow = $(".code-row:last");
-                newActiveRow.addClass('active');
-                codeEditorManager.activeCode = newActiveRow.attr("code-id");
-                codeEditorManager.updateCodePanel(tempScheme.codes.get(codeEditorManager.activeCode.id));
-            }
-            */
+            codeEditorManager.updateScheme(updatedScheme);
 
             UIUtils.displayAlertAsSuccess("<strong>Success!</strong> Coding scheme was updated.");
 
