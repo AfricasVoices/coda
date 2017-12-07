@@ -754,7 +754,7 @@ function initUI(dataset) {
                     newCode.owner = tempScheme;
                     codeRow.find(".code-input").attr("value", newCode.value);
 
-                    if (newCode.length > 0) {
+                    if (newCode.shortcut.length > 0) {
                         // don't set value to empty string, it still counts as value, fails validation and loses placeholder text
                         codeRow.find(".shortcut-input").attr("value", String.fromCharCode(newCode.shortcut));
                     }
