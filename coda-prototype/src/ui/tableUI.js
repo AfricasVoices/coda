@@ -2269,8 +2269,7 @@ var messageViewerManager = {
         if (Math.abs(messageViewerManager.messageTable.offset().top - messageViewerManager.decorationTable.offset().top) > 2) {
             // not enough space for both tables to fit next to each other - one is stuck below the other
             let totalWidthToAccommodate = messageViewerManager.messageTable.outerWidth() + messageViewerManager.decorationTable.outerWidth();
-
-            let newContainerWidth = Math.ceil(totalWidthToAccommodate / bootstrapTableColumnWidth) + 30; // NB need to account for bootstrap column padding
+            let newContainerWidth = Math.ceil(totalWidthToAccommodate / bootstrapTableColumnWidth) + 8; // NB need to account for bootstrap's column padding, which is 8px
             console.log("offset");
 
             containerObj.width(newContainerWidth);

@@ -436,8 +436,7 @@ var codeEditorManager = {
             scrollbarManager.redraw(newDataset, tempScheme["id"]);
             scrollbarManager.redrawThumb(thumbPosition);
 
-            // make it active scheme
-            header.find(".scheme-name").trigger("click");
+            messageViewerManager.changeActiveScheme(tempScheme["id"]);
 
             undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
 
