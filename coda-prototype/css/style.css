@@ -193,7 +193,7 @@ div[class*=col-], #message-panel {
     position: absolute;
     bottom: 0;
     margin-bottom: 10px;
-    width: 100%;
+    width: calc(100% + 20px); /* Compensate for margin-left of child, and bootstrap margin */
 }
 
 #code-editor-panel {
