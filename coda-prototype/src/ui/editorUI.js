@@ -544,10 +544,13 @@ var codeEditorManager = {
         var codeObject;
         if (!color) color = "#ffffff";
 
-        var newId = id;
+        let newId = id;
         if (id.length === 0) {
-            // create new placeholder code
-            newId = tempScheme["id"] + "-" + UIUtils.randomId(); // todo: check for duplicates
+            // create new placeholder code, with a random id unique to this scheme.
+            do
+                newId = tempScheme["id"] + "-" + UIUtils.randomId();
+            while (tempScheme.codes.has(newId));
+
             codeObject = new Code(tempScheme, newId, code, color, shortcut, false);
             tempScheme.codes.set(newId, codeObject); // todo: fix owner when saving to parent scheme - what does this mean
         }
