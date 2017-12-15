@@ -1326,59 +1326,52 @@ var messageViewerManager = {
         let nextScheme = eventObj.firstUncodedScheme(messageViewerManager.codeSchemeOrder);
         if (nextScheme.length > 0) {
             // pass the columns until reaching this scheme
-            setTimeout(() => {
-                let immutableSchemeOrder = messageViewerManager.codeSchemeOrder.slice();
-                for (let schemeKey of immutableSchemeOrder) {
-                    if (schemeKey === nextScheme) {
-                        break;
-                    } else {
-                        messageViewerManager.changeActiveScheme();
-                        messageViewerManager.resizeViewport();
-                    }
+            let immutableSchemeOrder = messageViewerManager.codeSchemeOrder.slice();
+            for (let schemeKey of immutableSchemeOrder) {
+                if (schemeKey === nextScheme) {
+                    break;
+                } else {
+                    messageViewerManager.changeActiveScheme();
+                    messageViewerManager.resizeViewport();
                 }
-            }, 750);
+            }
 
         } else {
             // go to next uncoded event
+            let nextEventIndex = newDataset.eventOrder.indexOf(eventId);
+            let uncodedScheme = "";
+            while (uncodedScheme.length === 0 && nextEventIndex < newDataset.eventOrder.length) {
+                nextEventIndex++;
+                let nextEventObj = newDataset.events.get(newDataset.eventOrder[nextEventIndex]);
+                uncodedScheme = nextEventObj.firstUncodedScheme(messageViewerManager.codeSchemeOrder);
+                console.log(uncodedScheme);
+            }
 
-            setTimeout(() => {
+            if (uncodedScheme.length !== 0) {
+                //change active row & active scheme to first scheme
+                let newActiveEvent = newDataset.events.get(newDataset.eventOrder[nextEventIndex]);
+                let eventRow = messageViewerManager.bringEventIntoView(newActiveEvent.name);
 
-                let nextEventIndex = newDataset.eventOrder.indexOf(eventId);
-                let uncodedScheme = "";
-                while (uncodedScheme.length === 0 && nextEventIndex < newDataset.eventOrder.length) {
-                    nextEventIndex++;
-                    let nextEventObj = newDataset.events.get(newDataset.eventOrder[nextEventIndex]);
-                    uncodedScheme = nextEventObj.firstUncodedScheme(messageViewerManager.codeSchemeOrder);
-                    console.log(uncodedScheme);
-                }
-
-                if (uncodedScheme.length !== 0) {
-                    //change active row & active scheme to first scheme
-                    let newActiveEvent = newDataset.events.get(newDataset.eventOrder[nextEventIndex]);
-                    let eventRow = messageViewerManager.bringEventIntoView(newActiveEvent.name);
-
-                    if (eventRow && eventRow.length > 0) {
-                        // change active scheme!
-                        let immutableCodeSchemeOrder = messageViewerManager.codeSchemeOrder.slice();
-                        for (let scheme of immutableCodeSchemeOrder) {
-                            if (scheme === uncodedScheme) {
-                                break;
-                            } else {
-                                messageViewerManager.changeActiveScheme();
-                                messageViewerManager.resizeViewport();
-                            }
+                if (eventRow && eventRow.length > 0) {
+                    // change active scheme!
+                    let immutableCodeSchemeOrder = messageViewerManager.codeSchemeOrder.slice();
+                    for (let scheme of immutableCodeSchemeOrder) {
+                        if (scheme === uncodedScheme) {
+                            break;
+                        } else {
+                            messageViewerManager.changeActiveScheme();
+                            messageViewerManager.resizeViewport();
                         }
-                    } else {
-                        // something went wrong with bringing event in
-                        console.log("WARNING: Event with id " + eventId + " not found in table");
                     }
-
                 } else {
-                    // everything from here is coded
-                    console.log("NO EVENT UNCODED");
+                    // something went wrong with bringing event in
+                    console.log("WARNING: Event with id " + eventId + " not found in table");
                 }
 
-            }, 250);
+            } else {
+                // everything from here is coded
+                console.log("NO EVENT UNCODED");
+            }
         }
 
         // active row element is stale since tbody has been redrawn, so need to get the new copy
