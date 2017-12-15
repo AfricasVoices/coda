@@ -1342,7 +1342,12 @@ var messageViewerManager = {
             while (uncodedScheme.length === 0 && nextEventIndex < newDataset.eventOrder.length) {
                 nextEventIndex++;
                 let nextEventObj = newDataset.events.get(newDataset.eventOrder[nextEventIndex]);
-                uncodedScheme = nextEventObj.firstUncodedScheme(messageViewerManager.codeSchemeOrder);
+
+                // Search this event for an uncoded scheme, on a search order rotated by 1 so that the current scheme
+                // is not immediately reselected.
+                let searchOrder = messageViewerManager.codeSchemeOrder.slice(1);
+                searchOrder.push(messageViewerManager.codeSchemeOrder[0]);
+                uncodedScheme = nextEventObj.firstUncodedScheme(searchOrder);
                 console.log(uncodedScheme);
             }
 
