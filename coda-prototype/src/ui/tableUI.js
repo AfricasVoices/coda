@@ -1330,10 +1330,9 @@ var messageViewerManager = {
             for (let schemeKey of immutableSchemeOrder) {
                 if (schemeKey === nextScheme) {
                     break;
-                } else {
-                    messageViewerManager.changeActiveScheme();
-                    messageViewerManager.resizeViewport();
                 }
+                messageViewerManager.changeActiveScheme();
+                messageViewerManager.resizeViewport();
             }
 
         } else {
@@ -1358,10 +1357,9 @@ var messageViewerManager = {
                     for (let scheme of immutableCodeSchemeOrder) {
                         if (scheme === uncodedScheme) {
                             break;
-                        } else {
-                            messageViewerManager.changeActiveScheme();
-                            messageViewerManager.resizeViewport();
                         }
+                        messageViewerManager.changeActiveScheme();
+                        messageViewerManager.resizeViewport();
                     }
                 } else {
                     // something went wrong with bringing event in
