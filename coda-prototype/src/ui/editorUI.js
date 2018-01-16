@@ -525,16 +525,18 @@ var codeEditorManager = {
 
         $(".add-code-row").on("click", function() {
             let newCode = addCodeInputRow("", "", "#ffffff", "", []); // todo will return codeObject
-            codeEditorManager.updateCodePanel(newCode);
+            if (newCode !== null) {
+                codeEditorManager.updateCodePanel(newCode);
 
-            // update the activity stack
-            storage.saveActivity({
-                "category": "SCHEME",
-                "message": "Added new code to scheme",
-                "messageDetails": {"scheme": tempScheme["id"], "code": newCode.id},
-                "data": tempScheme.toJSON(),
-                "timestamp": new Date()
-            });
+                // update the activity stack
+                storage.saveActivity({
+                    "category": "SCHEME",
+                    "message": "Added new code to scheme",
+                    "messageDetails": {"scheme": tempScheme["id"], "code": newCode.id},
+                    "data": tempScheme.toJSON(),
+                    "timestamp": new Date()
+                });
+            }
         });
     },
 
@@ -547,9 +549,17 @@ var codeEditorManager = {
         let newId = id;
         if (id.length === 0) {
             // create new placeholder code, with a random id unique to this scheme.
-            do
+            let attempts = 0;
+            do {
+                attempts += 1;
+                if (attempts > 100) {
+                    console.log("ERROR: Unable to generate a unique id. Existing ids:", tempScheme.codes);
+                    UIUtils.displayAlertAsError("Internal error: Unable to generate a unique id for this row");
+                    return null;
+                }
+
                 newId = tempScheme["id"] + "-" + UIUtils.randomId();
-            while (tempScheme.codes.has(newId));
+            } while (tempScheme.codes.has(newId));
 
             codeObject = new Code(tempScheme, newId, code, color, shortcut, false);
             tempScheme.codes.set(newId, codeObject); // todo: fix owner when saving to parent scheme - what does this mean
