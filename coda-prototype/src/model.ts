@@ -233,7 +233,6 @@ class Dataset {
     }
 
     static restoreFromTypelessDataset(dataset): Dataset {
-
         function fixEventObjectProperties(eventToFix, schms, eventOwner: Session): RawEvent {
 
             // Ensure event decoration references are restored
@@ -1394,12 +1393,14 @@ class Code {
         this._words = [];
         this._isEdited = isEdited;
         this._eventsWithCode = new Map();
-        if (regex && regex[0] && regex[0].length > 0) {
+
+        if (regex && regex instanceof Array && regex.length === 2 && regex[0] && regex[0].length > 0) {
             try {
-                let regEXP = new RegExp(regex[0], regex[1]); // TODO: remove unused?
+                // Validate the regex via the validation code in the RegExp constructor.
+                new RegExp(regex[0], regex[1]);
                 this._regex = regex;
             } catch (e) {
-                console.log("Error: invalid regex given to Code constructor.");
+                console.log("Error: invalid regex passed to Code constructor. Error details:");
                 console.log(e);
                 this._regex = ["", ""];
             }
@@ -1444,7 +1445,10 @@ class Code {
         return this._regex;
     }
 
-    toJSON(): { owner: string, id: string, value: string, color: string, shortcut: string, words: Array<String> } {
+    toJSON(): {
+        owner: string, id: string, value: string, color: string, shortcut: string, words: Array<String>,
+        regex: [string, string] | undefined
+    } {
 
         let obj = Object.create(null);
 
@@ -1454,7 +1458,7 @@ class Code {
         obj.color = this.color;
         obj.shortcut = this.shortcut;
         obj.words = this.words;
-        obj.regex = this.regex && this.regex[0].length > 0 ? JSON.stringify(this.regex[0]) : []; // only export regex, not flags
+        obj.regex = this.regex && this.regex[0].length > 0 ? this.regex : undefined;
 
         return obj;
     }
