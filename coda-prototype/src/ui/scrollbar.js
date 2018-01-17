@@ -66,7 +66,7 @@ var scrollbarManager = {
         $("body").hide();
 
         //this.subsamplingNum = Math.ceil(newDataset.eventOrder.length/(scrollbarEl.height-4));
-        this.subsamplingNum = Math.floor(newDataset.eventCount() / (scrollbarEl.height - 4));
+        this.subsamplingNum = Math.floor(newDataset.eventCount / (scrollbarEl.height - 4));
 
         $("#scrollbar").drawRect({
             //strokeStyle: '#ddd',
@@ -98,7 +98,7 @@ var scrollbarManager = {
             colors = this.subsample(dataset, activeSchemeId);
         } else {
             let color;
-            dataset.getEventsInOrder().forEach(event => {
+            dataset.getEventsInSortOrder().forEach(event => {
                 if (event) {
                     if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code) {
                         color = this.adjustSaturation(event.decorations.get(activeSchemeId));
@@ -242,7 +242,7 @@ var scrollbarManager = {
         // CHECK IF IT FITS INTO SCROLLBAR PX OF SUBSAMPLING NEEDED!
 
         var colors = [];
-        dataset.getEventsInOrder().forEach(event => {
+        dataset.getEventsInSortOrder().forEach(event => {
             if (event) {
                 if (colors.length === this.subsamplingNum) {
                     sampleColours.push(colors[UIUtils.randomInteger(0, colors.length - 1)]);
@@ -297,11 +297,11 @@ var scrollbarManager = {
 
         // todo need to take scaling into account
         let percentage = scrollthumbLayer.y + scrollbarManager.thumbWidth === 6 ? 0 : Math.round(((thumbMid - 10) / (scrollbarManager.scrollbarEl.height - 20) * 100 )) / 100; // force it to 0 if top is 6px displaced, 2px for border, 4px for scrollthumb
-        let eventIndexToLoad = scrollthumbLayer.y > 2 ? Math.floor(newDataset.eventCount() * percentage) : 0;
+        let eventIndexToLoad = scrollthumbLayer.y > 2 ? Math.floor(newDataset.eventCount * percentage) : 0;
         const halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
         let pagesToLoad = Math.floor(eventIndexToLoad / halfPage);
 
-        if ((pagesToLoad * halfPage + halfPage) >= newDataset.eventCount()) {
+        if ((pagesToLoad * halfPage + halfPage) >= newDataset.eventCount) {
             pagesToLoad = pagesToLoad - 2;
         }
 

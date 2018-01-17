@@ -67,7 +67,7 @@ class Dataset {
     // TODO: functions and eventOrder property currently are. Also, some of the member functions make reference
     // TODO: to a sortOrder property
 
-    sessionCount(): number {
+    get sessionCount(): number {
         return this.sessions.size;
     }
 
@@ -91,7 +91,7 @@ class Dataset {
         return Array.from(this.schemes.keys());
     }
 
-    schemeCount(): number {
+    get schemeCount(): number {
         return this.schemes.size;
     }
 
@@ -118,21 +118,21 @@ class Dataset {
         return this.events.get(eventId);
     }
 
-    getEventAtPosition(i: number): RawEvent | undefined {
+    getEventsInSortOrder(): Array<RawEvent | undefined> {
+        return this.eventOrder.map(eventId => this.events.get(eventId));
+    }
+
+    eventAtPosition(i: number): RawEvent | undefined {
         let eventId = this.eventOrder[i];
         return this.getEvent(eventId);
     }
 
-    getEventsInOrder(): Array<RawEvent | undefined> {
-        return this.eventOrder.map(eventId => this.events.get(eventId));
-    }
-
-    getPositionForEvent(eventId: string): number | undefined {
+    positionOfEvent(eventId: string): number | undefined {
         let position = this.eventOrder.indexOf(eventId);
         return position === -1 ? undefined : position;
     }
 
-    eventCount(): number {
+    get eventCount(): number {
         return this.events.size;
     }
 
@@ -150,7 +150,7 @@ class Dataset {
 
         sessionsObjValid = sessionsObjValid && sessionsHaveValidEntries;
 
-        let hasSchemes = dataset.schemes && dataset.schemes instanceof Map && dataset.schemeCount() > 0;
+        let hasSchemes = dataset.schemes && dataset.schemes instanceof Map && dataset.schemeCount > 0;
 
         let events = dataset.events;
         let eventsObjValid = events && events instanceof Map;

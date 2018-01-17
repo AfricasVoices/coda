@@ -408,9 +408,9 @@ var codeEditorManager = {
             let decoTableTbody = "";
 
             let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-            let stoppingCondition = (messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventCount()) ? newDataset.eventCount() : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
+            let stoppingCondition = (messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventCount) ? newDataset.eventCount : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
             for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < stoppingCondition; i++) {
-                let event = newDataset.getEventAtPosition(i);
+                let event = newDataset.eventAtPosition(i);
                 if (event === undefined) {
                     console.log("ERROR: No event exists at position " + i);
                     continue;
@@ -828,7 +828,7 @@ var codeEditorManager = {
         activeSchemeId = messageViewerManager.codeSchemeOrder[0];
         messageViewerManager.activeSchemeId = messageViewerManager.codeSchemeOrder[0];
 
-        if (newDataset.schemeCount() === 0) {
+        if (newDataset.schemeCount === 0) {
             // create new default coding scheme
             let newScheme = new CodeScheme(UIUtils.randomId([]) + "", "default", true);
             newScheme.codes.set(newScheme.id + "-" + "1", new Code(newScheme, newScheme.id + "-" + "1", "test", "#ffffff", "", false));

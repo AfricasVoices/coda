@@ -71,7 +71,7 @@ var messageViewerManager = {
         } else {
             newDataset.restoreDefaultSort();
             this.buildTable(data, rowsInTable);
-            if (newDataset.schemeCount() > 4) { // TODO: This does nothing.
+            if (newDataset.schemeCount > 4) { // TODO: This does nothing.
                 //$("#message-viewer").css("width", (1230 + (Object.keys(newDataset.schemes).length - 4) * 360) + "");
             }
 
@@ -113,7 +113,7 @@ var messageViewerManager = {
 
             $("#message-panel").on("scroll", function() {
                 let yDifference = (messageViewerManager.lastTableY - messageViewerManager.messageContainer.scrollTop()) / messageViewerManager.messageTable.height();
-                scrollbarManager.redrawThumb(scrollbarManager.getThumbPosition() - scrollbarManager.scrollbarEl.height * yDifference * (messageViewerManager.rowsInTable / newDataset.eventCount()));
+                scrollbarManager.redrawThumb(scrollbarManager.getThumbPosition() - scrollbarManager.scrollbarEl.height * yDifference * (messageViewerManager.rowsInTable / newDataset.eventCount));
 
                 messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
             });
@@ -194,7 +194,7 @@ var messageViewerManager = {
 
             // redraw scrollbar
             scrollbarManager.redraw(newDataset, messageViewerManager.activeSchemeId);
-            scrollbarManager.redrawThumbAtEvent(newDataset.getPositionForEvent(activeRow.attr("eventid")));
+            scrollbarManager.redrawThumbAtEvent(newDataset.positionOfEvent(activeRow.attr("eventid")));
 
             // update the activity stack
             storage.saveActivity({
@@ -213,7 +213,7 @@ var messageViewerManager = {
         let tbody = "";
         let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
         for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex * halfPage + halfPage; i++) {
-            let event = newDataset.getEventAtPosition(i);
+            let event = newDataset.eventAtPosition(i);
             tbody += messageViewerManager.buildRow(event, i, event.owner);
         }
 
@@ -341,9 +341,9 @@ var messageViewerManager = {
             messageViewerManager.lastLoadedPageIndex = 1;
         }
 
-        let iterationStop = messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventCount() ? newDataset.eventCount() : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
+        let iterationStop = messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventCount ? newDataset.eventCount : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
         for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < iterationStop; i++) {
-            let event = newDataset.getEventAtPosition(i);
+            let event = newDataset.eventAtPosition(i);
             if (event === undefined) {
                 console.log("ERROR: Requested an id which does not exist, at position " + i);
                 continue;
@@ -792,10 +792,10 @@ var messageViewerManager = {
                 let tbody = "";
                 let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
 
-                let iterationStop = messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventCount() ? newDataset.eventCount() : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
+                let iterationStop = messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventCount ? newDataset.eventCount : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
 
                 for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < iterationStop; i++) {
-                    let event = newDataset.getEventAtPosition(i);
+                    let event = newDataset.eventAtPosition(i);
                     tbody += messageViewerManager.buildRow(event, i, event.owner);
                 }
 
@@ -941,12 +941,12 @@ var messageViewerManager = {
                 });
             }
 
-            let nextMessageRowIndex = newDataset.getPositionForEvent(eventObj.name) + 1;
-            if (nextMessageRowIndex >= newDataset.eventCount()) {
-                nextMessageRowIndex = newDataset.eventCount() - 1;
+            let nextMessageRowIndex = newDataset.positionOfEvent(eventObj.name) + 1;
+            if (nextMessageRowIndex >= newDataset.eventCount) {
+                nextMessageRowIndex = newDataset.eventCount - 1;
             }
 
-            let nextEventId = newDataset.getEventAtPosition(nextMessageRowIndex);
+            let nextEventId = newDataset.eventAtPosition(nextMessageRowIndex);
 
             if (messageViewerManager.currentSort !== messageViewerManager.sortUtils.restoreDefaultSort) {
 
@@ -1008,7 +1008,7 @@ var messageViewerManager = {
             let decoTableTbody = "";
 
             for (let i = 0; i < messageViewerManager.rowsInTable; i++) {
-                let event = newDataset.getEventAtPosition(i);
+                let event = newDataset.eventAtPosition(i);
                 if (event === undefined) {
                     console.log("ERROR: Requested an id which does not exist, at position " + i);
                     continue;
@@ -1143,7 +1143,7 @@ var messageViewerManager = {
         let messageTableTbody = "";
         let decoTableTbody = "";
         for (let i = 0; i < messageViewerManager.rowsInTable; i++) {
-            let event = newDataset.getEventAtPosition(i);
+            let event = newDataset.eventAtPosition(i);
             if (event === undefined) {
                 console.log("Error: Could not find event at position " + i);
                 continue;
@@ -1301,10 +1301,10 @@ var messageViewerManager = {
         */
         let nextEventId;
         let nextEventRow = null;
-        let currentEventIndex = newDataset.getPositionForEvent(eventId);
-        if (currentEventIndex + 1 < newDataset.eventCount()) {
-            for (let i = currentEventIndex + 1; i < newDataset.eventCount(); i++) {
-                let event = newDataset.getEventAtPosition(i);
+        let currentEventIndex = newDataset.positionOfEvent(eventId);
+        if (currentEventIndex + 1 < newDataset.eventCount) {
+            for (let i = currentEventIndex + 1; i < newDataset.eventCount; i++) {
+                let event = newDataset.eventAtPosition(i);
                 let deco = event.decorations.get(messageViewerManager.activeSchemeId);
                 if (!deco || !deco.code) {
                     nextEventId = event.name;
@@ -1315,7 +1315,7 @@ var messageViewerManager = {
 
         if (!nextEventId) {
             for (let i = 0; i < currentEventIndex + 1; i++) {
-                let eventObj = newDataset.getEventAtPosition(i);
+                let eventObj = newDataset.eventAtPosition(i);
                 let deco = eventObj.decorations.get(messageViewerManager.activeSchemeId);
                 if (!deco || !deco.code) {
                     nextEventId = eventObj.name;
@@ -1327,7 +1327,7 @@ var messageViewerManager = {
         if (nextEventId) {
             nextEventRow = messageViewerManager.bringEventIntoView(nextEventId);
         } else {
-            nextEventRow = messageViewerManager.bringEventIntoView(newDataset.getEventAtPosition(currentEventIndex + 1));
+            nextEventRow = messageViewerManager.bringEventIntoView(newDataset.eventAtPosition(currentEventIndex + 1));
         }
 
         return nextEventRow;
@@ -1350,11 +1350,11 @@ var messageViewerManager = {
             }
         } else {
             // go to next uncoded event
-            let nextEventIndex = newDataset.getPositionForEvent(eventId);
+            let nextEventIndex = newDataset.positionOfEvent(eventId);
             let uncodedScheme = "";
-            while (uncodedScheme.length === 0 && nextEventIndex < newDataset.eventCount()) {
+            while (uncodedScheme.length === 0 && nextEventIndex < newDataset.eventCount) {
                 nextEventIndex++;
-                let event = newDataset.getEventAtPosition(nextEventIndex);
+                let event = newDataset.eventAtPosition(nextEventIndex);
 
                 // Search this event for an uncoded scheme, on a search order rotated by 1 so that the current scheme
                 // is not immediately reselected.
@@ -1366,7 +1366,7 @@ var messageViewerManager = {
 
             if (uncodedScheme.length !== 0) {
                 //change active row & active scheme to first scheme
-                let newActiveEvent = newDataset.getEventAtPosition(nextEventIndex);
+                let newActiveEvent = newDataset.eventAtPosition(nextEventIndex);
                 let eventRow = messageViewerManager.bringEventIntoView(newActiveEvent.name);
 
                 if (eventRow && eventRow.length > 0) {
@@ -1398,7 +1398,7 @@ var messageViewerManager = {
 
     bringEventIntoView: function(eventId) {
         let eventRow = $(".message-row[eventid='" + eventId + "']");
-        let eventIndex = newDataset.getPositionForEvent(eventId);
+        let eventIndex = newDataset.positionOfEvent(eventId);
         activeRow.removeClass("active");
 
         if (!eventRow || eventRow.length === 0) {
@@ -1460,7 +1460,7 @@ var messageViewerManager = {
 
     bringEventIntoView2: function(eventId) {
         let eventRow = $(".message-row[eventid='" + eventId + "']");
-        let eventIndex = newDataset.getPositionForEvent(eventId);
+        let eventIndex = newDataset.positionOfEvent(eventId);
         activeRow.removeClass("active");
 
         if (!eventRow || eventRow.length === 0) {
@@ -1553,7 +1553,7 @@ var messageViewerManager = {
 
             let nextPage = messageViewerManager.lastLoadedPageIndex + 1;
 
-            if (nextPage <= Math.floor(newDataset.eventCount() / Math.floor(messageViewerManager.rowsInTable / 2)) - 1) {
+            if (nextPage <= Math.floor(newDataset.eventCount / Math.floor(messageViewerManager.rowsInTable / 2)) - 1) {
 
                 messageViewerManager.lastLoadedPageIndex = nextPage;
 
@@ -1561,10 +1561,10 @@ var messageViewerManager = {
                 let decoTableTbody = "";
 
                 let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-                let stoppingCondition = nextPage * halfPage + halfPage > newDataset.eventCount() ?
-                    newDataset.eventCount() : nextPage * halfPage + halfPage;
+                let stoppingCondition = nextPage * halfPage + halfPage > newDataset.eventCount ?
+                    newDataset.eventCount : nextPage * halfPage + halfPage;
                 for (let i = nextPage * halfPage; i < stoppingCondition; i++) {
-                    let event = newDataset.getEventAtPosition(i);
+                    let event = newDataset.eventAtPosition(i);
                     messageTableTbody += messageViewerManager.buildMessageTableRow(event, i, event.owner, messageViewerManager.activeSchemeId);
                     decoTableTbody += messageViewerManager.buildDecorationTableRow(event, i, event.owner, messageViewerManager.codeSchemeOrder.slice(1));
                 }
@@ -1603,13 +1603,13 @@ var messageViewerManager = {
 
                 console.timeEnd("infinite scroll DOWN");
 
-            } else if ($(".message-row").length <= 40 && nextPage === Math.floor(newDataset.eventCount() / Math.floor(messageViewerManager.rowsInTable / 2))) {
+            } else if ($(".message-row").length <= 40 && nextPage === Math.floor(newDataset.eventCount / Math.floor(messageViewerManager.rowsInTable / 2))) {
                 let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
 
                 let messageTableTbody = "";
                 let decoTableTbody = "";
-                for (let i = 0; i < (newDataset.eventCount() - (nextPage * halfPage)); i++) {
-                    let event = newDataset.getEventAtPosition((nextPage - 1) * halfPage + halfPage + i);
+                for (let i = 0; i < (newDataset.eventCount - (nextPage * halfPage)); i++) {
+                    let event = newDataset.eventAtPosition((nextPage - 1) * halfPage + halfPage + i);
                     if (event) {
                         messageTableTbody += messageViewerManager.buildMessageTableRow(event, i, event.owner, messageViewerManager.activeSchemeId);
                         decoTableTbody += messageViewerManager.buildDecorationTableRow(event, i, event.owner, messageViewerManager.codeSchemeOrder.slice(1));
@@ -1656,7 +1656,7 @@ var messageViewerManager = {
                 let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
                 let stoppingCondition = prevPage * halfPage + halfPage;
                 for (let i = prevPage * halfPage; i < stoppingCondition; i++) {
-                    let event = newDataset.getEventAtPosition(i);
+                    let event = newDataset.eventAtPosition(i);
                     messageTableTbody += messageViewerManager.buildMessageTableRow(event, i, event.owner, messageViewerManager.activeSchemeId);
                     decoTableTbody += messageViewerManager.buildDecorationTableRow(event, i, event.owner, messageViewerManager.codeSchemeOrder.slice(1));
                 }
@@ -1695,10 +1695,10 @@ var messageViewerManager = {
         var tbody = "";
 
         const halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-        let stoppingCondition = (index * halfPage + halfPage > newDataset.eventCount()) ? newDataset.eventCount() : index * halfPage + halfPage;
+        let stoppingCondition = (index * halfPage + halfPage > newDataset.eventCount) ? newDataset.eventCount : index * halfPage + halfPage;
 
         for (let i = index * halfPage; i < stoppingCondition; i++) {
-            let event = newDataset.getEventAtPosition(i);
+            let event = newDataset.eventAtPosition(i);
             tbody += messageViewerManager.buildRow(event, i, event.owner);
         }
 
@@ -1710,10 +1710,10 @@ var messageViewerManager = {
         var tbody = "";
 
         const halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-        let stoppingCondition = (index * halfPage + halfPage > newDataset.eventCount()) ? newDataset.eventCount() : index * halfPage + halfPage;
+        let stoppingCondition = (index * halfPage + halfPage > newDataset.eventCount) ? newDataset.eventCount : index * halfPage + halfPage;
 
         for (let i = index * halfPage; i < stoppingCondition; i++) {
-            let event = newDataset.getEventAtPosition(i);
+            let event = newDataset.eventAtPosition(i);
             tbody += messageViewerManager.buildMessageTableRow(event, i, event.owner, messageViewerManager.activeSchemeId);
         }
 
@@ -1725,10 +1725,10 @@ var messageViewerManager = {
         var tbody = "";
 
         const halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-        let stoppingCondition = (index * halfPage + halfPage > newDataset.eventCount()) ? newDataset.eventCount() : index * halfPage + halfPage;
+        let stoppingCondition = (index * halfPage + halfPage > newDataset.eventCount) ? newDataset.eventCount : index * halfPage + halfPage;
 
         for (let i = index * halfPage; i < stoppingCondition; i++) {
-            let event = newDataset.getEventAtPosition(i);
+            let event = newDataset.eventAtPosition(i);
             tbody += messageViewerManager.buildDecorationTableRow(event, i, event.owner, messageViewerManager.codeSchemeOrder.slice(1));
         }
 
@@ -1737,7 +1737,7 @@ var messageViewerManager = {
 
     buildRow: function(eventObj, eventIndex, sessionIndex) {
 
-        let decoNumber = newDataset.schemeCount();
+        let decoNumber = newDataset.schemeCount;
         var decoColumnWidth = (12 / decoNumber >> 0);
         var sessionRow = "";
 
@@ -1785,7 +1785,7 @@ var messageViewerManager = {
         sessionRow += "<td class='col-md-7 message-text'" + shadowStyle + "><p>" + eventText + "</p></td>";
         sessionRow += "<td class='col-md-4 decorations' style='background-color: " + rowColor + "'>";
 
-        sessionRow += UIUtils.decoRowColumn(newDataset.schemeCount(), eventObj);
+        sessionRow += UIUtils.decoRowColumn(newDataset.schemeCount, eventObj);
         sessionRow += "</td>";
         sessionRow += "</td>";
         sessionRow += "</tr>";

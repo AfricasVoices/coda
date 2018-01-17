@@ -77,9 +77,9 @@ function initDataset(storageObj) {
                 "message": "Resuming coding dataset",
                 "messageDetails": "", // todo add identifier
                 "data": {
-                    "events": newDataset.eventCount(),
-                    "schemes": newDataset.schemeCount(),
-                    "sessions": newDataset.sessionCount()
+                    "events": newDataset.eventCount,
+                    "schemes": newDataset.schemeCount,
+                    "sessions": newDataset.sessionCount
                 },
                 "timestamp": new Date()
             });
@@ -502,9 +502,9 @@ function initUI(dataset) {
         function handleDatasetParsed(dataset) {
             messageViewerManager.codeSchemeOrder = []; // TODO: What does this line do?
 
-            if (dataset && dataset.eventCount() > 0) {
+            if (dataset && dataset.eventCount > 0) {
                 // TODO: Move this if to Dataset.generateDefaultScheme?
-                if (dataset.schemeCount() === 0) {
+                if (dataset.schemeCount === 0) {
                     let defaultScheme = new CodeScheme("1", "default", false);
                     defaultScheme.codes.set(
                         defaultScheme.id + "-" + "01",
@@ -855,9 +855,9 @@ function initUI(dataset) {
             "message": "Saved dataset via button",
             "messageDetails": "", // todo add identifier
             "data": {
-                "events": dataset.eventCount(),
-                "schemes": dataset.schemeCount(),
-                "sessions": dataset.sessionCount()
+                "events": dataset.eventCount,
+                "schemes": dataset.schemeCount,
+                "sessions": dataset.sessionCount
             },
             "timestamp": new Date()
         });
@@ -948,7 +948,7 @@ function initUI(dataset) {
 
         // redraw scrollbar
         scrollbarManager.redraw(newDataset, messageViewerManager.activeSchemeId);
-        scrollbarManager.redrawThumbAtEvent(newDataset.getPositionForEvent(activeRow.attr("eventid")));
+        scrollbarManager.redrawThumbAtEvent(newDataset.positionOfEvent(activeRow.attr("eventid")));
     });
 
     $("#submit").on("click", event => {
