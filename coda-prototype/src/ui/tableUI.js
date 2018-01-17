@@ -41,7 +41,7 @@ var messageViewerManager = {
     messageTable: {},
     decorationTable: {},
     codeSchemeOrder: [],
-    activeSchemeId: "",
+    activeScheme: "",
     tablePages: [], // list of objects {start: [sessionIndex, eventIndex], end: [sessionIndex, eventIndex]}
     rowsInTable: 0,
     lastLoadedPageIndex: 0,
@@ -71,7 +71,7 @@ var messageViewerManager = {
         } else {
             newDataset.restoreDefaultSort();
             this.buildTable(data, rowsInTable);
-            if (newDataset.schemeCount > 4) { // TODO: This does nothing.
+            if (Object.keys(newDataset.schemes).length > 4) {
                 //$("#message-viewer").css("width", (1230 + (Object.keys(newDataset.schemes).length - 4) * 360) + "");
             }
 
@@ -113,7 +113,7 @@ var messageViewerManager = {
 
             $("#message-panel").on("scroll", function() {
                 let yDifference = (messageViewerManager.lastTableY - messageViewerManager.messageContainer.scrollTop()) / messageViewerManager.messageTable.height();
-                scrollbarManager.redrawThumb(scrollbarManager.getThumbPosition() - scrollbarManager.scrollbarEl.height * yDifference * (messageViewerManager.rowsInTable / newDataset.eventCount));
+                scrollbarManager.redrawThumb(scrollbarManager.getThumbPosition() - scrollbarManager.scrollbarEl.height * yDifference * (messageViewerManager.rowsInTable / newDataset.eventOrder.length));
 
                 messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
             });
@@ -193,8 +193,8 @@ var messageViewerManager = {
             messageViewerManager.bringEventIntoView2(activeRow.attr("eventid"));
 
             // redraw scrollbar
-            scrollbarManager.redraw(newDataset, messageViewerManager.activeSchemeId);
-            scrollbarManager.redrawThumbAtEvent(newDataset.positionOfEvent(activeRow.attr("eventid")));
+            scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);
+            scrollbarManager.redrawThumbAtEvent(newDataset.eventOrder.indexOf(activeRow.attr("eventid")));
 
             // update the activity stack
             storage.saveActivity({
@@ -213,26 +213,27 @@ var messageViewerManager = {
         let tbody = "";
         let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
         for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < messageViewerManager.lastLoadedPageIndex * halfPage + halfPage; i++) {
-            let event = newDataset.eventAtPosition(i);
-            tbody += messageViewerManager.buildRow(event, i, event.owner);
+            let eventKey = newDataset.eventOrder[i];
+            tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
         }
 
         $(messageViewerManager.messageTable.find("tbody").empty()).append(tbody);
         // todo adjust scroll offset appropriately!
 
-        scrollbarManager.redraw(newDataset, this.activeSchemeId);
+        scrollbarManager.redraw(newDataset, this.activeScheme);
 
     },
 
-    buildTable: function(dataset, rowsPerPage, hasDataChanged) {
-        if (!dataset) {
+    buildTable: function(data, rowsPerPage, hasDataChanged) {
+        if (!data) {
+
             let tableTbody = messageViewerManager.messageTable.find("tbody");
-            tableTbody.append("<tr><td colspan='3'>Start by loading in dataset from Dataset menu</td></tr>");
+            tableTbody.append("<tr><td colspan='3'>Start by loading in data from Dataset menu</td></tr>");
             return;
         }
 
         if (hasDataChanged == null) {
-            // checks if this is a result of UNDO/REDO action or new dataset was loaded in
+            // checks if this is a result of UNDO/REDO action or new data was loaded in
             hasDataChanged = true;
         }
 
@@ -249,13 +250,11 @@ var messageViewerManager = {
         /*
         Assume initial scheme order and active scheme
          */
-        console.log(dataset);
-        console.log(dataset.schemeIds);
-        let schemeOrder = dataset.schemeIds; // TODO: Is it acceptable that this order is arbitrary?
+        let schemeOrder = Object.keys(data.schemes);
         let activeScheme = schemeOrder[0];
 
         this.codeSchemeOrder = schemeOrder;
-        this.activeSchemeId = activeScheme;
+        this.activeScheme = activeScheme;
 
         /*
         Build headers
@@ -269,14 +268,14 @@ var messageViewerManager = {
 
         // establish sorting
         let activeSortIcon = "icon-def'";
-        if (!hasDataChanged && dataset.getScheme(messageViewerManager.activeSchemeId)) {
+        if (!hasDataChanged && data.schemes[messageViewerManager.activeScheme]) {
             if (this.currentSort === this.sortUtils.sortEventsByConfidenceOnly) {
                 activeSortIcon = "icon-conf'";
-                newDataset.sortEventsByConfidenceOnly(messageViewerManager.activeSchemeId);
+                newDataset.sortEventsByConfidenceOnly(messageViewerManager.activeScheme);
             }
             if (this.currentSort === this.sortUtils.sortEventsByScheme) {
                 activeSortIcon = "icon-cat'";
-                newDataset.sortEventsByScheme(messageViewerManager.activeSchemeId, true);
+                newDataset.sortEventsByScheme(messageViewerManager.activeScheme, true);
             }
             if (this.currentSort === this.sortUtils.restoreDefaultSort) {
                 activeSortIcon = "icon-def'";
@@ -304,9 +303,9 @@ var messageViewerManager = {
         // setup listeners
         allSchemeHeaders.each((i, col) => {
             let column = $(col);
-            let schemeId = column.attr("scheme");
+            let schemeKey = column.attr("scheme");
             let button = column.find(".edit-scheme-button");
-            messageViewerManager.bindEditSchemeButtonListener(button, newDataset.getScheme(schemeId));
+            messageViewerManager.bindEditSchemeButtonListener(button, newDataset["schemes"][schemeKey]);
         });
 
         allSchemeHeaders.find("i.scheme-name").on("click", event => {
@@ -343,16 +342,12 @@ var messageViewerManager = {
             messageViewerManager.lastLoadedPageIndex = 1;
         }
 
-        let iterationStop = messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventCount ? newDataset.eventCount : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
+        let iterationStop = messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventOrder.length ? newDataset.eventOrder.length : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
         for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < iterationStop; i++) {
-            let event = newDataset.eventAtPosition(i);
-            if (event === undefined) {
-                console.log("ERROR: Requested an id which does not exist, at position " + i);
-                continue;
-            }
-
-            activeMessageTableTbody += messageViewerManager.buildMessageTableRow(event, i, event.owner, messageViewerManager.activeSchemeId);
-            decorationTableTbody += messageViewerManager.buildDecorationTableRow(event, i, event.owner, messageViewerManager.codeSchemeOrder.slice(1));
+            let eventIndex = newDataset.eventOrder[i];
+            let eventObj = newDataset.events.get(eventIndex);
+            activeMessageTableTbody += messageViewerManager.buildMessageTableRow(eventObj, i, eventObj.owner, messageViewerManager.activeScheme);
+            decorationTableTbody += messageViewerManager.buildDecorationTableRow(eventObj, i, eventObj.owner, messageViewerManager.codeSchemeOrder.slice(1));
         }
 
         let messageTableBodyElement = messageViewerManager.messageTable.find("tbody");
@@ -391,11 +386,10 @@ var messageViewerManager = {
         Scrollbar
          */
         if (!hasDataChanged) {
-            scrollbarManager.redraw(newDataset,
-                messageViewerManager.activeSchemeId ? messageViewerManager.activeSchemeId : newDataset.schemeIds[0]);
+            scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme ? messageViewerManager.activeScheme : Object.keys(newDataset.schemes)[0]);
         } else {
             // todo take care to clear previous one
-            scrollbarManager.init(undefined, document.getElementById("scrollbar"), 100);
+            scrollbarManager.init(newDataset.sessions, document.getElementById("scrollbar"), 100);
         }
 
         /*
@@ -531,13 +525,13 @@ var messageViewerManager = {
                         colAttrNum = 12 / schemeNumber >> 0;
                 }
 
-                orderedSchemes.forEach(schemeId => {
-                    console.log("schemeId", schemeId);
-                    let schemeObj = newDataset.getScheme(schemeId);
+                orderedSchemes.forEach(schemeKey => {
+                    console.log("schemeKey", schemeKey);
+                    let schemeObj = newDataset.schemes[schemeKey];
 
-                    let sortIcon = "<button class='sort-btn btn btn-default btn-xs' data-toggle='tooltip' data-placement='top' title='Sort messages' data-container='body'><div class='sort-icon " + (schemeId === messageViewerManager.activeSchemeId ? activeSortIcon + "'" : "icon-def active'") + "></div></button>";
+                    let sortIcon = "<button class='sort-btn btn btn-default btn-xs' data-toggle='tooltip' data-placement='top' title='Sort messages' data-container='body'><div class='sort-icon " + (schemeKey === messageViewerManager.activeScheme ? activeSortIcon + "'" : "icon-def active'") + "></div></button>";
                     let editButton = "<button type='button' class='btn btn-default btn-xs edit-scheme-button' data-toggle='tooltip' data-placement='top' title='Edit scheme' data-container='body'><i class='glyphicon glyphicon-edit'></i></button>";
-                    let columnDiv = "<th class='col-md-" + colAttrNum + " col-xs-" + colAttrNum + " scheme-header' scheme='" + schemeId + "'><div>" + sortIcon + editButton + "</div><div class='scheme-name-cont'><i class='scheme-name'>" + schemeObj["name"] + "</i></div>" + "</th>";
+                    let columnDiv = "<th class='col-md-" + colAttrNum + " col-xs-" + colAttrNum + " scheme-header' scheme='" + schemeKey + "'><div>" + sortIcon + editButton + "</div><div class='scheme-name-cont'><i class='scheme-name'>" + schemeObj["name"] + "</i></div>" + "</th>";
                     dividedHeaders += columnDiv;
                 });
 
@@ -557,23 +551,23 @@ var messageViewerManager = {
 
     },
 
-    buildSchemeHeaderElement: function(schemeId, activeSortIcon, isActiveScheme) {
+    buildSchemeHeaderElement: function(schemeKey, activeSortIcon, isActiveScheme) {
 
         let activeSchemeClass = "";
         if (isActiveScheme) {
             activeSchemeClass = " active-scheme";
         }
 
-        let schemeObj = newDataset.getScheme(schemeId);
+        let schemeObj = newDataset.schemes[schemeKey];
 
-        let sortIcon = "<button class='sort-btn btn btn-default btn-xs' data-toggle='tooltip' data-placement='top' title='Sort messages' data-container='body'><div class='sort-icon " + (schemeId === messageViewerManager.activeSchemeId ? activeSortIcon + "'" : "icon-def active'") + "></div></button>";
+        let sortIcon = "<button class='sort-btn btn btn-default btn-xs' data-toggle='tooltip' data-placement='top' title='Sort messages' data-container='body'><div class='sort-icon " + (schemeKey === messageViewerManager.activeScheme ? activeSortIcon + "'" : "icon-def active'") + "></div></button>";
         let editButton = "<button type='button' class='btn btn-default btn-xs edit-scheme-button' data-toggle='tooltip' data-placement='top' title='Edit scheme' data-container='body'><i class='glyphicon glyphicon-edit'></i></button>";
-        let columnDiv = "<th class='scheme-header' scheme='" + schemeId + "'><div>" + sortIcon + editButton + "</div><div class='scheme-name-cont'><i class='scheme-name" + activeSchemeClass + "'>" + schemeObj["name"] + "</i></div></th>";
+        let columnDiv = "<th class='scheme-header' scheme='" + schemeKey + "'><div>" + sortIcon + editButton + "</div><div class='scheme-name-cont'><i class='scheme-name" + activeSchemeClass + "'>" + schemeObj["name"] + "</i></div></th>";
         return columnDiv;
     },
 
     changeActiveScheme: function(schemeId) {
-        if (messageViewerManager.activeSchemeId === schemeId) {
+        if (messageViewerManager.activeScheme === schemeId) {
             // Changing to the currently active scheme, so no need to do any work.
             return;
         }
@@ -585,21 +579,21 @@ var messageViewerManager = {
 
             let nextActiveScheme = messageViewerManager.codeSchemeOrder[1];
 
-            messageViewerManager.demoteFromActiveScheme(messageViewerManager.activeSchemeId, true);
+            messageViewerManager.demoteFromActiveScheme(messageViewerManager.activeScheme, true);
             messageViewerManager.promoteToActiveScheme(nextActiveScheme);
 
             let movedSchemeKey = messageViewerManager.codeSchemeOrder.splice(0, 1)[0]; // remove previous active scheme key
             messageViewerManager.codeSchemeOrder.push(movedSchemeKey); // append it at the end
 
             activeSchemeId = nextActiveScheme;
-            messageViewerManager.activeSchemeId = nextActiveScheme;
+            messageViewerManager.activeScheme = nextActiveScheme;
 
         } else {
             /*
             New scheme is pushed on top, the previous active one just moves one space down
              */
 
-            messageViewerManager.demoteFromActiveScheme(messageViewerManager.activeSchemeId, false);
+            messageViewerManager.demoteFromActiveScheme(messageViewerManager.activeScheme, false);
             messageViewerManager.promoteToActiveScheme(schemeId);
 
             let indexOfScheme = messageViewerManager.codeSchemeOrder.indexOf(schemeId);
@@ -607,12 +601,12 @@ var messageViewerManager = {
             messageViewerManager.codeSchemeOrder.splice(0, 0, movedSchemeKey); // insert it at the beginning
 
             activeSchemeId = schemeId;
-            messageViewerManager.activeSchemeId = schemeId;
-            messageViewerManager.firstScheme = messageViewerManager.activeSchemeId;
+            messageViewerManager.activeScheme = schemeId;
+            messageViewerManager.firstScheme = messageViewerManager.activeScheme;
         }
 
         let thumbPos = scrollbarManager.getThumbPosition();
-        scrollbarManager.redraw(newDataset, messageViewerManager.activeSchemeId);
+        scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);
         scrollbarManager.redrawThumb(thumbPos);
 
     },
@@ -622,10 +616,10 @@ var messageViewerManager = {
         if (undone) {
             console.log("Undone! " + "Stack pt: " + undoManager.pointer + " Stack size: " + undoManager.modelUndoStack.length);
 
-            let newOrder = messageViewerManager.codeSchemeOrder.filter(schemeKey => newDataset.hasScheme(schemeKey)); // leave ones that are in dataset schemes
-            newDataset.schemeIds.forEach(schemeId => {
-                if (newOrder.indexOf(schemeId) === -1) {
-                    newOrder.push(schemeId);
+            let newOrder = messageViewerManager.codeSchemeOrder.filter(schemeKey => !!newDataset.schemes[schemeKey]); // leave ones that are in dataset schemes
+            Object.keys(newDataset.schemes).forEach(schemeKey => {
+                if (newOrder.indexOf(schemeKey) === -1) {
+                    newOrder.push(schemeKey);
                 }
             });
             messageViewerManager.codeSchemeOrder = newOrder;
@@ -648,10 +642,10 @@ var messageViewerManager = {
         if (redone) {
             console.log("Redone! " + "Stack pt: " + undoManager.pointer + " Stack size: " + undoManager.modelUndoStack.length);
 
-            let newOrder = messageViewerManager.codeSchemeOrder.filter(schemeKey => newDataset.hasScheme(schemeKey)); // leave ones that are in dataset schemes
-            newDataset.schemeIds.forEach(schemeId => {
-                if (newOrder.indexOf(schemeId) === -1) {
-                    newOrder.push(schemeId);
+            let newOrder = messageViewerManager.codeSchemeOrder.filter(schemeKey => !!newDataset.schemes[schemeKey]); // leave ones that are in dataset schemes
+            Object.keys(newDataset.schemes).forEach(schemeKey => {
+                if (newOrder.indexOf(schemeKey) === -1) {
+                    newOrder.push(schemeKey);
                 }
             });
             messageViewerManager.codeSchemeOrder = newOrder;
@@ -683,8 +677,8 @@ var messageViewerManager = {
         let eventId = $(row).attr("eventid");
         let checkbox = selectElement.siblings("span").find(".checkbox-manual");
 
-        var eventObj = newDataset.getEvent(eventId);
-        var codeObj = newDataset.getScheme(schemeId).getCodeByValue(value);
+        var eventObj = newDataset.events.get(eventId);
+        var codeObj = newDataset.schemes[schemeId].getCodeByValue(value);
 
         if (value.length > 0) {
             // CODED
@@ -692,10 +686,9 @@ var messageViewerManager = {
             // add decoration
             let decoration = eventObj.decorationForName(schemeId);
             if (decoration === undefined) {
-                // TODO: Move to Dataset API?
-                eventObj.decorate(schemeId, manual, UUID, newDataset.getScheme(schemeId).getCodeByValue(value), 0.95); // todo fix codeObj
+                eventObj.decorate(schemeId, manual, UUID, newDataset.schemes[schemeId].getCodeByValue(value), 0.95); // todo fix codeObj
             } else {
-                decoration.code = newDataset.getScheme(schemeId).getCodeByValue(value);
+                decoration.code = newDataset.schemes[schemeId].getCodeByValue(value);
                 decoration.manual = manual;
                 decoration.confidence = 0.95;
                 decoration.author = UUID;
@@ -706,8 +699,8 @@ var messageViewerManager = {
             selectElement.addClass("coded");
 
             // set color
-            if (messageViewerManager.activeSchemeId === schemeId) {
-                let color = newDataset.getScheme(schemeId).getCodeByValue(value)["color"];
+            if (messageViewerManager.activeScheme === schemeId) {
+                let color = newDataset.schemes[schemeId].getCodeByValue(value)["color"];
                 row.children("td").each(function(i, td) {
                     if ($(td).hasClass("message-text")) {
                         if (color && color.length !== 0 && color !== "#ffffff") {
@@ -748,7 +741,7 @@ var messageViewerManager = {
             selectElement.addClass("uncoded");
 
             // recolor
-            if (messageViewerManager.activeSchemeId === schemeId) {
+            if (messageViewerManager.activeScheme === schemeId) {
                 row.children("td").each(function(i, td) {
                     if ($(td).hasClass("message-text")) {
                         $(td).css("box-shadow", "");
@@ -794,11 +787,11 @@ var messageViewerManager = {
                 let tbody = "";
                 let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
 
-                let iterationStop = messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventCount ? newDataset.eventCount : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
+                let iterationStop = messageViewerManager.lastLoadedPageIndex * halfPage + halfPage > newDataset.eventOrder.length ? newDataset.eventOrder.length : messageViewerManager.lastLoadedPageIndex * halfPage + halfPage;
 
                 for (let i = (messageViewerManager.lastLoadedPageIndex - 1) * halfPage; i < iterationStop; i++) {
-                    let event = newDataset.eventAtPosition(i);
-                    tbody += messageViewerManager.buildRow(event, i, event.owner);
+                    let eventKey = newDataset.eventOrder[i];
+                    tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
                 }
 
                 $(messageViewerManager.messageTable.find("tbody").empty()).append(tbody);
@@ -807,7 +800,7 @@ var messageViewerManager = {
                  refresh scrollbar
                  */
                 var thumbPos = scrollbarManager.getThumbPosition();
-                scrollbarManager.redraw(newDataset, messageViewerManager.activeSchemeId);
+                scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);
                 scrollbarManager.redrawThumb(thumbPos);
             }
 
@@ -845,9 +838,9 @@ var messageViewerManager = {
     updateRowHtml(messageRow, activeScheme) {
 
         messageRow = $(messageRow);
-        let event = newDataset.getEvent(messageRow.attr("eventid"));
-        if (event) {
-            let deco = event.decorations.get(activeScheme);
+        let eventObj = newDataset.events.get(messageRow.attr("eventid"));
+        if (eventObj) {
+            let deco = eventObj.decorations.get(activeScheme);
             if (deco && deco.code) { // it's coded
                 let color = deco.code.color;
                 if (!color || color.length === 0) {
@@ -895,8 +888,8 @@ var messageViewerManager = {
         let checkbox = $(DOMevent.target);
         let messageRow = checkbox.parents(".message-row");
         let eventKey = messageRow.attr("eventid");
-        let eventObj = newDataset.getEvent(eventKey);
-        let codeObj = eventObj.decorations.get(messageViewerManager.activeSchemeId);
+        let eventObj = newDataset.events.get(eventKey);
+        let codeObj = eventObj.decorations.get(messageViewerManager.activeScheme);
 
         // make this row active
         activeRow.removeClass("active");
@@ -905,15 +898,15 @@ var messageViewerManager = {
 
         // Just unchecked
         if (!checkbox.prop("checked")) {
-            eventObj.uglify(messageViewerManager.activeSchemeId);
-            regexMatcher.codeEvent(eventObj, messageViewerManager.activeSchemeId);
+            eventObj.uglify(messageViewerManager.activeScheme);
+            regexMatcher.codeEvent(eventObj, messageViewerManager.activeScheme);
             checkbox.prop("checked", false);
 
             // only redraw the current row
             // leave row in place, as it was assigned a new code which the user doesn't know beforehand
             // they can then either confirm the automatic assignment via checkbox again
             // or re-sort to see the message move to its proper place in sorting (make an extra round through the sortings)
-            messageViewerManager.updateRowHtml(messageRow, messageViewerManager.activeSchemeId);
+            messageViewerManager.updateRowHtml(messageRow, messageViewerManager.activeScheme);
 
             // update the activity stack
             storage.saveActivity({
@@ -926,7 +919,7 @@ var messageViewerManager = {
 
         } else {
             // DON'T ALLOW "confirming" an empty coding!
-            let deco = eventObj.decorations.get(messageViewerManager.activeSchemeId);
+            let deco = eventObj.decorations.get(messageViewerManager.activeScheme);
             if (deco && deco.code) {
                 deco.manual = true;
                 deco.confidence = 0.95;
@@ -937,26 +930,26 @@ var messageViewerManager = {
                 storage.saveActivity({
                     "category": "CODING",
                     "message": "Used checkbox to confirm automatic coding",
-                    "messageDetails": {"event": eventObj, "scheme": messageViewerManager.activeSchemeId},
+                    "messageDetails": {"event": eventObj, "scheme": messageViewerManager.activeScheme},
                     "data": eventObj,
                     "timestamp": new Date()
                 });
             }
 
-            let nextMessageRowIndex = newDataset.positionOfEvent(eventObj.name) + 1;
-            if (nextMessageRowIndex >= newDataset.eventCount) {
-                nextMessageRowIndex = newDataset.eventCount - 1;
+            let nextMessageRowIndex = newDataset.eventOrder.indexOf(eventObj.name) + 1;
+            if (nextMessageRowIndex >= newDataset.eventOrder.length) {
+                nextMessageRowIndex = newDataset.eventOrder.length - 1;
             }
 
-            let nextEventId = newDataset.eventAtPosition(nextMessageRowIndex);
+            let nextEventId = newDataset.eventOrder[nextMessageRowIndex];
 
             if (messageViewerManager.currentSort !== messageViewerManager.sortUtils.restoreDefaultSort) {
 
                 if (messageViewerManager.currentSort === messageViewerManager.sortUtils.sortEventsByConfidenceOnly) {
-                    newDataset.sortEventsByConfidenceOnly(messageViewerManager.activeSchemeId);
+                    newDataset.sortEventsByConfidenceOnly(messageViewerManager.activeScheme);
                 }
                 if (messageViewerManager.currentSort === messageViewerManager.sortUtils.sortEventsByScheme) {
-                    newDataset.sortEventsByScheme(messageViewerManager.activeSchemeId, true);
+                    newDataset.sortEventsByScheme(messageViewerManager.activeScheme, true);
                 }
 
                 undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
@@ -1010,14 +1003,9 @@ var messageViewerManager = {
             let decoTableTbody = "";
 
             for (let i = 0; i < messageViewerManager.rowsInTable; i++) {
-                let event = newDataset.eventAtPosition(i);
-                if (event === undefined) {
-                    console.log("ERROR: Requested an id which does not exist, at position " + i);
-                    continue;
-                }
-
-                messageTableTbody += messageViewerManager.buildMessageTableRow(event, i, event.owner, messageViewerManager.activeSchemeId);
-                decoTableTbody += messageViewerManager.buildDecorationTableRow(event, i, event.owner, messageViewerManager.codeSchemeOrder.slice(1));
+                let eventKey = newDataset.eventOrder[i];
+                messageTableTbody += messageViewerManager.buildMessageTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.activeScheme);
+                decoTableTbody += messageViewerManager.buildDecorationTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.codeSchemeOrder.slice(1));
             }
 
             let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
@@ -1067,10 +1055,10 @@ var messageViewerManager = {
 
             $(allSchemeHeaders).each((i, col) => {
                 let column = $(col);
-                let schemeId = column.attr("scheme");
+                let schemeKey = column.attr("scheme");
                 let button = column.find(".edit-scheme-button");
 
-                messageViewerManager.bindEditSchemeButtonListener(button, newDataset.getScheme(schemeId));
+                messageViewerManager.bindEditSchemeButtonListener(button, newDataset["schemes"][schemeKey]);
             });
 
             // Switch the active scheme to be the new one.
@@ -1132,10 +1120,10 @@ var messageViewerManager = {
 
             $("#decorations-header").find(".scheme-header").each((i, col) => {
                 let column = $(col);
-                let schemeId = column.attr("scheme");
+                let schemeKey = column.attr("scheme");
                 let button = column.find(".edit-scheme-button");
 
-                messageViewerManager.bindEditSchemeButtonListener(button, newDataset.getScheme(schemeId));
+                messageViewerManager.bindEditSchemeButtonListener(button, newDataset["schemes"][schemeKey]);
             });
 
             sortButton.off("click");
@@ -1145,14 +1133,10 @@ var messageViewerManager = {
         let messageTableTbody = "";
         let decoTableTbody = "";
         for (let i = 0; i < messageViewerManager.rowsInTable; i++) {
-            let event = newDataset.eventAtPosition(i);
-            if (event === undefined) {
-                console.log("Error: Could not find event at position " + i);
-                continue;
-            }
-
-            messageTableTbody += messageViewerManager.buildMessageTableRow(event, i, event.owner, messageViewerManager.codeSchemeOrder[0]);
-            decoTableTbody += messageViewerManager.buildDecorationTableRow(event, i, event.owner, messageViewerManager.codeSchemeOrder.slice(1));
+            let eventKey = newDataset.eventOrder[i];
+            let eventObj = newDataset.events.get(eventKey);
+            messageTableTbody += messageViewerManager.buildMessageTableRow(eventObj, i, eventObj.owner, messageViewerManager.codeSchemeOrder[0]);
+            decoTableTbody += messageViewerManager.buildDecorationTableRow(eventObj, i, eventObj.owner, messageViewerManager.codeSchemeOrder.slice(1));
         }
 
         this.lastLoadedPageIndex = 1;
@@ -1182,12 +1166,12 @@ var messageViewerManager = {
         activeRow.removeClass("active");
         activeRow = $(".message-row").first().addClass("active");
 
-        scrollbarManager.redraw(newDataset, messageViewerManager.activeSchemeId);
+        scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);
         scrollbarManager.redrawThumb(0);
 
         messageViewerManager.resizeViewport();
 
-        return this.activeSchemeId;
+        return this.activeScheme;
     },
 
     bindEditSchemeButtonListener: function(editButton, scheme) {
@@ -1199,7 +1183,7 @@ var messageViewerManager = {
 
             let button = event.target;
             //let schemeId = $(this).parent().attr("scheme");
-            scheme = newDataset.getScheme(schemeId);
+            scheme = newDataset.schemes[schemeId];
             tempScheme = CodeScheme.clone(scheme);
             let header = $(button).parents(".scheme-header");
 
@@ -1235,15 +1219,14 @@ var messageViewerManager = {
     },
 
     manageShortcuts: function(event) {
-        if (!editorOpen && messageViewerManager.activeSchemeId && activeRow &&
-            messageViewerManager.activeSchemeId.length > 0 && activeRow.length) {
+        if (!editorOpen && messageViewerManager.activeScheme && activeRow && messageViewerManager.activeScheme.length > 0 && activeRow.length) {
 
-            var shortcuts = newDataset.getScheme(messageViewerManager.activeSchemeId).getShortcuts();
+            var shortcuts = newDataset.schemes[messageViewerManager.activeScheme].getShortcuts();
             if (shortcuts.has(event.keyCode)) {
                 var codeObj = shortcuts.get(event.keyCode);
                 var eventId = $(activeRow).attr("eventid");
                 $(activeRow).children("td").each(function(i, td) {
-                    newDataset.getEvent(eventId).decorate(codeObj.owner["id"], true, UUID, codeObj, 0.95);
+                    newDataset.events.get(eventId).decorate(codeObj.owner["id"], true, UUID, codeObj, 0.95);
                     var color = codeObj["color"];
 
                     if ($(td).hasClass("message-text")) {
@@ -1288,8 +1271,8 @@ var messageViewerManager = {
                 storage.saveActivity({
                     "category": "CODING",
                     "message": "Used shortcut from scheme",
-                    "messageDetails": {"shortcut": event.keyCode, "scheme": messageViewerManager.activeSchemeId},
-                    "data": newDataset.getEvent(eventId),
+                    "messageDetails": {"shortcut": event.keyCode, "scheme": messageViewerManager.activeScheme},
+                    "data": newDataset.events.get(eventId),
                     "timestamp": new Date()
                 });
             }
@@ -1301,15 +1284,16 @@ var messageViewerManager = {
         get new active row, keeping the active scheme
         N.B. will wrap if no uncoded events are found between eventId and end of list
         */
+        let currentRow = $("#" + eventId);
         let nextEventId;
         let nextEventRow = null;
-        let currentEventIndex = newDataset.positionOfEvent(eventId);
-        if (currentEventIndex + 1 < newDataset.eventCount) {
-            for (let i = currentEventIndex + 1; i < newDataset.eventCount; i++) {
-                let event = newDataset.eventAtPosition(i);
-                let deco = event.decorations.get(messageViewerManager.activeSchemeId);
+        let currentEventIndex = newDataset.eventOrder.indexOf(eventId);
+        if (currentEventIndex + 1 < newDataset.eventOrder.length) {
+            for (let i = currentEventIndex + 1; i < newDataset.eventOrder.length; i++) {
+                let eventObj = newDataset.events.get(newDataset.eventOrder[i]);
+                let deco = eventObj.decorations.get(messageViewerManager.activeScheme);
                 if (!deco || !deco.code) {
-                    nextEventId = event.name;
+                    nextEventId = eventObj.name;
                     break;
                 }
             }
@@ -1317,8 +1301,8 @@ var messageViewerManager = {
 
         if (!nextEventId) {
             for (let i = 0; i < currentEventIndex + 1; i++) {
-                let eventObj = newDataset.eventAtPosition(i);
-                let deco = eventObj.decorations.get(messageViewerManager.activeSchemeId);
+                let eventObj = newDataset.events.get(newDataset.eventOrder[i]);
+                let deco = eventObj.decorations.get(messageViewerManager.activeScheme);
                 if (!deco || !deco.code) {
                     nextEventId = eventObj.name;
                     break;
@@ -1329,7 +1313,7 @@ var messageViewerManager = {
         if (nextEventId) {
             nextEventRow = messageViewerManager.bringEventIntoView(nextEventId);
         } else {
-            nextEventRow = messageViewerManager.bringEventIntoView(newDataset.eventAtPosition(currentEventIndex + 1));
+            nextEventRow = messageViewerManager.bringEventIntoView(newDataset.events.get(newDataset.eventOrder[currentEventIndex + 1]));
         }
 
         return nextEventRow;
@@ -1338,7 +1322,7 @@ var messageViewerManager = {
     horizontalCoding: function(eventId) {
 
         // switch to next active scheme: next uncoded column
-        let eventObj = newDataset.getEvent(eventId);
+        let eventObj = newDataset.events.get(eventId);
         let nextScheme = eventObj.firstUncodedScheme(messageViewerManager.codeSchemeOrder);
         if (nextScheme.length > 0) {
             // pass the columns until reaching this scheme
@@ -1350,25 +1334,26 @@ var messageViewerManager = {
                 messageViewerManager.changeActiveScheme();
                 messageViewerManager.resizeViewport();
             }
+
         } else {
             // go to next uncoded event
-            let nextEventIndex = newDataset.positionOfEvent(eventId);
+            let nextEventIndex = newDataset.eventOrder.indexOf(eventId);
             let uncodedScheme = "";
-            while (uncodedScheme.length === 0 && nextEventIndex < newDataset.eventCount) {
+            while (uncodedScheme.length === 0 && nextEventIndex < newDataset.eventOrder.length) {
                 nextEventIndex++;
-                let event = newDataset.eventAtPosition(nextEventIndex);
+                let nextEventObj = newDataset.events.get(newDataset.eventOrder[nextEventIndex]);
 
                 // Search this event for an uncoded scheme, on a search order rotated by 1 so that the current scheme
                 // is not immediately reselected.
                 let searchOrder = messageViewerManager.codeSchemeOrder.slice(1);
                 searchOrder.push(messageViewerManager.codeSchemeOrder[0]);
-                uncodedScheme = event.firstUncodedScheme(searchOrder);
+                uncodedScheme = nextEventObj.firstUncodedScheme(searchOrder);
                 console.log(uncodedScheme);
             }
 
             if (uncodedScheme.length !== 0) {
                 //change active row & active scheme to first scheme
-                let newActiveEvent = newDataset.eventAtPosition(nextEventIndex);
+                let newActiveEvent = newDataset.events.get(newDataset.eventOrder[nextEventIndex]);
                 let eventRow = messageViewerManager.bringEventIntoView(newActiveEvent.name);
 
                 if (eventRow && eventRow.length > 0) {
@@ -1395,12 +1380,12 @@ var messageViewerManager = {
         // active row element is stale since tbody has been redrawn, so need to get the new copy
         let activeRowId = activeRow.attr("id");
         activeRow = $("#" + activeRowId);
-        activeRow.find("select." + messageViewerManager.activeSchemeId).focus();
+        activeRow.find("select." + messageViewerManager.activeScheme).focus();
     },
 
     bringEventIntoView: function(eventId) {
         let eventRow = $(".message-row[eventid='" + eventId + "']");
-        let eventIndex = newDataset.positionOfEvent(eventId);
+        let eventIndex = newDataset.eventOrder.indexOf(eventId);
         activeRow.removeClass("active");
 
         if (!eventRow || eventRow.length === 0) {
@@ -1455,14 +1440,14 @@ var messageViewerManager = {
             scrollbarManager.redrawThumbAtEvent(eventIndex);
         }
 
-        let selectField = eventRow.find("select." + messageViewerManager.activeSchemeId);
+        let selectField = eventRow.find("select." + messageViewerManager.activeScheme);
         selectField.focus();
         return eventRow;
     },
 
     bringEventIntoView2: function(eventId) {
         let eventRow = $(".message-row[eventid='" + eventId + "']");
-        let eventIndex = newDataset.positionOfEvent(eventId);
+        let eventIndex = newDataset.eventOrder.indexOf(eventId);
         activeRow.removeClass("active");
 
         if (!eventRow || eventRow.length === 0) {
@@ -1536,7 +1521,7 @@ var messageViewerManager = {
             scrollbarManager.redrawThumbAtEvent(eventIndex);
         }
 
-        let selectField = eventRow.find("select." + messageViewerManager.activeSchemeId);
+        let selectField = eventRow.find("select." + messageViewerManager.activeScheme);
         selectField.focus();
         return eventRow;
     },
@@ -1555,7 +1540,7 @@ var messageViewerManager = {
 
             let nextPage = messageViewerManager.lastLoadedPageIndex + 1;
 
-            if (nextPage <= Math.floor(newDataset.eventCount / Math.floor(messageViewerManager.rowsInTable / 2)) - 1) {
+            if (nextPage <= Math.floor(newDataset.eventOrder.length / Math.floor(messageViewerManager.rowsInTable / 2)) - 1) {
 
                 messageViewerManager.lastLoadedPageIndex = nextPage;
 
@@ -1563,12 +1548,11 @@ var messageViewerManager = {
                 let decoTableTbody = "";
 
                 let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-                let stoppingCondition = nextPage * halfPage + halfPage > newDataset.eventCount ?
-                    newDataset.eventCount : nextPage * halfPage + halfPage;
+                let stoppingCondition = nextPage * halfPage + halfPage > newDataset.eventOrder.length ? newDataset.eventOrder.length : nextPage * halfPage + halfPage;
                 for (let i = nextPage * halfPage; i < stoppingCondition; i++) {
-                    let event = newDataset.eventAtPosition(i);
-                    messageTableTbody += messageViewerManager.buildMessageTableRow(event, i, event.owner, messageViewerManager.activeSchemeId);
-                    decoTableTbody += messageViewerManager.buildDecorationTableRow(event, i, event.owner, messageViewerManager.codeSchemeOrder.slice(1));
+                    let eventKey = newDataset.eventOrder[i];
+                    messageTableTbody += messageViewerManager.buildMessageTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.activeScheme);
+                    decoTableTbody += messageViewerManager.buildDecorationTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.codeSchemeOrder.slice(1));
                 }
 
                 let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
@@ -1598,23 +1582,23 @@ var messageViewerManager = {
                 messageViewerManager.messageContainer.scrollTop($("#message-panel").scrollTop() + (-1 * (lastMessagePosition - lastMessage.position().top)));
                 messageViewerManager.lastTableY = messageViewerManager.messageContainer.scrollTop();
                 messageViewerManager.isProgramaticallyScrolling = false;
-                //scrollbarManager.redraw(newDataset, messageViewerManager.activeSchemeId);
+                //scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);
 
                 let thumbPos = scrollbarManager.getThumbPosition();
                 scrollbarManager.redrawThumb(thumbPos);
 
                 console.timeEnd("infinite scroll DOWN");
 
-            } else if ($(".message-row").length <= 40 && nextPage === Math.floor(newDataset.eventCount / Math.floor(messageViewerManager.rowsInTable / 2))) {
+            } else if ($(".message-row").length <= 40 && nextPage === Math.floor(newDataset.eventOrder.length / Math.floor(messageViewerManager.rowsInTable / 2))) {
                 let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
 
                 let messageTableTbody = "";
                 let decoTableTbody = "";
-                for (let i = 0; i < (newDataset.eventCount - (nextPage * halfPage)); i++) {
-                    let event = newDataset.eventAtPosition((nextPage - 1) * halfPage + halfPage + i);
-                    if (event) {
-                        messageTableTbody += messageViewerManager.buildMessageTableRow(event, i, event.owner, messageViewerManager.activeSchemeId);
-                        decoTableTbody += messageViewerManager.buildDecorationTableRow(event, i, event.owner, messageViewerManager.codeSchemeOrder.slice(1));
+                for (let i = 0; i < (newDataset.eventOrder.length - (nextPage * halfPage)); i++) {
+                    let eventKey = newDataset.eventOrder[(nextPage - 1) * halfPage + halfPage + i];
+                    if (eventKey) {
+                        messageTableTbody += messageViewerManager.buildMessageTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.activeScheme);
+                        decoTableTbody += messageViewerManager.buildDecorationTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.codeSchemeOrder.slice(1));
                     }
                 }
 
@@ -1658,9 +1642,9 @@ var messageViewerManager = {
                 let halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
                 let stoppingCondition = prevPage * halfPage + halfPage;
                 for (let i = prevPage * halfPage; i < stoppingCondition; i++) {
-                    let event = newDataset.eventAtPosition(i);
-                    messageTableTbody += messageViewerManager.buildMessageTableRow(event, i, event.owner, messageViewerManager.activeSchemeId);
-                    decoTableTbody += messageViewerManager.buildDecorationTableRow(event, i, event.owner, messageViewerManager.codeSchemeOrder.slice(1));
+                    let eventKey = newDataset.eventOrder[i];
+                    messageTableTbody += messageViewerManager.buildMessageTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.activeScheme);
+                    decoTableTbody += messageViewerManager.buildDecorationTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.codeSchemeOrder.slice(1));
                 }
 
                 let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
@@ -1697,11 +1681,11 @@ var messageViewerManager = {
         var tbody = "";
 
         const halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-        let stoppingCondition = (index * halfPage + halfPage > newDataset.eventCount) ? newDataset.eventCount : index * halfPage + halfPage;
+        let stoppingCondition = (index * halfPage + halfPage > newDataset.eventOrder.length) ? newDataset.eventOrder.length : index * halfPage + halfPage;
 
         for (let i = index * halfPage; i < stoppingCondition; i++) {
-            let event = newDataset.eventAtPosition(i);
-            tbody += messageViewerManager.buildRow(event, i, event.owner);
+            let eventKey = newDataset.eventOrder[i];
+            tbody += messageViewerManager.buildRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner);
         }
 
         return tbody;
@@ -1712,11 +1696,11 @@ var messageViewerManager = {
         var tbody = "";
 
         const halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-        let stoppingCondition = (index * halfPage + halfPage > newDataset.eventCount) ? newDataset.eventCount : index * halfPage + halfPage;
+        let stoppingCondition = (index * halfPage + halfPage > newDataset.eventOrder.length) ? newDataset.eventOrder.length : index * halfPage + halfPage;
 
         for (let i = index * halfPage; i < stoppingCondition; i++) {
-            let event = newDataset.eventAtPosition(i);
-            tbody += messageViewerManager.buildMessageTableRow(event, i, event.owner, messageViewerManager.activeSchemeId);
+            let eventKey = newDataset.eventOrder[i];
+            tbody += messageViewerManager.buildMessageTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.activeScheme);
         }
 
         return tbody;
@@ -1727,11 +1711,11 @@ var messageViewerManager = {
         var tbody = "";
 
         const halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-        let stoppingCondition = (index * halfPage + halfPage > newDataset.eventCount) ? newDataset.eventCount : index * halfPage + halfPage;
+        let stoppingCondition = (index * halfPage + halfPage > newDataset.eventOrder.length) ? newDataset.eventOrder.length : index * halfPage + halfPage;
 
         for (let i = index * halfPage; i < stoppingCondition; i++) {
-            let event = newDataset.eventAtPosition(i);
-            tbody += messageViewerManager.buildDecorationTableRow(event, i, event.owner, messageViewerManager.codeSchemeOrder.slice(1));
+            let eventKey = newDataset.eventOrder[i];
+            tbody += messageViewerManager.buildDecorationTableRow(newDataset.events.get(eventKey), i, newDataset.events.get(eventKey).owner, messageViewerManager.codeSchemeOrder.slice(1));
         }
 
         return tbody;
@@ -1739,7 +1723,7 @@ var messageViewerManager = {
 
     buildRow: function(eventObj, eventIndex, sessionIndex) {
 
-        let decoNumber = newDataset.schemeCount;
+        var decoNumber = Object.keys(newDataset.schemes).length;
         var decoColumnWidth = (12 / decoNumber >> 0);
         var sessionRow = "";
 
@@ -1747,7 +1731,7 @@ var messageViewerManager = {
             console.log("undefined");
         }
 
-        var activeDecoration = eventObj["decorations"].get(messageViewerManager.activeSchemeId);
+        var activeDecoration = eventObj["decorations"].get(messageViewerManager.activeScheme);
         var rowColor = "#ffffff";
         var eventText = eventObj["data"];
 
@@ -1755,8 +1739,7 @@ var messageViewerManager = {
         // need to perform null checks for code! if event isn't coded yet it has a null code.
         if (activeDecoration !== undefined && activeDecoration.code !== null) {
 
-            var parentSchemeCodes = activeDecoration.code.owner instanceof CodeScheme ?
-                activeDecoration.code.owner.codes : newDataset.getScheme(activeDecoration.code.owner).codes;
+            var parentSchemeCodes = activeDecoration.code.owner instanceof CodeScheme ? activeDecoration.code.owner.codes : newDataset.schemes[activeDecoration.code.owner].codes;
             if (!parentSchemeCodes.has(activeDecoration.code.id)) {
                 // in case the event object is still coded with a code that doesn't exist in the scheme anymore
                 eventObj.uglify(activeDecoration.scheme_id);
@@ -1787,7 +1770,7 @@ var messageViewerManager = {
         sessionRow += "<td class='col-md-7 message-text'" + shadowStyle + "><p>" + eventText + "</p></td>";
         sessionRow += "<td class='col-md-4 decorations' style='background-color: " + rowColor + "'>";
 
-        sessionRow += UIUtils.decoRowColumn(newDataset.schemeCount, eventObj);
+        sessionRow += UIUtils.decoRowColumn(Object.keys(newDataset.schemes).length, newDataset.schemes, eventObj);
         sessionRow += "</td>";
         sessionRow += "</td>";
         sessionRow += "</tr>";
@@ -1855,7 +1838,7 @@ var messageViewerManager = {
                     } else {
                         eventRow += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox' " + dis + "></span>";
                     }
-                    eventRow += messageViewerManager.buildCodeSelectField(newDataset.getScheme(schemeKey), eventObj, false);
+                    eventRow += messageViewerManager.buildCodeSelectField(newDataset.schemes[schemeKey], eventObj, false);
                     eventRow += "</div>";
 
                     eventRow += "</td>";
@@ -1884,7 +1867,7 @@ var messageViewerManager = {
             return;
         }
 
-        let scheme = newDataset.getScheme(activeSchemeKey);
+        let schemeObj = newDataset.schemes[activeSchemeKey];
         let eventText = eventObj["data"];
         let activeDecoration = eventObj["decorations"].get(activeSchemeKey);
 
@@ -1894,7 +1877,7 @@ var messageViewerManager = {
         // need to check if eventObj has a 'stale' decoration
         // need to perform null checks for code! if event isn't coded yet it has a null code.
         if (activeDecoration && activeDecoration.code) {
-            let parentSchemeCodes = activeDecoration.code.owner instanceof CodeScheme ? activeDecoration.code.owner.codes : newDataset.getScheme(activeDecoration.code.owner).codes;
+            let parentSchemeCodes = activeDecoration.code.owner instanceof CodeScheme ? activeDecoration.code.owner.codes : newDataset.schemes[activeDecoration.code.owner].codes;
 
             if (!parentSchemeCodes.has(activeDecoration.code.id)) {
                 // in case the event object is still coded with a code that doesn't exist in the scheme anymore
@@ -1935,7 +1918,7 @@ var messageViewerManager = {
             eventRow += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox'></span>";
         }
 
-        eventRow += this.buildCodeSelectField(scheme, eventObj, true);
+        eventRow += this.buildCodeSelectField(schemeObj, eventObj, true);
 
         eventRow += "</td>";
 
@@ -2058,14 +2041,14 @@ var messageViewerManager = {
         let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
         messageTableTbodyElement.find(".message-row").each((i, messageRow) => {
 
-            let event = newDataset.getEvent($(messageRow).attr("eventid"));
+            let eventObj = newDataset.events.get($(messageRow).attr("eventid"));
 
             let activeSchemeCell = $(messageRow).find(".active-scheme");
             let messageTextCell = $(messageRow).find(".message-text");
             let idCell = $(messageRow).find(".message-id");
             activeSchemeCell.empty();
 
-            let eventDeco = event.decorations.get(schemeKey);
+            let eventDeco = eventObj.decorations.get(schemeKey);
             if (eventDeco && eventDeco.code) {
                 let color = eventDeco.code["color"];
                 activeSchemeCell.css({
@@ -2084,7 +2067,7 @@ var messageViewerManager = {
 
                 // remove all highlights
                 regexMatcher.unwrapHighlights($(messageRow).find("p"));
-                regexMatcher.wrapElement(event, regexMatcher.generateOrRegex(eventDeco.code.words), eventDeco.code.id);
+                regexMatcher.wrapElement(eventObj, regexMatcher.generateOrRegex(eventDeco.code.words), eventDeco.code.id);
             }
 
             let decoRow = messageViewerManager.decorationTable.find(".deco-row[eventid='" + $(messageRow).attr("eventid") + "']");
@@ -2100,8 +2083,8 @@ var messageViewerManager = {
 
     },
 
-    addNewActiveScheme(schemeId) {
-        schemeId = schemeId + ""; //coerce to string
+    addNewActiveScheme(schemeKey) {
+        schemeKey = schemeKey + ""; //coerce to string
 
         /*
         build active scheme header
@@ -2109,7 +2092,7 @@ var messageViewerManager = {
         let activeSchemeHeaderParent = $("#active-scheme-header");
         activeSchemeHeaderParent.empty();
 
-        let newHeader = $(messageViewerManager.buildSchemeHeaderElement(schemeId, "icon-def", true))
+        let newHeader = $(messageViewerManager.buildSchemeHeaderElement(schemeKey, "icon-def", true))
             .appendTo(activeSchemeHeaderParent);
 
         // init listeners
@@ -2126,7 +2109,7 @@ var messageViewerManager = {
             let column = $(col);
             let button = column.find(".edit-scheme-button");
 
-            messageViewerManager.bindEditSchemeButtonListener(button, newDataset.getScheme(schemeId));
+            messageViewerManager.bindEditSchemeButtonListener(button, newDataset["schemes"][schemeKey]);
 
         });
 
@@ -2144,7 +2127,7 @@ var messageViewerManager = {
         let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
         messageTableTbodyElement.find(".message-row").each((i, row) => {
 
-            let event = newDataset.getEvent($(row).attr("eventid"));
+            let eventObj = newDataset.events.get($(row).attr("eventid"));
 
             let activeSchemeTd = $(row).find(".active-scheme");
             let activeSchemeSelectFieldInputGroup = activeSchemeTd.find(".input-group");
@@ -2153,7 +2136,7 @@ var messageViewerManager = {
             let newCheckbox = "";
 
             regexMatcher.unwrapHighlights($(row).find("p"));
-            let eventDeco = event.decorations.get(schemeId);
+            let eventDeco = eventObj.decorations.get(schemeKey);
             if (eventDeco) {
 
                 if (eventDeco.code) {
@@ -2164,10 +2147,10 @@ var messageViewerManager = {
                         // this function only deals with the actual active scheme column
                     });
 
-                    regexMatcher.wrapElement(event, regexMatcher.generateOrRegex(eventDeco.code.words), eventDeco.code.id);
+                    regexMatcher.wrapElement(eventObj, regexMatcher.generateOrRegex(eventDeco.code.words), eventDeco.code.id);
                 }
 
-                if (event.decorations.get(schemeId).manual) {
+                if (eventObj.decorations.get(schemeKey).manual) {
                     newCheckbox += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox' checked></span>";
                 } else {
                     newCheckbox += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox'></span>";
@@ -2177,7 +2160,7 @@ var messageViewerManager = {
                 newCheckbox += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox'></span>";
             }
 
-            let newSelectField = messageViewerManager.buildCodeSelectField(newDataset.getScheme(schemeId), event, true);
+            let newSelectField = messageViewerManager.buildCodeSelectField(newDataset.schemes[schemeKey], eventObj, true);
 
             activeSchemeSelectFieldInputGroup.append($(newCheckbox + newSelectField));
 
@@ -2205,7 +2188,7 @@ var messageViewerManager = {
                 // check if current row has an assigned code and if yes, add the words to the data structure
                 // todo FIX THIS - check in data structure
 
-                const code = newDataset.getEvent(eventId).codeForScheme(messageViewerManager.activeSchemeId);
+                const code = newDataset.events.get(eventId).codeForScheme(messageViewerManager.activeScheme);
                 const isCoded = code != undefined;
 
                 if (isCoded) {
@@ -2216,8 +2199,8 @@ var messageViewerManager = {
                     //$(".message-row[eventid='" + eventId + "']").find("p").html(regexMatcher.wrapText(newDataset.events.get(eventId).data, regex, "highlight", code.id));
 
                     regexMatcher.unwrapHighlights($(element).find("p"));
-                    regexMatcher.wrapElement(newDataset.getEvent(eventId), regex, code.id);
-                    //schemes[messageViewerManager.activeSchemeId].getCodeByValue(selectElement.val()).words = words;
+                    regexMatcher.wrapElement(newDataset.events.get(eventId), regex, code.id);
+                    //schemes[messageViewerManager.activeScheme].getCodeByValue(selectElement.val()).words = words;
 
                     // update the activity stack
                     storage.saveActivity({
@@ -2230,7 +2213,7 @@ var messageViewerManager = {
 
                 } else {
                     let regex = regexMatcher.generateOrRegex([selection]);
-                    $(".message-row[eventid='" + eventId + "']").find("p").html(regexMatcher.wrapText(newDataset.getEvent(eventId).data, regex, "highlight"));
+                    $(".message-row[eventid='" + eventId + "']").find("p").html(regexMatcher.wrapText(newDataset.events.get(eventId).data, regex, "highlight"));
 
                     if (messageViewerManager.wordBuffer[sessionId][eventId][selection] !== 1) {
                         messageViewerManager.wordBuffer[sessionId][eventId][selection] = 1;
