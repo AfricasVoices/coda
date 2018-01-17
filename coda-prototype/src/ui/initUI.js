@@ -104,8 +104,8 @@ function initDataset(storageObj) {
 
                             // TODO: Move to Dataset API by moving this default dataset code to its function on dataset
                             // TODO: (this was a WIP on iss74-dataset-tests)
-                            properDataset.eventOrder.push(newEventObj.name);
-                            properDataset.events.set(newEventObj.name, newEventObj);
+                            properDataset._eventOrder.push(newEventObj.name);
+                            properDataset._events.set(newEventObj.name, newEventObj);
                             eventCount += 1;
 
                             Object.keys(event["decorations"]).forEach(function(d) {
@@ -133,10 +133,10 @@ function initDataset(storageObj) {
                             events.push(newEventObj);
                         });
                         var session = new Session(sessionKey, events);
-                        properDataset.sessions.set(sessionKey, session);
+                        properDataset._sessions.set(sessionKey, session);
                     });
 
-                    properDataset.schemes = schemes;
+                    Object.keys(schemes).forEach(key => properDataset.addScheme(schemes[key]));
                     console.log(properDataset);
                     return properDataset;
 
@@ -813,7 +813,7 @@ function initUI(dataset) {
      */
     // TODO: I don't think there is a scheme-duplicate button
     $("#scheme-duplicate").on("click", () => {
-        let newScheme = tempScheme.duplicate(newDataset.getSchemeIds());
+        let newScheme = tempScheme.duplicate(newDataset.schemeIds);
         newDataset.addScheme(newScheme);
         messageViewerManager.addNewSchemeColumn(newScheme);
 

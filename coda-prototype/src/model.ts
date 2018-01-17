@@ -59,85 +59,85 @@ const VALID_NAME_FORMAT = /(^[a-zA-Z0-9]+([" "]?[a-zA-Z0-9])*)([/\-_][a-zA-Z0-9]
 
 class Dataset {
     // TODO: understand and document what each of these things does.
-    private sessions: Map<string, Session> = new Map();
-    private schemes: Map<string, CodeScheme> = new Map();
-    private events: Map<string, RawEvent> = new Map();
-    private eventOrder: Array<string> = [];
+    private _sessions: Map<string, Session> = new Map();
+    private _schemes: Map<string, CodeScheme> = new Map();
+    private _events: Map<string, RawEvent> = new Map();
+    private _eventOrder: Array<string> = [];
     // TODO: Add a sort order property here? It makes sense for this to be in Dataset, which is where the sorting
     // TODO: functions and eventOrder property currently are. Also, some of the member functions make reference
     // TODO: to a sortOrder property
 
     get sessionCount(): number {
-        return this.sessions.size;
+        return this._sessions.size;
     }
 
     addScheme(scheme: CodeScheme) {
-        this.schemes.set(scheme.id, scheme);
+        this._schemes.set(scheme.id, scheme);
     }
 
     hasScheme(schemeId: string): boolean {
-        return this.schemes.has(schemeId);
+        return this._schemes.has(schemeId);
     }
 
     getScheme(schemeId: string): CodeScheme | undefined {
-        return this.schemes.get(schemeId);
+        return this._schemes.get(schemeId);
     }
 
     getSchemes(): Array<CodeScheme> {
-        return Array.from(this.schemes.values());
+        return Array.from(this._schemes.values());
     }
 
-    getSchemeIds(): Array<string> {
-        return Array.from(this.schemes.keys());
+    get schemeIds(): Array<string> {
+        return Array.from(this._schemes.keys());
     }
 
     get schemeCount(): number {
-        return this.schemes.size;
+        return this._schemes.size;
     }
 
     addEvent(event: RawEvent) {
-        if (this.sessions.has(event.owner)) {
-            let session = this.sessions.get(event.owner);
+        if (this._sessions.has(event.owner)) {
+            let session = this._sessions.get(event.owner);
             // TODO: Why is this test needed? And what if it fails? (Refactored from FileUtils.loadDataset)
             if (session.events.has(event.name)) {
                 session.events.set(event.name, event);
             }
         } else {
             let session = new Session(event.owner, [event]);
-            this.sessions.set(event.owner, session);
+            this._sessions.set(event.owner, session);
         }
 
-        if (!this.events.has(event.name)) {
-            this.eventOrder.push(event.name);
+        if (!this._events.has(event.name)) {
+            this._eventOrder.push(event.name);
         }
 
-        this.events.set(event.name, event);
+        this._events.set(event.name, event);
     }
 
     getEvent(eventId: string): RawEvent | undefined {
-        return this.events.get(eventId);
+        return this._events.get(eventId);
     }
 
     getEventsInSortOrder(): Array<RawEvent | undefined> {
-        return this.eventOrder.map(eventId => this.events.get(eventId));
+        return this._eventOrder.map(eventId => this._events.get(eventId));
     }
 
     eventAtPosition(i: number): RawEvent | undefined {
-        let eventId = this.eventOrder[i];
+        let eventId = this._eventOrder[i];
         return this.getEvent(eventId);
     }
 
     positionOfEvent(eventId: string): number | undefined {
-        let position = this.eventOrder.indexOf(eventId);
+        let position = this._eventOrder.indexOf(eventId);
         return position === -1 ? undefined : position;
     }
 
     get eventCount(): number {
-        return this.events.size;
+        return this._events.size;
     }
 
     static validate(dataset: Dataset): boolean {
-        let sessions = dataset.sessions;
+        let sessions = dataset._sessions;
 
         let sessionsObjValid = sessions && sessions instanceof Map;
 
@@ -150,9 +150,9 @@ class Dataset {
 
         sessionsObjValid = sessionsObjValid && sessionsHaveValidEntries;
 
-        let hasSchemes = dataset.schemes && dataset.schemes instanceof Map && dataset.schemeCount > 0;
+        let hasSchemes = dataset._schemes && dataset._schemes instanceof Map && dataset.schemeCount > 0;
 
-        let events = dataset.events;
+        let events = dataset._events;
         let eventsObjValid = events && events instanceof Map;
 
         let eventsHaveValidEntries = true;
@@ -180,7 +180,7 @@ class Dataset {
 
         eventsObjValid = eventsObjValid && eventsHaveValidEntries;
 
-        let hasEventOrder = dataset.eventOrder && dataset.eventOrder.length > 0;
+        let hasEventOrder = dataset._eventOrder && dataset._eventOrder.length > 0;
 
         return sessionsObjValid && eventsObjValid && hasEventOrder && hasSchemes;
     }
@@ -189,7 +189,7 @@ class Dataset {
         let newSchemes: Map<string, CodeScheme> = new Map();
 
         // clone schemes
-        old.getSchemeIds().forEach(schemeId => {
+        old.schemeIds.forEach(schemeId => {
             newSchemes.set(schemeId, CodeScheme.clone(old.getScheme(schemeId)));
         });
 
@@ -197,7 +197,7 @@ class Dataset {
 
         // clone events and redecorate them with newly created codes (from cloning the schemes above)
         let newEvents: Map<string, RawEvent> = new Map();
-        for (let event of old.events.values()) {
+        for (let event of old._events.values()) {
             let newEvent: RawEvent = new RawEvent(event.name, event.owner, event.timestamp, event.number, event.data);
             for (let [schemeId, deco] of event.decorations.entries()) {
                 let code = deco.code ? newSchemes.get(schemeId).codes.get(deco.code.id) : null;
@@ -215,13 +215,13 @@ class Dataset {
             }
         }
 
-        let newEventOrder = old.eventOrder.slice();
+        let newEventOrder = old._eventOrder.slice();
 
         let clonedDataset = new Dataset();
-        clonedDataset.events = newEvents;
-        clonedDataset.sessions = newSessions;
-        clonedDataset.schemes = newSchemes;
-        clonedDataset.eventOrder = newEventOrder;
+        clonedDataset._events = newEvents;
+        clonedDataset._sessions = newSessions;
+        clonedDataset._schemes = newSchemes;
+        clonedDataset._eventOrder = newEventOrder;
 
         return clonedDataset;
 
@@ -303,24 +303,24 @@ class Dataset {
             return false;
         }
 
-        return checkEvents(d1.events, d2.events) &&
-            checkSessions(d1.sessions, d2.sessions) &&
-            checkEventOrder(d1.eventOrder, d2.eventOrder) &&
-            checkSchemes(d1.schemes, d2.schemes);
+        return checkEvents(d1._events, d2._events) &&
+            checkSessions(d1._sessions, d2._sessions) &&
+            checkEventOrder(d1._eventOrder, d2._eventOrder) &&
+            checkSchemes(d1._schemes, d2._schemes);
 
     }
 
     static restoreFromTypelessDataset(dataset): Dataset {
         // If dataset.schemes is not a Map, migrate it from an {} to a Map<string, CodeScheme>
         // This is necessary when loading datasets from internal storage which were saved with v2017-11-17 and older
-        if (!(dataset.schemes instanceof Map)) {
+        if (!(dataset._schemes instanceof Map)) {
             let mappedSchemes: Map<string, CodeScheme> = new Map();
 
-            Object.keys(dataset.schemes).forEach(schemeId => {
-                mappedSchemes.set(schemeId, dataset.schemes[schemeId]);
+            Object.keys(dataset._schemes).forEach(schemeId => {
+                mappedSchemes.set(schemeId, dataset._schemes[schemeId]);
             });
 
-            dataset.schemes = mappedSchemes;
+            dataset._schemes = mappedSchemes;
         }
 
         function fixEventObjectProperties(eventToFix, schemes, eventOwner: Session): RawEvent {
@@ -381,9 +381,9 @@ class Dataset {
             }
         }
 
-        let sessions: Map<string, Session> = dataset.sessions;
-        let schemes: Map<string, CodeScheme> = dataset.schemes;
-        let events: Map<string, RawEvent> = dataset.events;
+        let sessions: Map<string, Session> = dataset._sessions;
+        let schemes: Map<string, CodeScheme> = dataset._schemes;
+        let events: Map<string, RawEvent> = dataset._events;
         let order = dataset.order; // TODO: order is not defined on Dataset
 
         let restoredOrder = [];
@@ -418,7 +418,7 @@ class Dataset {
         Object.keys(sessions).forEach(sessionKey => {
             // restores sessions
             let session = sessions[sessionKey];
-            restoredSessions.set(sessionKey, new Session(session.id, session.events));
+            restoredSessions.set(sessionKey, new Session(session.id, session._events));
         });
 
 
@@ -437,10 +437,10 @@ class Dataset {
             });
         }
 
-        restoredDataset.eventOrder = restoredOrder;
-        restoredDataset.schemes = restoredSchemes;
-        restoredDataset.sessions = restoredSessions;
-        restoredDataset.events = restoredEvents;
+        restoredDataset._eventOrder = restoredOrder;
+        restoredDataset._schemes = restoredSchemes;
+        restoredDataset._sessions = restoredSessions;
+        restoredDataset._events = restoredEvents;
 
         return restoredDataset;
     }
@@ -574,20 +574,20 @@ class Dataset {
     */
 
     restoreDefaultSort(): Array<string> {
-        this.eventOrder.sort((e1, e2) => {
+        this._eventOrder.sort((e1, e2) => {
             let name1, name2;
 
-            let intParse1 = parseInt(this.events.get(e1).name, 10);
-            let intParse2 = parseInt(this.events.get(e2).name, 10);
+            let intParse1 = parseInt(this._events.get(e1).name, 10);
+            let intParse2 = parseInt(this._events.get(e2).name, 10);
 
             if (isNaN(intParse1)) {
-                name1 = this.events.get(e1).name.toLowerCase();
+                name1 = this._events.get(e1).name.toLowerCase();
             } else {
                 name1 = intParse1;
             }
 
             if (isNaN(intParse2)) {
-                name2 = this.events.get(e2).name.toLowerCase();
+                name2 = this._events.get(e2).name.toLowerCase();
             } else {
                 name2 = intParse2;
             }
@@ -602,18 +602,18 @@ class Dataset {
 
         });
 
-        return this.eventOrder;
+        return this._eventOrder;
     }
 
     sortEventsByScheme(schemeId: string, isToDoList: boolean): Array<string> {
         schemeId = schemeId + ""; // force it to string todo: here or make sure decorationForName processes it ok?
 
-        if (this.schemes.has(schemeId)) {
+        if (this._schemes.has(schemeId)) {
             let codes = Array.from(this.getScheme(schemeId).codes.values()).map((code: Code) => {
                 return code.value;
             });
 
-            this.eventOrder.sort((eventKey1, eventKey2) => {
+            this._eventOrder.sort((eventKey1, eventKey2) => {
                 let e1 = this.getEvent(eventKey1);
                 let e2 = this.getEvent(eventKey2);
                 const deco1 = e1.decorationForName(schemeId);
@@ -769,18 +769,18 @@ class Dataset {
             });
         }
 
-        return this.eventOrder;
+        return this._eventOrder;
     }
 
     sortEventsByConfidenceOnly(schemeId: string): Array<string> {
         schemeId = schemeId + ""; // force it to string todo: here or make sure decorationForName processes it ok?
 
         if (this.hasScheme(schemeId)) {
-            this.eventOrder.sort((eventKey1, eventKey2) => {
+            this._eventOrder.sort((eventKey1, eventKey2) => {
                 let returnResult = 0;
 
-                var e1 = this.events.get(eventKey1);
-                var e2 = this.events.get(eventKey2);
+                var e1 = this._events.get(eventKey1);
+                var e2 = this._events.get(eventKey2);
                 let deco1 = e1.decorationForName(schemeId);
                 let deco2 = e2.decorationForName(schemeId);
 
@@ -980,23 +980,23 @@ class Dataset {
             });
         }
 
-        return this.eventOrder;
+        return this._eventOrder;
     }
 
     deleteScheme(schemeId: string): Array<string> {
-        for (let event of this.events.values()) {
+        for (let event of this._events.values()) {
             event.uglify(schemeId); // todo optimise, because there is no need to call 'remove event' from code if scheme is being deleted anyway
         }
-        this.schemes.delete(schemeId);
+        this._schemes.delete(schemeId);
 
-        return this.eventOrder;
+        return this._eventOrder;
     }
 
     toJSON() {
         let obj = Object.create(null);
-        obj.events = this.events;
-        obj.sessions = this.sessions;
-        obj.schemes = this.schemes;
+        obj.events = this._events;
+        obj.sessions = this._sessions;
+        obj.schemes = this._schemes;
         return obj;
     }
 }

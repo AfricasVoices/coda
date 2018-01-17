@@ -249,7 +249,9 @@ var messageViewerManager = {
         /*
         Assume initial scheme order and active scheme
          */
-        let schemeOrder = dataset.getSchemeIds(); // TODO: Is it acceptable that this order is arbitrary?
+        console.log(dataset);
+        console.log(dataset.schemeIds);
+        let schemeOrder = dataset.schemeIds; // TODO: Is it acceptable that this order is arbitrary?
         let activeScheme = schemeOrder[0];
 
         this.codeSchemeOrder = schemeOrder;
@@ -390,7 +392,7 @@ var messageViewerManager = {
          */
         if (!hasDataChanged) {
             scrollbarManager.redraw(newDataset,
-                messageViewerManager.activeSchemeId ? messageViewerManager.activeSchemeId : newDataset.getSchemeIds()[0]);
+                messageViewerManager.activeSchemeId ? messageViewerManager.activeSchemeId : newDataset.schemeIds[0]);
         } else {
             // todo take care to clear previous one
             scrollbarManager.init(undefined, document.getElementById("scrollbar"), 100);
@@ -621,7 +623,7 @@ var messageViewerManager = {
             console.log("Undone! " + "Stack pt: " + undoManager.pointer + " Stack size: " + undoManager.modelUndoStack.length);
 
             let newOrder = messageViewerManager.codeSchemeOrder.filter(schemeKey => newDataset.hasScheme(schemeKey)); // leave ones that are in dataset schemes
-            newDataset.getSchemeIds().forEach(schemeId => {
+            newDataset.schemeIds.forEach(schemeId => {
                 if (newOrder.indexOf(schemeId) === -1) {
                     newOrder.push(schemeId);
                 }
@@ -647,7 +649,7 @@ var messageViewerManager = {
             console.log("Redone! " + "Stack pt: " + undoManager.pointer + " Stack size: " + undoManager.modelUndoStack.length);
 
             let newOrder = messageViewerManager.codeSchemeOrder.filter(schemeKey => newDataset.hasScheme(schemeKey)); // leave ones that are in dataset schemes
-            newDataset.getSchemeIds().forEach(schemeId => {
+            newDataset.schemeIds.forEach(schemeId => {
                 if (newOrder.indexOf(schemeId) === -1) {
                     newOrder.push(schemeId);
                 }
