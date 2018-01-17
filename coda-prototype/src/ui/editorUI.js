@@ -552,9 +552,9 @@ var codeEditorManager = {
             let attempts = 0;
             do {
                 attempts += 1;
-                if (attempts > 100) {
+                if (attempts > 1000) {
                     console.log("ERROR: Unable to generate a unique id. Existing ids:", tempScheme.codes);
-                    UIUtils.displayAlertAsError("Internal error: Unable to generate a unique id for this row");
+                    UIUtils.displayAlertAsError("Internal error: Unable to generate a unique id for this row.");
                     return null;
                 }
 

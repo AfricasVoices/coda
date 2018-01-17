@@ -206,9 +206,18 @@ class FileUtils {
                                 .filter(eventRow => conflicts.conflictingIds.has(eventRow["id"]))
                                 .forEach(eventRow => {
                                     let newId: string = "";
-                                    do
+                                    let attempts = 0;
+                                    do {
+                                        attempts += 1;
+                                        if (attempts > 1000) {
+                                            console.log("ERROR: Unable to generate a unique id. Existing ids:",
+                                                parsedObjects.map(row => row["id"]));
+                                            reject({name: "IdGenerationError"});
+                                            return;
+                                        }
+
                                         newId = String(Math.floor(Math.random() * Math.pow(10, 10)));
-                                    while (parsedObjects.filter(row => row["id"] === newId).length > 0);
+                                    } while (parsedObjects.filter(row => row["id"] === newId).length > 0);
 
                                     eventRow["id"] = newId;
                                 });
