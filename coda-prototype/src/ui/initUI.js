@@ -77,9 +77,9 @@ function initDataset(storageObj) {
                 "message": "Resuming coding dataset",
                 "messageDetails": "", // todo add identifier
                 "data": {
-                    "events": newDataset.eventCount,
-                    "schemes": newDataset.schemeCount,
-                    "sessions": newDataset.sessionCount
+                    "events": newDataset["events"].size,
+                    "schemes": Object.keys(newDataset["schemes"]).length,
+                    "sessions": newDataset["sessions"].size
                 },
                 "timestamp": new Date()
             });
@@ -89,8 +89,11 @@ function initDataset(storageObj) {
         .catch(error => {
             if (error) console.log(error);
             console.time("Default data init");
+            // TODO: this example file can't actually be parsed by the "load dataset" button
             $.getJSON("./data/sessions-numbered-10000.json", function(data) {
+
                 // todo ensure ALL IDs are unique
+
                 newDataset = function(data) {
                     var decorations = {};
                     var eventCount = 0;
@@ -101,11 +104,8 @@ function initDataset(storageObj) {
                         var events = [];
                         data[sessionKey]["events"].forEach(function(event) {
                             var newEventObj = new RawEvent(eventCount + "", sessionKey, event["timestamp"], "", event["data"]);
-
-                            // TODO: Move to Dataset API by moving this default dataset code to its function on dataset
-                            // TODO: (this was a WIP on iss74-dataset-tests)
-                            properDataset._eventOrder.push(newEventObj.name);
-                            properDataset._events.set(newEventObj.name, newEventObj);
+                            properDataset.eventOrder.push(newEventObj.name);
+                            properDataset.events.set(newEventObj.name, newEventObj);
                             eventCount += 1;
 
                             Object.keys(event["decorations"]).forEach(function(d) {
@@ -133,10 +133,11 @@ function initDataset(storageObj) {
                             events.push(newEventObj);
                         });
                         var session = new Session(sessionKey, events);
-                        properDataset._sessions.set(sessionKey, session);
+                        properDataset.sessions.set(sessionKey, session);
                     });
 
-                    Object.keys(schemes).forEach(key => properDataset.addScheme(schemes[key]));
+                    properDataset.schemes = schemes;
+                    properDataset.eventCount = eventCount;
                     console.log(properDataset);
                     return properDataset;
 
@@ -502,9 +503,8 @@ function initUI(dataset) {
         function handleDatasetParsed(dataset) {
             messageViewerManager.codeSchemeOrder = []; // TODO: What does this line do?
 
-            if (dataset && dataset.eventCount > 0) {
-                // TODO: Move this if to Dataset.generateDefaultScheme?
-                if (dataset.schemeCount === 0) {
+            if (dataset && dataset.events.size !== 0) {
+                if (Object.keys(dataset.schemes).length === 0) {
                     let defaultScheme = new CodeScheme("1", "default", false);
                     defaultScheme.codes.set(
                         defaultScheme.id + "-" + "01",
@@ -513,9 +513,8 @@ function initUI(dataset) {
                             UIUtils.ascii("t"), false
                         )
                     );
-                    dataset.addScheme(defaultScheme);
+                    dataset.schemes[defaultScheme["id"]] = defaultScheme;
                 }
-
                 newDataset = dataset;
                 newDataset.restoreDefaultSort();
                 messageViewerManager.buildTable(newDataset, messageViewerManager.rowsInTable, true);
@@ -660,17 +659,14 @@ function initUI(dataset) {
         console.log("Size: " + files.size + " bytes");
 
         function handleSchemeParsed(newScheme) {
-            // TODO: Rewrite this in a much nicer way.
-            // TODO: ATM this detects if one of many errors exists, then re-tests at a finer level to guess which one.
-            // TODO: We should rewrite to move as many error cases to handleSchemeParsedError as is sensible to do so,
-            // TODO: then test and return on each remaining error individually.
-            if (newScheme === null || newScheme.codes.size === 0 || newDataset.hasScheme(newScheme.id)) {
-                let isDuplicate = newScheme !== null && newDataset.hasScheme(newScheme.id);
+            if (newScheme == null || newScheme.codes.size === 0 || newDataset.schemes[newScheme["id"]] != undefined) {
+                let isDuplicate = newScheme != null && newDataset.schemes[newScheme["id"]] != undefined;
 
                 let err;
                 if (isDuplicate) {
                     err = "can't import duplicate scheme";
-                } else if (newScheme === null) {
+                }
+                else if (newScheme == null) {
                     err = "scheme object is null.";
                 } else {
                     err = "scheme contains no codes.";
@@ -693,7 +689,7 @@ function initUI(dataset) {
                     "timestamp": new Date()
                 });
 
-                newDataset.addScheme(newScheme);
+                newDataset.schemes[newScheme["id"]] = newScheme;
                 messageViewerManager.addNewSchemeColumn(newScheme);
 
                 UIUtils.displayAlertAsSuccess("<strong>Success!</strong> New coding scheme was imported.");
@@ -817,8 +813,9 @@ function initUI(dataset) {
      */
     // TODO: I don't think there is a scheme-duplicate button
     $("#scheme-duplicate").on("click", () => {
-        let newScheme = tempScheme.duplicate(newDataset.schemeIds);
-        newDataset.addScheme(newScheme);
+
+        let newScheme = tempScheme.duplicate(Object.keys(newDataset.schemes));
+        newDataset.schemes[newScheme.id] = newScheme;
         messageViewerManager.addNewSchemeColumn(newScheme);
 
         let headerDecoColumn = $("#header-decoration-column");
@@ -859,9 +856,9 @@ function initUI(dataset) {
             "message": "Saved dataset via button",
             "messageDetails": "", // todo add identifier
             "data": {
-                "events": dataset.eventCount,
-                "schemes": dataset.schemeCount,
-                "sessions": dataset.sessionCount
+                "events": dataset["events"].size,
+                "schemes": Object.keys(dataset["schemes"]).length,
+                "sessions": dataset["sessions"].size
             },
             "timestamp": new Date()
         });
@@ -892,7 +889,7 @@ function initUI(dataset) {
     $("#code-now-button").on("click", () => {
 
         // code and re-sort dataset
-        regexMatcher.codeDataset(messageViewerManager.activeSchemeId);
+        regexMatcher.codeDataset(messageViewerManager.activeScheme);
 
         if (messageViewerManager.currentSort === messageViewerManager.sortUtils.sortEventsByConfidenceOnly) {
             newDataset.sortEventsByConfidenceOnly(tempScheme["id"]);
@@ -951,8 +948,9 @@ function initUI(dataset) {
         messageViewerManager.bringEventIntoView2(activeRow.attr("eventid"));
 
         // redraw scrollbar
-        scrollbarManager.redraw(newDataset, messageViewerManager.activeSchemeId);
-        scrollbarManager.redrawThumbAtEvent(newDataset.positionOfEvent(activeRow.attr("eventid")));
+        scrollbarManager.redraw(newDataset, messageViewerManager.activeScheme);
+        scrollbarManager.redrawThumbAtEvent(newDataset.eventOrder.indexOf(activeRow.attr("eventid")));
+
     });
 
     $("#submit").on("click", event => {
