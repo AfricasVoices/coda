@@ -623,6 +623,10 @@ function initUI(dataset) {
 
                     $("#duplicatedMessageIdsModal").modal("show");
                     break;
+                case "IdGenerationError":
+                    UIUtils.displayAlertAsError("Internal error: Unable to generate a unique id for one of the " +
+                        "duplicated messages.");
+                    break;
                 default:
                     UIUtils.displayAlertAsError(UIUtils.defaultLoadErrorMessage);
                     console.log("An unexpected error type occurred. The error was:", error);
