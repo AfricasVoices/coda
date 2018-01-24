@@ -158,8 +158,7 @@ function initDataset(storageObj) {
                 undoManager.pointer = 0;
                 undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
             });
-            }
-        );
+        });
 }
 
 storage
