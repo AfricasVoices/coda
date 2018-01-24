@@ -118,7 +118,7 @@ class Dataset {
         return this._events.get(eventId);
     }
 
-    get eventsInSortOrder(): Array<RawEvent | undefined> {
+    getEventsInSortOrder(): Array<RawEvent | undefined> {
         return this._eventOrder.map(eventId => this._events.get(eventId));
     }
 

@@ -98,7 +98,7 @@ var scrollbarManager = {
             colors = this.subsample(dataset, activeSchemeId);
         } else {
             let color;
-            dataset.eventsInSortOrder.forEach(event => {
+            dataset.getEventsInSortOrder().forEach(event => {
                 if (event) {
                     if (event.decorations.has(activeSchemeId) && event.decorations.get(activeSchemeId).code) {
                         color = this.adjustSaturation(event.decorations.get(activeSchemeId));
@@ -242,7 +242,7 @@ var scrollbarManager = {
         // CHECK IF IT FITS INTO SCROLLBAR PX OF SUBSAMPLING NEEDED!
 
         var colors = [];
-        dataset.eventsInSortOrder.forEach(event => {
+        dataset.getEventsInSortOrder().forEach(event => {
             if (event) {
                 if (colors.length === this.subsamplingNum) {
                     sampleColours.push(colors[UIUtils.randomInteger(0, colors.length - 1)]);
