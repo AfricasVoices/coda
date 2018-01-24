@@ -83,7 +83,7 @@ var scrollbarManager = {
         // todo make schemes an array not object so there is a concept of order
         // TODO: This arbitrarily selects a scheme to render in the sidebar. Will this be the active scheme?
         // TODO: Find out if messageViewerManager.activeSchemeId works here.
-        this.redraw(newDataset, newDataset.schemeIds[0]);
+        this.redraw(newDataset, newDataset.getSchemeIds()[0]);
 
         // todo check if no schemes are loaded in - if not, then dont draw the lines!
         console.timeEnd("scrollbar init");

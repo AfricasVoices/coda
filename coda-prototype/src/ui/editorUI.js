@@ -164,7 +164,7 @@ var codeEditorManager = {
         addSchemeButton.on("click", function() {
 
             // TODO: cleverly assign scheme ids
-            var newId = UIUtils.randomId(newDataset.schemeIds);
+            var newId = UIUtils.randomId(newDataset.getSchemeIds());
             tempScheme = new CodeScheme(newId, "", true);
             $("#color-pick").colorpicker("setValue", "#ffffff");
 
