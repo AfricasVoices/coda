@@ -65,7 +65,7 @@ var UIUtils = (function() {
                     Object.keys(schemes).forEach(function(schemeKey, i) {
                         messageViewerManager.codeSchemeOrder.push(schemeKey + "");
 
-                        let sortIcon = "<button class='sort-btn btn btn-default btn-xs' data-toggle='tooltip' data-placement='top' title='Sort messages' data-container='body'><div class='sort-icon " + (schemeKey === messageViewerManager.activeScheme ? activeSortIcon + "'" : "icon-def active'") + "></div></button>";
+                        let sortIcon = "<button class='sort-btn btn btn-default btn-xs' data-toggle='tooltip' data-placement='top' title='Sort messages' data-container='body'><div class='sort-icon " + (schemeKey === messageViewerManager.activeSchemeId ? activeSortIcon + "'" : "icon-def active'") + "></div></button>";
                         let editButton = "<button type='button' class='btn btn-default btn-xs edit-scheme-button' data-toggle='tooltip' data-placement='top' title='Edit scheme' data-container='body'><i class='glyphicon glyphicon-edit'></i></button>";
                         let columnDiv = "<div class='col-md-" + colAttrNum + " col-xs-" + colAttrNum + " scheme-header' scheme='" + schemeKey + "'><div>" + sortIcon + editButton + "</div><div class='scheme-name-cont'><i class='scheme-name'>" + schemes[schemeKey]["name"] + "</i></div>" + "</div>";
                         decoCol = decoCol + columnDiv;
@@ -74,7 +74,7 @@ var UIUtils = (function() {
                 } else {
 
                     messageViewerManager.codeSchemeOrder.forEach(schemeKey => {
-                        let sortIcon = "<button class='sort-btn btn btn-default btn-xs' data-toggle='tooltip' data-placement='top' title='Sort messages' data-container='body'><div class='sort-icon " + (schemeKey === messageViewerManager.activeScheme ? activeSortIcon + "'" : "icon-def active'") + "></div></button>";
+                        let sortIcon = "<button class='sort-btn btn btn-default btn-xs' data-toggle='tooltip' data-placement='top' title='Sort messages' data-container='body'><div class='sort-icon " + (schemeKey === messageViewerManager.activeSchemeId ? activeSortIcon + "'" : "icon-def active'") + "></div></button>";
                         let editButton = "<button type='button' class='btn btn-default btn-xs edit-scheme-button' data-toggle='tooltip' data-placement='top' title='Edit scheme' data-container='body'><i class='glyphicon glyphicon-edit'></i></button>";
                         let columnDiv = "<div class='col-md-" + colAttrNum + " col-xs-" + colAttrNum + " scheme-header' scheme='" + schemeKey + "'><div>" + sortIcon + editButton + "</div><div class='scheme-name-cont'><i class='scheme-name'>" + schemes[schemeKey]["name"] + "</i></div>" + "</div>";
                         decoCol = decoCol + columnDiv;
@@ -91,7 +91,7 @@ var UIUtils = (function() {
             }
         },
 
-        decoRowColumn: function(numCols, schemes, eventObj) {
+        decoRowColumn: function(numCols, event) {
             var decoCol = decoCol || "";
             var colAttrNum;
             if (numCols >= 1 && 12 >= numCols) {
@@ -125,13 +125,14 @@ var UIUtils = (function() {
                         colAttrNum = 12 / numCols >> 0;
                 }
 
-                messageViewerManager.codeSchemeOrder.forEach(function(schemeKey) {
+                messageViewerManager.codeSchemeOrder.forEach(function(schemeId) {
+                    schemeId = schemeId + "";
 
-                    var codes = Array.from(newDataset.schemes[schemeKey].codes.values());
-                    decoCol += "<div class='col-md-" + colAttrNum + " col-sm-" + colAttrNum + " col-xs-" + colAttrNum + " deco-container' scheme='" + schemeKey + "'>";
+                    var codes = Array.from(newDataset.getScheme(schemeId).codes.values());
+                    decoCol += "<div class='col-md-" + colAttrNum + " col-sm-" + colAttrNum + " col-xs-" + colAttrNum + " deco-container' scheme='" + schemeId + "'>";
                     decoCol += "<div class='input-group'>";
-                    var dis = schemeKey === messageViewerManager.activeScheme ? "" : "disabled";
-                    if (eventObj.decorations.get(schemeKey) && eventObj.decorations.get(schemeKey).manual) {
+                    var dis = schemeId === messageViewerManager.activeSchemeId ? "" : "disabled";
+                    if (event.decorations.get(schemeId) && event.decorations.get(schemeId).manual) {
                         decoCol += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox' checked " + dis + "></span>";
                     } else {
                         decoCol += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox' " + dis + "></span>";
@@ -140,12 +141,11 @@ var UIUtils = (function() {
                     var optionsString = "";
                     var selectClass = "uncoded";
                     var somethingSelected = false;
-                    var schemeKey = schemeKey + "";
 
                     codes.forEach(function(codeObj) {
 
-                        if (eventObj["decorations"].has(schemeKey)) {
-                            var currentEventCode = eventObj["decorations"].get(schemeKey).code;
+                        if (event["decorations"].has(schemeId)) {
+                            var currentEventCode = event["decorations"].get(schemeId).code;
                             if (currentEventCode !== null && currentEventCode["value"] === codeObj["value"]) {
                                 optionsString += "<option id='" + codeObj["id"] + "' selected>" + codeObj["value"] + "</option>";
                                 selectClass = "coded";
@@ -154,13 +154,13 @@ var UIUtils = (function() {
                                 optionsString += "<option id='" + codeObj["id"] + "'>" + codeObj["value"] + "</option>";
                             }
                         } else {
-                            eventObj.decorate(schemeKey);
+                            event.decorate(schemeId);
                             optionsString += "<option id='" + codeObj["id"] + "'>" + codeObj["value"] + "</option>";
                         }
                     });
 
-                    let disabled = schemeKey == messageViewerManager.activeScheme ? "" : "disabled";
-                    decoCol += "<select class='form-control " + schemeKey + " " + selectClass + "' " + disabled + ">";
+                    let disabled = schemeId == messageViewerManager.activeSchemeId ? "" : "disabled";
+                    decoCol += "<select class='form-control " + schemeId + " " + selectClass + "' " + disabled + ">";
                     decoCol += optionsString;
 
                     if (!somethingSelected) decoCol += "<option class='unassign' selected></option>";
@@ -175,8 +175,8 @@ var UIUtils = (function() {
 
             } else if (numCols > 12) {
                 let divOpen = "<div class='row'>";
-                let decoCol1 = "<div class='col-md-6 col-sm-6 col-lg-6 col-xs-6'>" + this.decoRowColumn(numCols / 2 >> 0, schemes, eventObj) + "</div>";
-                let decoCol2 = "<div class='col-md-6 col-sm-6 col-lg-6 col-xs-6'>" + this.decoRowColumn((numCols / 2 >> 0) + numCols % 2, schemes, eventObj) + "</div>";
+                let decoCol1 = "<div class='col-md-6 col-sm-6 col-lg-6 col-xs-6'>" + this.decoRowColumn(numCols / 2 >> 0, event) + "</div>";
+                let decoCol2 = "<div class='col-md-6 col-sm-6 col-lg-6 col-xs-6'>" + this.decoRowColumn((numCols / 2 >> 0) + numCols % 2, event) + "</div>";
                 return divOpen + decoCol1 + decoCol2 + "</div>";
             }
         },
