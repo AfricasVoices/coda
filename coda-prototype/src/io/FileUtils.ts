@@ -58,7 +58,7 @@ class FileUtils {
 
                 eventJSON["data"].push(newEventData);
             } else { // Append this row with data for each scheme.
-                for (let scheme of dataset.schemes) {
+                for (let scheme of dataset.getSchemes()) {
                     let newEventData = [];
                     newEventData.push(event.name);
                     newEventData.push(event.timestamp);

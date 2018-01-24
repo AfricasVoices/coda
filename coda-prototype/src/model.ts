@@ -83,7 +83,7 @@ class Dataset {
         return this._schemes.get(schemeId);
     }
 
-    get schemes(): Array<CodeScheme> {
+    getSchemes(): Array<CodeScheme> {
         return Array.from(this._schemes.values());
     }
 
