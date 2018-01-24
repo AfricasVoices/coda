@@ -94,7 +94,7 @@ function initDataset(storageObj) {
                 newDataset = function(data) {
                     var decorations = {};
                     var eventCount = 0;
-                    var schemes = {};
+                    var schemes = new Map();
 
                     var properDataset = new Dataset();
                     Object.keys(data).forEach(function(sessionKey) {
@@ -109,19 +109,18 @@ function initDataset(storageObj) {
                             eventCount += 1;
 
                             Object.keys(event["decorations"]).forEach(function(d) {
-
                                 var decorationValue = event["decorations"][d];
 
                                 if (!decorations.hasOwnProperty(d)) {
                                     // TODO: how to do scheme ids
-                                    let newSchemeId = UIUtils.randomId(Object.keys(schemes));
-                                    schemes[newSchemeId] = new CodeScheme(newSchemeId, d, true);
+                                    let newSchemeId = UIUtils.randomId(Object.keys(schemes)).toString();
+                                    schemes.set(newSchemeId, new CodeScheme(newSchemeId, d, true));
                                     decorations[d] = newSchemeId;
                                 }
 
                                 if (decorationValue.length > 0) {
-                                    var scheme = schemes[decorations[d]];
-                                    if (!schemes[decorations[d]].getCodeValues().has(decorationValue)) {
+                                    var scheme = schemes.get(decorations[d]);
+                                    if (!schemes.get(decorations[d]).getCodeValues().has(decorationValue)) {
                                         var newCodeId = decorations[d] + "-" + UIUtils.randomId(Array.from(scheme.codes.keys()));
                                         scheme.codes.set(newCodeId, new Code(scheme, newCodeId, decorationValue, "#ffffff", "", false));
                                     }
@@ -139,7 +138,6 @@ function initDataset(storageObj) {
                     properDataset.schemes = schemes;
                     console.log(properDataset);
                     return properDataset;
-
                 }(data);
 
                 console.timeEnd("Default data init");
@@ -159,9 +157,9 @@ function initDataset(storageObj) {
                 undoManager.schemaUndoStack = [];
                 undoManager.pointer = 0;
                 undoManager.markUndoPoint(messageViewerManager.codeSchemeOrder);
-
             });
-        });
+            }
+        );
 }
 
 storage
@@ -624,10 +622,6 @@ function initUI(dataset) {
 
                     $("#duplicatedMessageIdsModal").modal("show");
                     break;
-                case "IdGenerationError":
-                    UIUtils.displayAlertAsError("Internal error: Unable to generate a unique id for one of the " +
-                        "duplicated messages.");
-                    break;
                 default:
                     UIUtils.displayAlertAsError(UIUtils.defaultLoadErrorMessage);
                     console.log("An unexpected error type occurred. The error was:", error);
@@ -817,7 +811,7 @@ function initUI(dataset) {
      */
     // TODO: I don't think there is a scheme-duplicate button
     $("#scheme-duplicate").on("click", () => {
-        let newScheme = tempScheme.duplicate(newDataset.getSchemeIds());
+        let newScheme = tempScheme.duplicate(newDataset.schemeIds);
         newDataset.addScheme(newScheme);
         messageViewerManager.addNewSchemeColumn(newScheme);
 

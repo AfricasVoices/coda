@@ -1361,7 +1361,6 @@ var messageViewerManager = {
                 let searchOrder = messageViewerManager.codeSchemeOrder.slice(1);
                 searchOrder.push(messageViewerManager.codeSchemeOrder[0]);
                 uncodedScheme = event.firstUncodedScheme(searchOrder);
-                console.log(uncodedScheme);
             }
 
             if (uncodedScheme.length !== 0) {
