@@ -84,7 +84,7 @@ var regexMatcher = {
 
         if (!eventObj) return;
 
-        var codes = newDataset.schemes[schemeId].codes;
+        var codes = newDataset.getScheme(schemeId).codes;
 
         if (!regexesForEventsWithCodes) {
             regexesForEventsWithCodes = {};
@@ -250,19 +250,18 @@ var regexMatcher = {
     codeDataset: function(schemeId) {
         console.time("Coding dataset");
         schemeId = schemeId + "";
-        let events = newDataset.events;
-        let codes = newDataset.schemes[schemeId].codes;
+        let codes = newDataset.getScheme(schemeId).codes;
         var sortUtils = new SortUtils();
         var eventWithCodeRegexes = {};
         for (let code of codes.entries()) {
             eventWithCodeRegexes[code[0]] = regexMatcher.generateFullTextRegex(code[1].eventsWithCode);
         }
 
-        if (newDataset.eventOrder.length === events.size) {
-            newDataset.eventOrder.forEach(eventKey => {
-                this.codeEvent(events.get(eventKey), schemeId, eventWithCodeRegexes);
-            });
-        }
+        // if (newDataset.eventCount() === events.size) {
+        // TODO: Previously this line was wrapped in the above if. However, I don't know why it's necessary.
+        // TODO: Once the necessary setters have been written in Dataset, hopefully we can assert that this is not needed.
+        newDataset.eventsInSortOrder.forEach(event => this.codeEvent(event, schemeId, eventWithCodeRegexes));
+        // }
 
         /*
         for (let event of events.values()) {

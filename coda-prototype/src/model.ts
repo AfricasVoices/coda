@@ -59,13 +59,85 @@ const VALID_NAME_FORMAT = /(^[a-zA-Z0-9]+([" "]?[a-zA-Z0-9])*)([/\-_][a-zA-Z0-9]
 
 class Dataset {
     // TODO: understand and document what each of these things does.
-    sessions: Map<string, Session> = new Map();
-    schemes = {};
-    events: Map<string, RawEvent> = new Map();
-    eventOrder: Array<string> = [];
+    private _sessions: Map<string, Session> = new Map();
+    private _schemes: Map<string, CodeScheme> = new Map();
+    private _events: Map<string, RawEvent> = new Map();
+    private _eventOrder: Array<string> = [];
+    // TODO: Add a sort order property here? It makes sense for this to be in Dataset, which is where the sorting
+    // TODO: functions and eventOrder property currently are. Also, some of the member functions make reference
+    // TODO: to a sortOrder property
+
+    get sessionCount(): number {
+        return this._sessions.size;
+    }
+
+    addScheme(scheme: CodeScheme) {
+        this._schemes.set(scheme.id, scheme);
+    }
+
+    hasScheme(schemeId: string): boolean {
+        return this._schemes.has(schemeId);
+    }
+
+    getScheme(schemeId: string): CodeScheme | undefined {
+        return this._schemes.get(schemeId);
+    }
+
+    get schemes(): Array<CodeScheme> {
+        return Array.from(this._schemes.values());
+    }
+
+    get schemeIds(): Array<string> {
+        return Array.from(this._schemes.keys());
+    }
+
+    get schemeCount(): number {
+        return this._schemes.size;
+    }
+
+    addEvent(event: RawEvent) {
+        if (this._sessions.has(event.owner)) {
+            let session = this._sessions.get(event.owner);
+            // TODO: Why is this test needed? And what if it fails? (Refactored from FileUtils.loadDataset)
+            if (session.events.has(event.name)) {
+                session.events.set(event.name, event);
+            }
+        } else {
+            let session = new Session(event.owner, [event]);
+            this._sessions.set(event.owner, session);
+        }
+
+        if (!this._events.has(event.name)) {
+            this._eventOrder.push(event.name);
+        }
+
+        this._events.set(event.name, event);
+    }
+
+    getEvent(eventId: string): RawEvent | undefined {
+        return this._events.get(eventId);
+    }
+
+    get eventsInSortOrder(): Array<RawEvent | undefined> {
+        return this._eventOrder.map(eventId => this._events.get(eventId));
+    }
+
+    eventAtPosition(i: number): RawEvent | undefined {
+        let eventId = this._eventOrder[i];
+        return this.getEvent(eventId);
+    }
+
+    positionOfEvent(eventId: string): number | undefined {
+        let position = this._eventOrder.indexOf(eventId);
+        return position === -1 ? undefined : position;
+    }
+
+    get eventCount(): number {
+        return this._events.size;
+    }
 
     static validate(dataset: Dataset): boolean {
-        let sessions = dataset.sessions;
+        let sessions = dataset._sessions;
 
         let sessionsObjValid = sessions && sessions instanceof Map;
 
@@ -78,9 +150,9 @@ class Dataset {
 
         sessionsObjValid = sessionsObjValid && sessionsHaveValidEntries;
 
-        let hasSchemes = dataset.schemes && Object.keys(dataset.schemes).length > 0 && dataset.schemes.constructor === Object;
+        let hasSchemes = dataset._schemes && dataset._schemes instanceof Map && dataset.schemeCount > 0;
 
-        let events = dataset.events;
+        let events = dataset._events;
         let eventsObjValid = events && events instanceof Map;
 
         let eventsHaveValidEntries = true;
@@ -95,10 +167,10 @@ class Dataset {
             } else if (hasSchemes) {
                 for (let deco of event.decorations.values()) {
                     // allow for undefined codes
-                    if (deco.code && deco.code.owner != dataset.schemes[deco.code.owner.id]) {
+                    if (deco.code && deco.code.owner != dataset.getScheme(deco.code.owner.id)) {
                         eventsHaveValidEntries = false;
                         console.log("Invalid event: decoration doesn't point to a valid CodeScheme");
-                    } else if (deco.code && deco.code != dataset.schemes[deco.code.owner.id].codes.get(deco.code.id)) {
+                    } else if (deco.code && deco.code != dataset.getScheme(deco.code.owner.id).codes.get(deco.code.id)) {
                         eventsHaveValidEntries = false;
                         console.log("Invalid event: decoration doesn't point to a valid Code");
                     }
@@ -108,27 +180,27 @@ class Dataset {
 
         eventsObjValid = eventsObjValid && eventsHaveValidEntries;
 
-        let hasEventOrder = dataset.eventOrder && dataset.eventOrder.length > 0;
+        let hasEventOrder = dataset._eventOrder && dataset._eventOrder.length > 0;
 
         return sessionsObjValid && eventsObjValid && hasEventOrder && hasSchemes;
     }
 
     static clone(old: Dataset) {
-        let newSchemes = {};
+        let newSchemes: Map<string, CodeScheme> = new Map();
 
         // clone schemes
-        Object.keys(old.schemes).forEach(scheme => {
-            newSchemes[scheme] = CodeScheme.clone(old.schemes[scheme]);
+        old.schemeIds.forEach(schemeId => {
+            newSchemes.set(schemeId, CodeScheme.clone(old.getScheme(schemeId)));
         });
 
         let newSessions: Map<string, Session> = new Map();
 
         // clone events and redecorate them with newly created codes (from cloning the schemes above)
         let newEvents: Map<string, RawEvent> = new Map();
-        for (let event of old.events.values()) {
+        for (let event of old._events.values()) {
             let newEvent: RawEvent = new RawEvent(event.name, event.owner, event.timestamp, event.number, event.data);
             for (let [schemeId, deco] of event.decorations.entries()) {
-                let code = deco.code ? newSchemes[schemeId].codes.get(deco.code.id) : null;
+                let code = deco.code ? newSchemes.get(schemeId).codes.get(deco.code.id) : null;
                 newEvent.decorate(schemeId, deco.manual, deco.author, code, deco.confidence, deco.timestamp);
             }
             newEvents.set(newEvent.name, newEvent);
@@ -143,13 +215,13 @@ class Dataset {
             }
         }
 
-        let newEventOrder = old.eventOrder.slice();
+        let newEventOrder = old._eventOrder.slice();
 
         let clonedDataset = new Dataset();
-        clonedDataset.events = newEvents;
-        clonedDataset.sessions = newSessions;
-        clonedDataset.schemes = newSchemes;
-        clonedDataset.eventOrder = newEventOrder;
+        clonedDataset._events = newEvents;
+        clonedDataset._sessions = newSessions;
+        clonedDataset._schemes = newSchemes;
+        clonedDataset._eventOrder = newEventOrder;
 
         return clonedDataset;
 
@@ -212,6 +284,9 @@ class Dataset {
             return o1 == o2;
         }
 
+        // TODO: This will not correctly check that schemes are (deeply) equal.
+        // TODO: As written, this function defines schemes to be equal only if they have at least one code in common.
+        // TODO: Also it looks like it accepts arguments: CodeScheme, but is called with arguments: Map<string, CodeScheme>
         function checkSchemes(s1, s2): boolean {
 
             // check scheme reference
@@ -228,13 +303,27 @@ class Dataset {
             return false;
         }
 
-        return checkEvents(d1.events, d2.events) && checkSessions(d1.sessions, d2.sessions) && checkEventOrder(d1.eventOrder, d2.eventOrder) && checkSchemes(d1.schemes, d2.schemes);
+        return checkEvents(d1._events, d2._events) &&
+            checkSessions(d1._sessions, d2._sessions) &&
+            checkEventOrder(d1._eventOrder, d2._eventOrder) &&
+            checkSchemes(d1._schemes, d2._schemes);
 
     }
 
     static restoreFromTypelessDataset(dataset): Dataset {
-        function fixEventObjectProperties(eventToFix, schms, eventOwner: Session): RawEvent {
+        // If dataset.schemes is not a Map, migrate it from an {} to a Map<string, CodeScheme>
+        // This is necessary when loading datasets from internal storage which were saved with v2017-11-17 and older
+        if (!(dataset._schemes instanceof Map)) {
+            let mappedSchemes: Map<string, CodeScheme> = new Map();
 
+            Object.keys(dataset._schemes).forEach(schemeId => {
+                mappedSchemes.set(schemeId, dataset._schemes[schemeId]);
+            });
+
+            dataset._schemes = mappedSchemes;
+        }
+
+        function fixEventObjectProperties(eventToFix, schemes, eventOwner: Session): RawEvent {
             // Ensure event decoration references are restored
             if (eventToFix.decorations instanceof Map) {
                 console.log("Warning: event decorations are a Map.");
@@ -244,7 +333,7 @@ class Dataset {
                         deco.owner = eventToFix;
                     }
                     if (code) {
-                        deco.code = schms[key].codes.get(code.id);
+                        deco.code = schemes.get(key).codes.get(code.id);
 
                         if (deco.code instanceof Code && deco.manual) {
                             deco.code.addEvent(eventToFix);
@@ -252,26 +341,25 @@ class Dataset {
                     }
                 }
             } else {
-                Object.keys(eventToFix.decorations).forEach(schemeKey => {
-                    let code = eventToFix.decorations[schemeKey].code;
+                Object.keys(eventToFix.decorations).forEach(schemeId => {
+                    let code = eventToFix.decorations[schemeId].code;
                     if (code) {
-                        eventToFix.decorations[schemeKey].code = schms[schemeKey].codes.get(code.id); // Code object has been initialised within scheme
-                        if (!(eventToFix.decorations[schemeKey].code instanceof Code)) {
-                            if (!(typeof (eventToFix.decorations[schemeKey].code) === "undefined")) {
+                        eventToFix.decorations[schemeId].code = schemes.get(schemeId).codes.get(code.id); // Code object has been initialised within scheme
+                        if (!(eventToFix.decorations[schemeId].code instanceof Code)) {
+                            if (!(typeof (eventToFix.decorations[schemeId].code) === "undefined")) {
                                 // undefined Codes in a decoration are a valid case as decorations can be initialised with no codes
                                 console.log("Warning: Code object hasn't been initialised properly");
-                                console.log(eventToFix.decorations[schemeKey]);
+                                console.log(eventToFix.decorations[schemeId]);
                                 console.log("---------------");
                             }
                         }
 
-                        if (eventToFix.decorations[schemeKey].code instanceof Code && eventToFix.decorations[schemeKey].manual) {
-                            eventToFix.decorations[schemeKey].code.addEvent(eventToFix);
+                        if (eventToFix.decorations[schemeId].code instanceof Code && eventToFix.decorations[schemeId].manual) {
+                            eventToFix.decorations[schemeId].code.addEvent(eventToFix);
                         }
                     }
                 });
             }
-
 
             // Create/adjust event objects with Session objs
             if (eventToFix instanceof RawEvent) {
@@ -293,13 +381,13 @@ class Dataset {
             }
         }
 
-        var sessions = dataset.sessions;
-        var schemes = dataset.schemes;
-        var events = dataset.events;
-        var order = dataset.order;
+        let sessions: Map<string, Session> = dataset._sessions;
+        let schemes: Map<string, CodeScheme> = dataset._schemes;
+        let events: Map<string, RawEvent> = dataset._events;
+        let order = dataset.order; // TODO: order is not defined on Dataset
 
         let restoredOrder = [];
-        let restoredSchemes = {};
+        let restoredSchemes: Map<string, CodeScheme> = new Map();
         let restoredSessions: Map<string, Session> = new Map();
         let restoredEvents: Map<string, RawEvent> = new Map();
         let restoredDataset = new Dataset();
@@ -308,26 +396,29 @@ class Dataset {
             restoredOrder = order.slice();
         }
 
-        Object.keys(schemes).forEach(schemeKey => {
-            // restore code scheme
-            let scheme = schemes[schemeKey];
+        Array.from(schemes.keys()).forEach(schemeId => {
+            let scheme = schemes.get(schemeId);
             if (scheme instanceof CodeScheme) {
                 // should never happen
                 console.log("Warning: scheme object is unexpectedly a CodeScheme obj.");
                 console.log(scheme);
                 console.log("------------");
-                restoredSchemes[schemeKey] = scheme;
+                restoredSchemes.set(scheme.id, scheme);
+            } else if (["id", "name", "isNew", "codes"].filter(p => !scheme.hasOwnProperty(p)).length === 0) {
+                console.log("Is scheme key an integer? " + JSON.stringify(typeof schemeId === 'number'));
+                console.log(typeof schemeId);
+                restoredSchemes.set(schemeId,
+                    new CodeScheme(scheme["id"], scheme["name"], scheme["isNew"], scheme["codes"]));
             } else {
-                console.log("Is scheme key an integer? " + JSON.stringify(typeof scheme.id === 'number'));
-                console.log(typeof schemeKey);
-                restoredSchemes[schemeKey] = new CodeScheme(scheme.id, scheme.name, scheme.isNew, scheme.codes);
+                console.log("Error: The following scheme did not have the necessary properties to convert to a CodeScheme");
+                console.log(scheme);
             }
         });
 
         Object.keys(sessions).forEach(sessionKey => {
             // restores sessions
             let session = sessions[sessionKey];
-            restoredSessions.set(sessionKey, new Session(session.id, session.events));
+            restoredSessions.set(sessionKey, new Session(session.id, session._events));
         });
 
 
@@ -346,19 +437,19 @@ class Dataset {
             });
         }
 
-        restoredDataset.eventOrder = restoredOrder;
-        restoredDataset.schemes = restoredSchemes;
-        restoredDataset.sessions = restoredSessions;
-        restoredDataset.events = restoredEvents;
+        restoredDataset._eventOrder = restoredOrder;
+        restoredDataset._schemes = restoredSchemes;
+        restoredDataset._sessions = restoredSessions;
+        restoredDataset._events = restoredEvents;
 
         return restoredDataset;
-
     }
 
-    setFields(sessions: Object, schemes: Object, events: Map<string, RawEvent>, order?: Array<string>): Dataset {
+    // TODO: I think this is deprecated in favour of restoreFromTypelessDataset. Remove?
+    /*setFields(sessions: Object, schemes: Object, events: Map<string, RawEvent>, order?: Array<string>): Dataset {
         /*
         Restores Dataset after loading from storage (which loses all type information)
-         */
+         /
 
         console.log("sessions:" + (sessions instanceof Map));
 
@@ -373,9 +464,9 @@ class Dataset {
             if (scheme instanceof CodeScheme) {
                 // should never happen
                 console.log("Warning: Scheme object is a CodeScheme! (should be plain Object)");
-                this.schemes[schemeKey] = scheme;
+                this.addScheme(scheme);
             } else {
-                this.schemes[schemeKey] = new CodeScheme(scheme.id, scheme.name, scheme.isNew, scheme.codes);
+                this.addScheme(new CodeScheme(scheme.id, scheme.name, scheme.isNew, scheme.codes));
             }
         });
 
@@ -386,7 +477,7 @@ class Dataset {
         function fixEventObject(eventToFix, data: Dataset): RawEvent {
             /*
              Ensure decoration references are correct
-             */
+             /
             if (eventToFix.decorations instanceof Map) {
                 // shouldn't be reached
                 console.log("Warning: Event decorations are a Map! (should be plain Object)");
@@ -424,7 +515,7 @@ class Dataset {
 
             /*
              Create/adjust event objects
-             */
+             /
             if (eventToFix instanceof RawEvent) {
                 let owner = eventToFix.owner;
                 let session = data.sessions.get(owner);
@@ -434,7 +525,8 @@ class Dataset {
                 return eventToFix;
 
             } else {
-                let newEvent = new RawEvent(eventToFix.name, eventToFix.owner, eventToFix.timestamp, eventToFix.number, eventToFix.data, eventToFix.decorations);
+                let newEvent = new RawEvent(eventToFix.name, eventToFix.owner, eventToFix.timestamp, eventToFix.number,
+                    eventToFix.data, eventToFix.decorations);
                 let owner = eventToFix.owner;
                 let session = data.sessions.get(owner);
                 if (session.events.has(eventToFix.name)) {
@@ -444,7 +536,6 @@ class Dataset {
             }
         }
 
-        var schm = this.schemes;
         let newEventsObj: Map<string, RawEvent> = new Map();
 
         if (!order) {
@@ -475,7 +566,7 @@ class Dataset {
 
         this.events = newEventsObj;
         return this;
-    }
+    } */
 
     /*
     NB: event names/ids are the initial indices when read from file for the first time!
@@ -483,22 +574,20 @@ class Dataset {
     */
 
     restoreDefaultSort(): Array<string> {
-
-        this.eventOrder.sort((e1, e2) => {
-
+        this._eventOrder.sort((e1, e2) => {
             let name1, name2;
 
-            let intParse1 = parseInt(this.events.get(e1).name, 10);
-            let intParse2 = parseInt(this.events.get(e2).name, 10);
+            let intParse1 = parseInt(this._events.get(e1).name, 10);
+            let intParse2 = parseInt(this._events.get(e2).name, 10);
 
             if (isNaN(intParse1)) {
-                name1 = this.events.get(e1).name.toLowerCase();
+                name1 = this._events.get(e1).name.toLowerCase();
             } else {
                 name1 = intParse1;
             }
 
             if (isNaN(intParse2)) {
-                name2 = this.events.get(e2).name.toLowerCase();
+                name2 = this._events.get(e2).name.toLowerCase();
             } else {
                 name2 = intParse2;
             }
@@ -513,23 +602,20 @@ class Dataset {
 
         });
 
-        return this.eventOrder;
-
+        return this._eventOrder;
     }
 
     sortEventsByScheme(schemeId: string, isToDoList: boolean): Array<string> {
-
         schemeId = schemeId + ""; // force it to string todo: here or make sure decorationForName processes it ok?
 
-        if ((this.schemes.hasOwnProperty && this.schemes.hasOwnProperty(schemeId)) || this.schemes[schemeId] != undefined) {
-            let codes = Array.from(this.schemes[schemeId].codes.values()).map((code: Code) => {
+        if (this._schemes.has(schemeId)) {
+            let codes = Array.from(this.getScheme(schemeId).codes.values()).map((code: Code) => {
                 return code.value;
             });
 
-            this.eventOrder.sort((eventKey1, eventKey2) => {
-
-                var e1 = this.events.get(eventKey1);
-                var e2 = this.events.get(eventKey2);
+            this._eventOrder.sort((eventKey1, eventKey2) => {
+                let e1 = this.getEvent(eventKey1);
+                let e2 = this.getEvent(eventKey2);
                 const deco1 = e1.decorationForName(schemeId);
                 const deco2 = e2.decorationForName(schemeId);
                 const hasCode1 = deco1 ? e1.decorationForName(schemeId).code != null : false;
@@ -549,7 +635,6 @@ class Dataset {
                 }
 
                 if (code1 == code2) {
-
                     if (code1 == -1) {
                         // neither event has a code assigned
                         let intParse1 = parseInt(e1.name);
@@ -561,6 +646,8 @@ class Dataset {
                         } else {
                             name1 = intParse1;
                         }
+
+                        // TODO: This overwrites name1 and never sets name2!
                         if (isNaN(intParse2)) {
                             name1 = e2.name.toLowerCase();
                         } else {
@@ -578,7 +665,6 @@ class Dataset {
 
                     // same codes, now sort by manual/automatic & confidence
                     if (deco1.confidence != null && typeof deco1.confidence !== "undefined" && deco2 != null && typeof deco2.confidence !== "undefined") {
-
                         if (typeof deco1.manual !== "undefined" && deco1.manual) {
                             if (typeof deco2.manual !== "undefined" && deco2.manual) {
 
@@ -605,8 +691,8 @@ class Dataset {
                                     if (name2 < name1) {
                                         return 1;
                                     }
-                                    return 0;
 
+                                    return 0;
                                 } else {
                                     return decoDifference;
                                 }
@@ -639,15 +725,13 @@ class Dataset {
                                 if (name2 < name1) {
                                     return 1;
                                 }
-                                return 0;
 
+                                return 0;
                             } else {
                                 return decoDifference;
                             }
                         }
-
                     } else if (deco1.confidence == null && deco2.confidence == null) {
-
                         let intParse1 = parseInt(e1.name);
                         let intParse2 = parseInt(e2.name);
 
@@ -682,24 +766,21 @@ class Dataset {
 
                 // both have assigned codes that are different
                 return code1 - code2; // todo sort ascending by index of code, which is arbitrary - do we enforce an order?
-
             });
-
         }
-        return this.eventOrder;
+
+        return this._eventOrder;
     }
 
     sortEventsByConfidenceOnly(schemeId: string): Array<string> {
-
         schemeId = schemeId + ""; // force it to string todo: here or make sure decorationForName processes it ok?
 
-        if ((this.schemes.hasOwnProperty && this.schemes.hasOwnProperty(schemeId)) || this.schemes[schemeId] != undefined) {
-
-            this.eventOrder.sort((eventKey1, eventKey2) => {
+        if (this.hasScheme(schemeId)) {
+            this._eventOrder.sort((eventKey1, eventKey2) => {
                 let returnResult = 0;
 
-                var e1 = this.events.get(eventKey1);
-                var e2 = this.events.get(eventKey2);
+                var e1 = this._events.get(eventKey1);
+                var e2 = this._events.get(eventKey2);
                 let deco1 = e1.decorationForName(schemeId);
                 let deco2 = e2.decorationForName(schemeId);
 
@@ -725,7 +806,8 @@ class Dataset {
                     if (name2 < name1) {
                         returnResult = 1;
                     }
-                    returnResult = 0;
+
+                    returnResult = 0; // TODO: This overwrites all the work done above
                 } else if (deco1 == undefined) {
                     let hasManual2 = typeof deco2.manual !== "undefined" || deco2.manual != null;
                     if (hasManual2) returnResult = -1;
@@ -753,7 +835,6 @@ class Dataset {
                         }
                         returnResult = 0;
                     }
-
                 } else if (deco2 == undefined) {
                     let hasManual1 = typeof deco1.manual !== "undefined" || deco1.manual != null;
                     if (hasManual1) returnResult = 1;
@@ -781,7 +862,6 @@ class Dataset {
                         }
                         returnResult = 0;
                     }
-
                 } else {
                     let hasManual1 = typeof deco1.manual !== "undefined" || deco1.manual != null;
                     let hasManual2 = typeof deco2.manual !== "undefined" || deco2.manual != null;
@@ -897,29 +977,28 @@ class Dataset {
                     console.log(e1.name + ", " + e2.name);
                 }
                 return returnResult;
-
             });
         }
-        return this.eventOrder;
+
+        return this._eventOrder;
     }
 
     deleteScheme(schemeId: string): Array<string> {
-        for (let event of this.events.values()) {
+        for (let event of this._events.values()) {
             event.uglify(schemeId); // todo optimise, because there is no need to call 'remove event' from code if scheme is being deleted anyway
         }
-        delete this.schemes[schemeId];
+        this._schemes.delete(schemeId);
 
-        return this.eventOrder;
+        return this._eventOrder;
     }
 
     toJSON() {
         let obj = Object.create(null);
-        obj.events = this.events;
-        obj.sessions = this.sessions;
-        obj.schemes = this.schemes;
+        obj.events = this._events;
+        obj.sessions = this._sessions;
+        obj.schemes = this._schemes;
         return obj;
     }
-
 }
 
 class RawEvent {
