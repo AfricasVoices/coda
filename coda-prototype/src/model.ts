@@ -87,7 +87,7 @@ class Dataset {
         return Array.from(this.schemes.values());
     }
 
-    getSchemeIds(): Array<string> {
+    get schemeIds(): Array<string> {
         return Array.from(this.schemes.keys());
     }
 
@@ -189,7 +189,7 @@ class Dataset {
         let newSchemes: Map<string, CodeScheme> = new Map();
 
         // clone schemes
-        old.getSchemeIds().forEach(schemeId => {
+        old.schemeIds.forEach(schemeId => {
             newSchemes.set(schemeId, CodeScheme.clone(old.getScheme(schemeId)));
         });
 
