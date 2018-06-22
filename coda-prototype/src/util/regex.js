@@ -203,10 +203,9 @@ var regexMatcher = {
         }
 
         if (decoration) {
-            let manual = (decoration.manual && decoration.manual != undefined) ? decoration.manual : false;
+            let manual = decoration.codingMode !== undefined && decoration.codingMode === CodingMode.Manual;
 
             if (!manual) {
-
                 if (maxConfEntry) {
                     if (decoration.code) {
 
@@ -228,7 +227,7 @@ var regexMatcher = {
                         // doesnt have a code yet, and there's an assignment higher than 0
                         decoration.confidence = maxConfEntry[1].conf;
                         decoration.code = codes.get(maxConfEntry[0]);
-                        decoration.manual = false;
+                        decoration.codingMode = CodingMode.AutoCoded;
                     }
 
                 } else {
@@ -251,7 +250,6 @@ var regexMatcher = {
         console.time("Coding dataset");
         schemeId = schemeId + "";
         let codes = newDataset.getScheme(schemeId).codes;
-        var sortUtils = new SortUtils();
         var eventWithCodeRegexes = {};
         for (let code of codes.entries()) {
             eventWithCodeRegexes[code[0]] = regexMatcher.generateFullTextRegex(code[1].eventsWithCode);

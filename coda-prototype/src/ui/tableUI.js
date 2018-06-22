@@ -83,7 +83,7 @@ var messageViewerManager = {
                 if (!event.originalEvent) return;
 
                 if (event.originalEvent.target.nodeName === "SELECT") {
-                    messageViewerManager.dropdownChange(event.originalEvent, true);
+                    messageViewerManager.dropdownChange(event.originalEvent);
                 } else if (event.originalEvent.target.nodeName === "INPUT" && event.originalEvent.target.className === "checkbox-manual") {
                     messageViewerManager.checkboxHandler(event);
                 }
@@ -667,9 +667,7 @@ var messageViewerManager = {
         }
     },
 
-    dropdownChangeHandler: function(selectElement, manual) {
-
-        if (typeof manual === "undefined") manual = true;
+    dropdownChangeHandler: function(selectElement) {
         if (!/form-control (.*) (uncoded|coded)/.exec(selectElement.attr("class"))) {
             console.log("?");
         }
@@ -691,10 +689,10 @@ var messageViewerManager = {
             let decoration = eventObj.decorationForName(schemeId);
             if (decoration === undefined) {
                 // TODO: Move to Dataset API?
-                eventObj.decorate(schemeId, manual, UUID, newDataset.getScheme(schemeId).getCodeByValue(value), 0.95); // todo fix codeObj
+                eventObj.decorate(schemeId, CodingMode.Manual, UUID, newDataset.getScheme(schemeId).getCodeByValue(value), 0.95); // todo fix codeObj
             } else {
                 decoration.code = newDataset.getScheme(schemeId).getCodeByValue(value);
-                decoration.manual = manual;
+                decoration.codingMode = CodingMode.Manual;
                 decoration.confidence = 0.95;
                 decoration.author = UUID;
                 decoration.code.addEvent(eventObj);
@@ -834,10 +832,9 @@ var messageViewerManager = {
         });
     },
 
-    dropdownChange: function(event, manual) {
-
+    dropdownChange: function(event) {
         let selectElement = $(event.target);
-        messageViewerManager.dropdownChangeHandler(selectElement, manual);
+        messageViewerManager.dropdownChangeHandler(selectElement);
     },
 
     updateRowHtml(messageRow, activeScheme) {
@@ -913,6 +910,8 @@ var messageViewerManager = {
             // or re-sort to see the message move to its proper place in sorting (make an extra round through the sortings)
             messageViewerManager.updateRowHtml(messageRow, messageViewerManager.activeSchemeId);
 
+            // TODO: Set the drop-down associated with this checkbox to the auto-coded value.
+
             // update the activity stack
             storage.saveActivity({
                 "category": "CODING",
@@ -926,7 +925,7 @@ var messageViewerManager = {
             // DON'T ALLOW "confirming" an empty coding!
             let deco = eventObj.decorations.get(messageViewerManager.activeSchemeId);
             if (deco && deco.code) {
-                deco.manual = true;
+                deco.codingMode = CodingMode.Manual;
                 deco.confidence = 0.95;
 
                 checkbox.prop("checked", true);
@@ -1847,7 +1846,7 @@ var messageViewerManager = {
 
                     eventRow += "<div class='input-group'>";
                     let dis = "disabled";
-                    if (eventObj.decorations.get(schemeKey) && eventObj.decorations.get(schemeKey).manual) {
+                    if (eventObj.decorations.get(schemeKey) && eventObj.decorations.get(schemeKey).codingMode === CodingMode.Manual) {
                         eventRow += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox' checked " + dis + "></span>";
                     } else {
                         eventRow += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox' " + dis + "></span>";
@@ -1926,7 +1925,7 @@ var messageViewerManager = {
         eventRow += "<td class='col-md-4 active-scheme' style='background-color: " + rowColor + "'>";
         eventRow += "<div class='input-group' scheme='" + activeSchemeKey + "' >";
 
-        if (eventObj.decorations.get(activeSchemeKey) && eventObj.decorations.get(activeSchemeKey).manual) {
+        if (eventObj.decorations.get(activeSchemeKey) && eventObj.decorations.get(activeSchemeKey).codingMode === CodingMode.Manual) {
             eventRow += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox' checked></span>";
         } else {
             eventRow += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox'></span>";
@@ -2164,7 +2163,7 @@ var messageViewerManager = {
                     regexMatcher.wrapElement(event, regexMatcher.generateOrRegex(eventDeco.code.words), eventDeco.code.id);
                 }
 
-                if (event.decorations.get(schemeId).manual) {
+                if (event.decorations.get(schemeId).codingMode === CdoingMode.Manual) {
                     newCheckbox += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox' checked></span>";
                 } else {
                     newCheckbox += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox'></span>";

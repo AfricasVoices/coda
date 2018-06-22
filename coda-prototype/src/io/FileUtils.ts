@@ -35,7 +35,7 @@ class FileUtils {
         let eventJSON = {
             "data": [], "fields":
                 ["id", "timestamp", "owner", "data", "schemeId", "schemeName", "deco_codeValue", "deco_codeId",
-                    "deco_confidence", "deco_manual", "deco_timestamp", "deco_author"]
+                    "deco_confidence", "deco_codingMode", "deco_timestamp", "deco_author"]
         };
 
         // For each 'event', add a row to the output for each scheme if schemes exist, or a single row if not.
@@ -52,7 +52,7 @@ class FileUtils {
                 newEventData.push(""); // deco_codeValue
                 newEventData.push(""); // deco_codeId
                 newEventData.push(""); // deco_confidence
-                newEventData.push(""); // deco_manual
+                newEventData.push(""); // deco_codingMode
                 newEventData.push(""); // deco_timestamp
                 newEventData.push(""); // deco_author
 
@@ -78,14 +78,28 @@ class FileUtils {
                             newEventData.push(""); // deco_codeId
                         }
                         newEventData.push(decoration.confidence);
-                        newEventData.push(decoration.manual);
+
+                        switch (decoration.codingMode) {
+                            case CodingMode.AutoCoded:
+                                newEventData.push("automatic");
+                                break;
+                            case CodingMode.ExternalTool:
+                                newEventData.push("external");
+                                break;
+                            case CodingMode.Manual:
+                                newEventData.push("manual");
+                                break;
+                            default:
+                                throw "Unknown CodingMode: " + decoration.codingMode;
+                        }
+
                         newEventData.push((decoration.timestamp) ? decoration.timestamp : "");
                         newEventData.push(""); // deco_author
                     } else { // append a blank coding.
                         newEventData.push(""); // deco_codeValue
                         newEventData.push(""); // deco_codeId
                         newEventData.push(""); // deco_confidence
-                        newEventData.push(""); // deco_manual
+                        newEventData.push(""); // deco_codingMode
                         newEventData.push(""); // deco_timestamp
                         newEventData.push(""); // deco_author
                     }
@@ -255,7 +269,7 @@ class FileUtils {
                         deco_codevalue: boolean = eventRow.hasOwnProperty("deco_codeValue"),
                         deco_codeId: boolean = eventRow.hasOwnProperty("deco_codeId"),
                         deco_confidence: boolean = eventRow.hasOwnProperty("deco_confidence"),
-                        deco_manual: boolean = eventRow.hasOwnProperty("deco_manual"),
+                        deco_codingMode: boolean = eventRow.hasOwnProperty("deco_codingMode"),
                         deco_timestamp: boolean = eventRow.hasOwnProperty("deco_timestamp"),
                         deco_author: boolean = eventRow.hasOwnProperty("deco_author");
 
@@ -275,7 +289,7 @@ class FileUtils {
 
                     // If this parsed row has the minimum information set required to construct a code scheme entry,
                     // construct that entry and add it to the dataset
-                    if (schemeId && schemeName && deco_codevalue && deco_codeId && deco_manual
+                    if (schemeId && schemeName && deco_codevalue && deco_codeId && deco_codingMode
                         && eventRow["schemeId"].length > 0 && eventRow["schemeName"].length > 0
                         && eventRow["deco_codeValue"].length > 0) {
 
@@ -295,7 +309,20 @@ class FileUtils {
                             );
                         }
 
-                        let manual = eventRow["deco_manual"].toLocaleLowerCase() !== "false"; // manually coded
+                        let codingMode;
+                        switch (eventRow["deco_codingMode"]) {
+                            case "automatic":
+                                codingMode = CodingMode.AutoCoded;
+                                break;
+                            case "external":
+                                codingMode = CodingMode.ExternalTool;
+                                break;
+                            case "manual":
+                                codingMode = CodingMode.Manual;
+                                break;
+                            default:
+                                throw "Unknown CodingMode: " + eventRow["deco_codingMode"]
+                        }
 
                         let confidence;
                         if (deco_confidence) {
@@ -315,10 +342,12 @@ class FileUtils {
                         }
 
                         nextEvent.decorate(
-                            newScheme.id, manual, uuid, newScheme.codes.get(eventRow["deco_codeId"]), confidence
+                            newScheme.id, codingMode, uuid, newScheme.codes.get(eventRow["deco_codeId"]), confidence
                         );
                     }
                 }
+
+                console.log(dataset);
 
                 resolve(dataset);
             });

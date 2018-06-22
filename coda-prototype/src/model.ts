@@ -201,7 +201,7 @@ class Dataset {
             let newEvent: RawEvent = new RawEvent(event.name, event.owner, event.timestamp, event.number, event.data);
             for (let [schemeId, deco] of event.decorations.entries()) {
                 let code = deco.code ? newSchemes.get(schemeId).codes.get(deco.code.id) : null;
-                newEvent.decorate(schemeId, deco.manual, deco.author, code, deco.confidence, deco.timestamp);
+                newEvent.decorate(schemeId, deco.codingMode, deco.author, code, deco.confidence, deco.timestamp);
             }
             newEvents.set(newEvent.name, newEvent);
 
@@ -335,7 +335,7 @@ class Dataset {
                     if (code) {
                         deco.code = schemes.get(key).codes.get(code.id);
 
-                        if (deco.code instanceof Code && deco.manual) {
+                        if (deco.code instanceof Code && deco.codingMode == CodingMode.Manual) {
                             deco.code.addEvent(eventToFix);
                         }
                     }
@@ -354,7 +354,8 @@ class Dataset {
                             }
                         }
 
-                        if (eventToFix.decorations[schemeId].code instanceof Code && eventToFix.decorations[schemeId].manual) {
+                        if (eventToFix.decorations[schemeId].code instanceof Code
+                            && eventToFix.decorations[schemeId].codingMode  == CodingMode.Manual) {
                             eventToFix.decorations[schemeId].code.addEvent(eventToFix);
                         }
                     }
@@ -665,8 +666,8 @@ class Dataset {
 
                     // same codes, now sort by manual/automatic & confidence
                     if (deco1.confidence != null && typeof deco1.confidence !== "undefined" && deco2 != null && typeof deco2.confidence !== "undefined") {
-                        if (typeof deco1.manual !== "undefined" && deco1.manual) {
-                            if (typeof deco2.manual !== "undefined" && deco2.manual) {
+                        if (typeof deco1.codingMode !== "undefined" && deco1.codingMode) {
+                            if (typeof deco2.codingMode !== "undefined" && deco2.codingMode) {
 
                                 let decoDifference = deco1.confidence - deco2.confidence;
                                 if (decoDifference === 0) {
@@ -699,7 +700,7 @@ class Dataset {
                             } else {
                                 return 1;
                             }
-                        } else if (typeof deco2.manual !== "undefined" && deco2.manual) {
+                        } else if (typeof deco2.codingMode !== "undefined" && deco2.codingMode) {
                             return -1;
                         } else {
                             let decoDifference = deco1.confidence - deco2.confidence;
@@ -809,8 +810,8 @@ class Dataset {
 
                     returnResult = 0; // TODO: This overwrites all the work done above
                 } else if (deco1 == undefined) {
-                    let hasManual2 = typeof deco2.manual !== "undefined" || deco2.manual != null;
-                    if (hasManual2) returnResult = -1;
+                    let hasCodingMode2 = typeof deco2.codingMode !== "undefined" || deco2.codingMode != null;
+                    if (hasCodingMode2) returnResult = -1;
                     else {
                         let intParse1 = parseInt(e1.name);
                         let intParse2 = parseInt(e2.name);
@@ -836,7 +837,7 @@ class Dataset {
                         returnResult = 0;
                     }
                 } else if (deco2 == undefined) {
-                    let hasManual1 = typeof deco1.manual !== "undefined" || deco1.manual != null;
+                    let hasManual1 = typeof deco1.codingMode !== "undefined" || deco1.codingMode != null;
                     if (hasManual1) returnResult = 1;
                     else {
                         let intParse1 = parseInt(e1.name);
@@ -863,14 +864,14 @@ class Dataset {
                         returnResult = 0;
                     }
                 } else {
-                    let hasManual1 = typeof deco1.manual !== "undefined" || deco1.manual != null;
-                    let hasManual2 = typeof deco2.manual !== "undefined" || deco2.manual != null;
+                    let hasManual1 = typeof deco1.codingMode !== "undefined" || deco1.codingMode != null;
+                    let hasManual2 = typeof deco2.codingMode !== "undefined" || deco2.codingMode != null;
 
                     if (hasManual1 && hasManual2) {
 
-                        if (deco1.manual) {
+                        if (deco1.codingMode) {
 
-                            if (deco2.manual) {
+                            if (deco2.codingMode) {
                                 let intParse1 = parseInt(e1.name);
                                 let intParse2 = parseInt(e2.name);
 
@@ -898,7 +899,7 @@ class Dataset {
                                 returnResult = 1
                             }
                         } else {
-                            if (deco2.manual) {
+                            if (deco2.codingMode) {
                                 // deco1 is before deco2, automatic always before manual
                                 returnResult = -1;
                             } else {
@@ -1027,7 +1028,7 @@ class RawEvent {
                 Object.keys(decorations).forEach(decoKey => {
                     let d = decorations[decoKey];
                     let author = (d.author && d.author.length > 0) ? d.author : "";
-                    decors.set(decoKey, new EventDecoration(this, d.scheme_id, d.manual, author, d.code, d.confidence, d.timestamp));
+                    decors.set(decoKey, new EventDecoration(this, d.scheme_id, d.codingMode, author, d.code, d.confidence, d.timestamp));
                     codes.set(d.scheme_id, d.code);
                 });
                 this.decorations = decors;
@@ -1061,9 +1062,9 @@ class RawEvent {
         return Array.from(this.codes.values()); // todo
     }
 
-    decorate(schemeId: string, manual: boolean, author: string, code?: Code, confidence?: number, timestamp?: string) {
+    decorate(schemeId: string, codingMode: CodingMode, author: string, code?: Code, confidence?: number, timestamp?: string) {
         let stringSchemeId = "" + schemeId;
-        this.decorations.set(stringSchemeId, new EventDecoration(this, stringSchemeId, manual, author, code, confidence, timestamp));
+        this.decorations.set(stringSchemeId, new EventDecoration(this, stringSchemeId, codingMode, author, code, confidence, timestamp));
     }
 
     uglify(schemeId: string) {
@@ -1121,27 +1122,32 @@ class RawEvent {
 
 }
 
+enum CodingMode {
+    Manual,
+    ExternalTool,
+    AutoCoded
+}
+
 class EventDecoration {
     owner: RawEvent; // todo: makes it circular, fix to event id
     author: string; // uuid
     scheme_id: string; // will take scheme id
     private _code: Code;
     confidence: number;
-    manual: boolean;
+    codingMode: CodingMode;
     private _timestamp: string;
 
-    constructor(owner: RawEvent, id: string, manual: boolean, author: string, code?: Code | Object, confidence?: number, timestamp?: string) {
+    constructor(owner: RawEvent, id: string, codingMode: CodingMode, author: string, code?: Code | Object, confidence?: number, timestamp?: string) {
         this.owner = owner;
         this.scheme_id = id;
-        this.manual = manual;
+        this.codingMode = codingMode;
         this.author = author;
 
         (confidence == undefined) ? this.confidence = 0 : this.confidence = confidence;
 
         if (code) {
-
             if (code instanceof Code) {
-                if (manual) code.addEvent(owner);
+                if (codingMode === CodingMode.Manual) code.addEvent(owner);
                 this._timestamp = (timestamp) ? timestamp : new Date().toString();
                 this._code = code;
             } else {
@@ -1158,10 +1164,10 @@ class EventDecoration {
     }
 
     static clone(oldDeco: EventDecoration, newOwner: RawEvent, newCode: Code) {
-        return new EventDecoration(newOwner, oldDeco.scheme_id, oldDeco.manual, oldDeco.author, newCode, oldDeco.confidence, oldDeco.timestamp);
+        return new EventDecoration(newOwner, oldDeco.scheme_id, oldDeco.codingMode, oldDeco.author, newCode, oldDeco.confidence, oldDeco.timestamp);
     }
 
-    toJSON(): { owner: string; scheme_id: string; code: Code; confidence: number; manual: boolean; } {
+    toJSON(): { owner: string; scheme_id: string; code: Code; confidence: number; codingMode: CodingMode; } {
 
         let obj = Object.create(null);
 
@@ -1173,7 +1179,7 @@ class EventDecoration {
             "owner": this.code.owner.id
         } : {};
         obj.confidence = this.confidence;
-        obj.manual = this.manual;
+        obj.codingMode = this.codingMode;
 
         return obj;
     }

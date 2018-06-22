@@ -74,13 +74,13 @@ class SortUtils {
                 // same codes, now sort by manual/automatic & confidence
                 if (deco1.confidence != null && deco1.confidence != undefined && deco2 != null && deco2.confidence != undefined) {
 
-                    if (deco1.manual != undefined && deco1.manual) {
-                        if (deco2.manual != undefined && deco2.manual) {
+                    if (deco1.codingMode != undefined && deco1.codingMode) {
+                        if (deco2.codingMode != undefined && deco2.codingMode) {
                             return deco1.confidence - deco2.confidence || parseInt(e1.name) - parseInt(e2.name);
                         } else {
                             return 1;
                         }
-                    } else if (deco2.manual != undefined && deco2.manual) {
+                    } else if (deco2.codingMode != undefined && deco2.codingMode) {
                         return -1;
                     } else {
                         // both automatic
@@ -127,9 +127,9 @@ class SortUtils {
 
 
             // always manual coding behind automatic!
-            if (deco1.manual) {
+            if (deco1.codingMode) {
 
-                if (deco2.manual) {
+                if (deco2.codingMode) {
                     return parseInt(e1.name) - parseInt(e2.name);
                 }
 
@@ -137,7 +137,7 @@ class SortUtils {
                 return 1;
 
             } else {
-                if (deco2.manual) {
+                if (deco2.codingMode) {
 
                     // deco1 is before deco2
                     return -1;
