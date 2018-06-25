@@ -347,8 +347,6 @@ class FileUtils {
                     }
                 }
 
-                console.log(dataset);
-
                 resolve(dataset);
             });
         });
