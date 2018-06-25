@@ -890,9 +890,9 @@ var messageViewerManager = {
         let checkbox = $(DOMevent.target);
         let messageRow = checkbox.parents(".message-row");
         let eventKey = messageRow.attr("eventid");
-        let event = newDataset.getEvent(eventKey);
+        let rawEvent = newDataset.getEvent(eventKey);
         let schemeId = messageViewerManager.activeSchemeId;
-        let code = event.decorations.get(schemeId);
+        let code = rawEvent.decorations.get(schemeId);
 
         // make this row active
         activeRow.removeClass("active");
@@ -901,8 +901,8 @@ var messageViewerManager = {
 
         // Just unchecked
         if (!checkbox.prop("checked")) {
-            event.uglify(messageViewerManager.activeSchemeId);
-            regexMatcher.codeEvent(event, messageViewerManager.activeSchemeId);
+            rawEvent.uglify(messageViewerManager.activeSchemeId);
+            regexMatcher.codeEvent(rawEvent, messageViewerManager.activeSchemeId);
 
             // only redraw the current row
             // leave row in place, as it was assigned a new code which the user doesn't know beforehand
@@ -916,7 +916,7 @@ var messageViewerManager = {
             for (let code of codes.entries()) {
                 eventWithCodeRegexes[code[0]] = regexMatcher.generateFullTextRegex(code[1].eventsWithCode);
             }
-            regexMatcher.codeEvent(event, schemeId, eventWithCodeRegexes);
+            regexMatcher.codeEvent(rawEvent, schemeId, eventWithCodeRegexes);
 
             // Update the UI for this row to show the new auto-coded value.
             messageViewerManager.messageTable.find("tbody").empty();
@@ -931,14 +931,14 @@ var messageViewerManager = {
             storage.saveActivity({
                 "category": "CODING",
                 "message": "Used checkbox to unassign manual coding",
-                "messageDetails": {"event": event, "code": code},
-                "data": event,
+                "messageDetails": {"event": rawEvent, "code": code},
+                "data": rawEvent,
                 "timestamp": new Date()
             });
 
         } else {
             // DON'T ALLOW "confirming" an empty coding!
-            let deco = event.decorations.get(messageViewerManager.activeSchemeId);
+            let deco = rawEvent.decorations.get(messageViewerManager.activeSchemeId);
             if (deco && deco.code) {
                 deco.codingMode = CodingMode.Manual;
                 deco.confidence = 0.95;
@@ -949,13 +949,13 @@ var messageViewerManager = {
                 storage.saveActivity({
                     "category": "CODING",
                     "message": "Used checkbox to confirm automatic coding",
-                    "messageDetails": {"event": event, "scheme": messageViewerManager.activeSchemeId},
-                    "data": event,
+                    "messageDetails": {"event": rawEvent, "scheme": messageViewerManager.activeSchemeId},
+                    "data": rawEvent,
                     "timestamp": new Date()
                 });
             }
 
-            let nextMessageRowIndex = newDataset.positionOfEvent(event.name) + 1;
+            let nextMessageRowIndex = newDataset.positionOfEvent(rawEvent.name) + 1;
             if (nextMessageRowIndex >= newDataset.eventCount) {
                 nextMessageRowIndex = newDataset.eventCount - 1;
             }
