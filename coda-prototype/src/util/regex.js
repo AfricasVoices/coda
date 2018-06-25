@@ -252,7 +252,6 @@ var regexMatcher = {
         for (let code of codes.entries()) {
             eventWithCodeRegexes[code[0]] = regexMatcher.generateFullTextRegex(code[1].eventsWithCode);
         }
-        console.log(eventWithCodeRegexes);
 
         // if (newDataset.eventCount() === events.size) {
         // TODO: Previously this line was wrapped in the above if. However, I don't know why it's necessary.
