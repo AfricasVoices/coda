@@ -890,8 +890,9 @@ var messageViewerManager = {
         let checkbox = $(DOMevent.target);
         let messageRow = checkbox.parents(".message-row");
         let eventKey = messageRow.attr("eventid");
-        let eventObj = newDataset.getEvent(eventKey);
-        let codeObj = eventObj.decorations.get(messageViewerManager.activeSchemeId);
+        let event = newDataset.getEvent(eventKey);
+        let schemeId = messageViewerManager.activeSchemeId;
+        let code = event.decorations.get(schemeId);
 
         // make this row active
         activeRow.removeClass("active");
@@ -900,9 +901,8 @@ var messageViewerManager = {
 
         // Just unchecked
         if (!checkbox.prop("checked")) {
-            eventObj.uglify(messageViewerManager.activeSchemeId);
-            regexMatcher.codeEvent(eventObj, messageViewerManager.activeSchemeId);
-            checkbox.prop("checked", false);
+            event.uglify(messageViewerManager.activeSchemeId);
+            regexMatcher.codeEvent(event, messageViewerManager.activeSchemeId);
 
             // only redraw the current row
             // leave row in place, as it was assigned a new code which the user doesn't know beforehand
@@ -910,20 +910,35 @@ var messageViewerManager = {
             // or re-sort to see the message move to its proper place in sorting (make an extra round through the sortings)
             messageViewerManager.updateRowHtml(messageRow, messageViewerManager.activeSchemeId);
 
-            // TODO: Set the drop-down associated with this checkbox to the auto-coded value.
+            // Auto-code this event.
+            let codes = newDataset.getScheme(schemeId).codes;
+            let eventWithCodeRegexes = {};
+            for (let code of codes.entries()) {
+                eventWithCodeRegexes[code[0]] = regexMatcher.generateFullTextRegex(code[1].eventsWithCode);
+            }
+            regexMatcher.codeEvent(event, schemeId, eventWithCodeRegexes);
+
+            // Update the UI for this row to show the new auto-coded value.
+            messageViewerManager.messageTable.find("tbody").empty();
+            messageViewerManager.decorationTable.find("tbody").empty();
+            messageViewerManager.bringEventIntoView2(activeRow.attr("eventid"));
+
+            // redraw scrollbar
+            scrollbarManager.redraw(newDataset, messageViewerManager.activeSchemeId);
+            scrollbarManager.redrawThumbAtEvent(newDataset.positionOfEvent(activeRow.attr("eventid")));
 
             // update the activity stack
             storage.saveActivity({
                 "category": "CODING",
                 "message": "Used checkbox to unassign manual coding",
-                "messageDetails": {"event": eventObj, "code": codeObj},
-                "data": eventObj,
+                "messageDetails": {"event": event, "code": code},
+                "data": event,
                 "timestamp": new Date()
             });
 
         } else {
             // DON'T ALLOW "confirming" an empty coding!
-            let deco = eventObj.decorations.get(messageViewerManager.activeSchemeId);
+            let deco = event.decorations.get(messageViewerManager.activeSchemeId);
             if (deco && deco.code) {
                 deco.codingMode = CodingMode.Manual;
                 deco.confidence = 0.95;
@@ -934,13 +949,13 @@ var messageViewerManager = {
                 storage.saveActivity({
                     "category": "CODING",
                     "message": "Used checkbox to confirm automatic coding",
-                    "messageDetails": {"event": eventObj, "scheme": messageViewerManager.activeSchemeId},
-                    "data": eventObj,
+                    "messageDetails": {"event": event, "scheme": messageViewerManager.activeSchemeId},
+                    "data": event,
                     "timestamp": new Date()
                 });
             }
 
-            let nextMessageRowIndex = newDataset.positionOfEvent(eventObj.name) + 1;
+            let nextMessageRowIndex = newDataset.positionOfEvent(event.name) + 1;
             if (nextMessageRowIndex >= newDataset.eventCount) {
                 nextMessageRowIndex = newDataset.eventCount - 1;
             }
