@@ -179,6 +179,9 @@ class FileUtils {
                        duplicatedMessageIdMode: DuplicatedMessageIdMode = DuplicatedMessageIdMode.Fail): Promise<Dataset> {
         return new Promise((resolve, reject) => {
             FileUtils.readFileAsText(file).then(readResult => {
+                // Remove new line character at end of file, if it exists.
+                readResult = readResult.replace(/\n$/, "");
+
                 // Attempt to parse the dataset read from the file.
                 let parse = Papa.parse(readResult, {header: true});
 
