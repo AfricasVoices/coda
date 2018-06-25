@@ -203,9 +203,7 @@ var regexMatcher = {
         }
 
         if (decoration) {
-            let manual = decoration.codingMode !== undefined && decoration.codingMode === CodingMode.Manual;
-
-            if (!manual) {
+            if (decoration.codingMode === undefined || decoration.codingMode === CodingMode.AutoCoded) {
                 if (maxConfEntry) {
                     if (decoration.code) {
 
