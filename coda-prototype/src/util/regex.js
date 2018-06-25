@@ -215,7 +215,7 @@ var regexMatcher = {
                         else if (codes.get(maxConfEntry[0]) !== decoration.code) {
                             // override the current automatic code assignment
                             eventObj.uglify(schemeId);
-                            eventObj.decorate(schemeId, false, UUID, codes.get(maxConfEntry[0]), maxConfEntry[1].conf);
+                            eventObj.decorate(schemeId, CodingMode.AutoCoded, UUID, codes.get(maxConfEntry[0]), maxConfEntry[1].conf);
                         } else {
                             // same code assignment, just different confidence
                             decoration.confidence = maxConfEntry[1].conf;
@@ -239,7 +239,7 @@ var regexMatcher = {
 
             if (maxConfEntry[1].conf > 0) {
                 // has no decoration at the moment
-                eventObj.decorate(schemeId, false, UUID, codes.get(maxConfEntry[0]), maxConfEntry[1].conf);
+                eventObj.decorate(schemeId, CodingMode.AutoCoded, UUID, codes.get(maxConfEntry[0]), maxConfEntry[1].conf);
             }
         }
     },

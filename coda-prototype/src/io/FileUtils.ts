@@ -309,7 +309,7 @@ class FileUtils {
                             );
                         }
 
-                        let codingMode;
+                        let codingMode: CodingMode;
                         switch (eventRow["deco_codingMode"]) {
                             case "automatic":
                                 codingMode = CodingMode.AutoCoded;

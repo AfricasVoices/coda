@@ -1240,7 +1240,7 @@ var messageViewerManager = {
                 var codeObj = shortcuts.get(event.keyCode);
                 var eventId = $(activeRow).attr("eventid");
                 $(activeRow).children("td").each(function(i, td) {
-                    newDataset.getEvent(eventId).decorate(codeObj.owner["id"], true, UUID, codeObj, 0.95);
+                    newDataset.getEvent(eventId).decorate(codeObj.owner["id"], CodingMode.Manual, UUID, codeObj, 0.95);
                     var color = codeObj["color"];
 
                     if ($(td).hasClass("message-text")) {

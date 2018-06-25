@@ -126,7 +126,7 @@ function initDataset(storageObj) {
                                     }
 
                                     var code = scheme.getCodeByValue(decorationValue);
-                                    newEventObj.decorate(decorations[d], true, UUID, code, 0.95); // has to use decorations[d] as scheme key
+                                    newEventObj.decorate(decorations[d], CodingMode.Manual, UUID, code, 0.95); // has to use decorations[d] as scheme key
                                 }
                             });
                             events.push(newEventObj);
