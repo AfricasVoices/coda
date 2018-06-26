@@ -203,10 +203,7 @@ var regexMatcher = {
         }
 
         if (decoration) {
-            let manual = (decoration.manual && decoration.manual != undefined) ? decoration.manual : false;
-
-            if (!manual) {
-
+            if (decoration.codingMode === undefined || decoration.codingMode === CodingMode.AutoCoded) {
                 if (maxConfEntry) {
                     if (decoration.code) {
 
@@ -218,7 +215,7 @@ var regexMatcher = {
                         else if (codes.get(maxConfEntry[0]) !== decoration.code) {
                             // override the current automatic code assignment
                             eventObj.uglify(schemeId);
-                            eventObj.decorate(schemeId, false, UUID, codes.get(maxConfEntry[0]), maxConfEntry[1].conf);
+                            eventObj.decorate(schemeId, CodingMode.AutoCoded, UUID, codes.get(maxConfEntry[0]), maxConfEntry[1].conf);
                         } else {
                             // same code assignment, just different confidence
                             decoration.confidence = maxConfEntry[1].conf;
@@ -228,7 +225,7 @@ var regexMatcher = {
                         // doesnt have a code yet, and there's an assignment higher than 0
                         decoration.confidence = maxConfEntry[1].conf;
                         decoration.code = codes.get(maxConfEntry[0]);
-                        decoration.manual = false;
+                        decoration.codingMode = CodingMode.AutoCoded;
                     }
 
                 } else {
@@ -242,7 +239,7 @@ var regexMatcher = {
 
             if (maxConfEntry[1].conf > 0) {
                 // has no decoration at the moment
-                eventObj.decorate(schemeId, false, UUID, codes.get(maxConfEntry[0]), maxConfEntry[1].conf);
+                eventObj.decorate(schemeId, CodingMode.AutoCoded, UUID, codes.get(maxConfEntry[0]), maxConfEntry[1].conf);
             }
         }
     },
@@ -251,7 +248,6 @@ var regexMatcher = {
         console.time("Coding dataset");
         schemeId = schemeId + "";
         let codes = newDataset.getScheme(schemeId).codes;
-        var sortUtils = new SortUtils();
         var eventWithCodeRegexes = {};
         for (let code of codes.entries()) {
             eventWithCodeRegexes[code[0]] = regexMatcher.generateFullTextRegex(code[1].eventsWithCode);

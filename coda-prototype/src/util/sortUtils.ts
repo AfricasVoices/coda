@@ -22,6 +22,55 @@ SOFTWARE.
 
 class SortUtils {
 
+    /**
+     * Comparator function for Coding Modes.
+     *
+     * Sort order is: undefined, AutoCoded, ExternalTool, then Manual.
+     *
+     * @param {CodingMode | undefined} a A CodingMode to compare
+     * @param {CodingMode | undefined} b A CodingMode to compare
+     * @returns {number} Returns a negative number if a should be sorted before b, a positive number if b should be
+     *                   sorted before a, or 0 if the coding modes are equal.
+     */
+    static compareCodingMode(a: CodingMode | undefined, b: CodingMode | undefined): number {
+        let sortOrder = [undefined, CodingMode.AutoCoded, CodingMode.ExternalTool, CodingMode.Manual];
+        return sortOrder.indexOf(a) - sortOrder.indexOf(b);
+    }
+
+    /**
+     * Comparator function for event names.
+     *
+     * @param {string} a Event name to compare
+     * @param {string} b Event name to compare
+     * @returns {number} Returns a negative number if a should be sorted before b, a positive number if b should be
+     *                   sorted before a, or 0 if the names are equal.
+     */
+    static compareName(a: string, b: string): number {
+        let intParse1 = parseInt(a);
+        let intParse2 = parseInt(b);
+
+        let name1, name2;
+        if (isNaN(intParse1)) {
+            name1 = a.toLowerCase();
+        } else {
+            name1 = intParse1;
+        }
+        if (isNaN(intParse2)) {
+            name2 = b.toLowerCase();
+        } else {
+            name2 = intParse2;
+        }
+
+        if (name1 < name2) {
+            return -1;
+        }
+        if (name2 < name1) {
+            return 1;
+        }
+
+        return 0;
+    }
+
     restoreDefaultSort(events: Array<RawEvent>): Array<RawEvent> {
 
         events.sort((e1, e2) => {
@@ -68,25 +117,23 @@ class SortUtils {
 
                 if (code1 == -1) {
                     // neither event has a code assigned
-                    return parseInt(e1.name) - parseInt(e2.name);
+                    return SortUtils.compareName(e1.name, e2.name);
                 }
 
-                // same codes, now sort by manual/automatic & confidence
+                // same codes, now sort by coding mode then confidence
                 if (deco1.confidence != null && deco1.confidence != undefined && deco2 != null && deco2.confidence != undefined) {
+                    let modeDifference = SortUtils.compareCodingMode(deco1.codingMode, deco2.codingMode);
 
-                    if (deco1.manual != undefined && deco1.manual) {
-                        if (deco2.manual != undefined && deco2.manual) {
-                            return deco1.confidence - deco2.confidence || parseInt(e1.name) - parseInt(e2.name);
-                        } else {
-                            return 1;
-                        }
-                    } else if (deco2.manual != undefined && deco2.manual) {
-                        return -1;
-                    } else {
-                        // both automatic
-                        return deco1.confidence - deco2.confidence || parseInt(e1.name) - parseInt(e2.name);
+                    if (modeDifference !== 0) {
+                        return modeDifference;
                     }
 
+                    let confidenceDifference = deco1.confidence - deco2.confidence;
+                    if (confidenceDifference !== 0) {
+                        return confidenceDifference;
+                    }
+
+                    return SortUtils.compareName(e1.name, e2.name);
                 }
                 // something went wrong and one item doesn't have a confidence!
                 else return 0;
@@ -125,26 +172,18 @@ class SortUtils {
                 return 1;
             }
 
+            // Sort on coding mode first.
+            let modeDifference = SortUtils.compareCodingMode(deco1.codingMode, deco2.codingMode);
+            if (modeDifference !== 0) {
+                return modeDifference;
+            }
 
-            // always manual coding behind automatic!
-            if (deco1.manual) {
-
-                if (deco2.manual) {
-                    return parseInt(e1.name) - parseInt(e2.name);
-                }
-
-                // deco2 is before deco1
-                return 1;
-
+            // Sort on confidence if available, otherwise on the event name.
+            if ((deco1.codingMode === CodingMode.Manual && deco2.codingMode == CodingMode.Manual) ||
+                (deco1.confidence - deco2.confidence === 0)) {
+                return SortUtils.compareName(e1.name, e2.name);
             } else {
-                if (deco2.manual) {
-
-                    // deco1 is before deco2
-                    return -1;
-                }
-
-                //both are automatic in which case compare confidence!
-                return deco1.confidence - deco2.confidence || parseInt(e1.name, 10) - parseInt(e2.name, 10);
+                return deco1.confidence - deco2.confidence;
             }
         });
 

@@ -132,7 +132,7 @@ var UIUtils = (function() {
                     decoCol += "<div class='col-md-" + colAttrNum + " col-sm-" + colAttrNum + " col-xs-" + colAttrNum + " deco-container' scheme='" + schemeId + "'>";
                     decoCol += "<div class='input-group'>";
                     var dis = schemeId === messageViewerManager.activeSchemeId ? "" : "disabled";
-                    if (event.decorations.get(schemeId) && event.decorations.get(schemeId).manual) {
+                    if (event.decorations.get(schemeId) && event.decorations.get(schemeId).codingMode === CodingMode.Manual) {
                         decoCol += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox' checked " + dis + "></span>";
                     } else {
                         decoCol += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox' " + dis + "></span>";
