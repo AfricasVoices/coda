@@ -99,7 +99,7 @@ class SortUtils {
 
                 if (code1 == -1) {
                     // neither event has a code assigned
-                    return parseInt(e1.name) - parseInt(e2.name);
+                    return SortUtils.compareName(e1.name, e2.name);
                 }
 
                 // same codes, now sort by coding mode then confidence
@@ -115,7 +115,7 @@ class SortUtils {
                         return confidenceDifference;
                     }
 
-                    return parseInt(e1.name) - parseInt(e2.name);
+                    return SortUtils.compareName(e1.name, e2.name);
                 }
                 // something went wrong and one item doesn't have a confidence!
                 else return 0;
@@ -163,7 +163,7 @@ class SortUtils {
             // Sort on confidence if available, otherwise on the event name.
             if ((deco1.codingMode === CodingMode.Manual && deco2.codingMode == CodingMode.Manual) ||
                 (deco1.confidence - deco2.confidence === 0)) {
-                return parseInt(e1.name) - parseInt(e2.name);
+                return SortUtils.compareName(e1.name, e2.name);
             } else {
                 return deco1.confidence - deco2.confidence;
             }
