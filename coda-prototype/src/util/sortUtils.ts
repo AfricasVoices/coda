@@ -22,11 +22,29 @@ SOFTWARE.
 
 class SortUtils {
 
+    /**
+     * Comparator function for Coding Modes.
+     *
+     * Sort order is: undefined, AutoCoded, ExternalTool, then Manual.
+     *
+     * @param {CodingMode | undefined} a A CodingMode to compare
+     * @param {CodingMode | undefined} b A CodingMode to compare
+     * @returns {number} Returns a negative number if a should be sorted before b, a positive number if b should be
+     *                   sorted before a, or 0 if the coding modes are equal.
+     */
     static compareCodingMode(a: CodingMode | undefined, b: CodingMode | undefined): number {
         let sortOrder = [undefined, CodingMode.AutoCoded, CodingMode.ExternalTool, CodingMode.Manual];
         return sortOrder.indexOf(a) - sortOrder.indexOf(b);
     }
 
+    /**
+     * Comparator function for event names.
+     *
+     * @param {string} a Event name to compare
+     * @param {string} b Event name to compare
+     * @returns {number} Returns a negative number if a should be sorted before b, a positive number if b should be
+     *                   sorted before a, or 0 if the names are equal.
+     */
     static compareName(a: string, b: string): number {
         let intParse1 = parseInt(a);
         let intParse2 = parseInt(b);
