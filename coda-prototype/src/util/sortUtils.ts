@@ -109,7 +109,13 @@ class SortUtils {
                     if (modeDifference !== 0) {
                         return modeDifference;
                     }
-                    return deco1.confidence - deco2.confidence || parseInt(e1.name) - parseInt(e2.name);
+
+                    let confidenceDifference = deco1.confidence - deco2.confidence;
+                    if (confidenceDifference !== 0) {
+                        return confidenceDifference;
+                    }
+
+                    return parseInt(e1.name) - parseInt(e2.name);
                 }
                 // something went wrong and one item doesn't have a confidence!
                 else return 0;
@@ -155,10 +161,11 @@ class SortUtils {
             }
 
             // Sort on confidence if available, otherwise on the event name.
-            if (deco1.codingMode === CodingMode.Manual && deco2.codingMode == CodingMode.Manual) {
+            if ((deco1.codingMode === CodingMode.Manual && deco2.codingMode == CodingMode.Manual) ||
+                (deco1.confidence - deco2.confidence === 0)) {
                 return parseInt(e1.name) - parseInt(e2.name);
             } else {
-                return deco1.confidence - deco2.confidence || parseInt(e1.name, 10) - parseInt(e2.name, 10);
+                return deco1.confidence - deco2.confidence;
             }
         });
 
