@@ -21,9 +21,14 @@ class FileUtils {
         let url = window.URL.createObjectURL(fileContents);
         console.log("Saving file from URL", url);
 
+        // Extract filename part of url, and append ".csv"
+        let url_parts = url.split("/");
+        let filename = url_parts[url_parts.length - 1] + ".csv";
+
         chrome.downloads.download({
             url: url,
-            saveAs: true
+            saveAs: true,
+            filename: filename
         }, onDownloadStartedHandler);
     }
 
