@@ -941,18 +941,5 @@ var codeEditorManager = {
         codeEditorManager.activeCode = newActiveRowCodeId;
         codeEditorManager.updateCodePanel(tempScheme.codes.get(codeEditorManager.activeCode));
 
-        // TODO: what was this, and why has it been commented?
-        /*
-        let activeCode = tempScheme.codes.get($(".code-row.active").attr("code-id"));
-        if (activeCode) {
-            codeEditorManager.updateCodePanel(activeCode);
-        } else {
-            // make a row active and update the code panel accordingly
-            let newActiveRow = $(".code-row:last");
-            newActiveRow.addClass('active');
-            codeEditorManager.activeCode = newActiveRow.attr("code-id");
-            codeEditorManager.updateCodePanel(tempScheme.codes.get(codeEditorManager.activeCode.id));
-        }
-        */
     }
 };

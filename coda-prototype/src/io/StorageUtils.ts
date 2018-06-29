@@ -4,30 +4,7 @@ class StorageManager {
     private static _instance: StorageManager;
     lastEdit: Date;
 
-    private constructor() {
-        /*
-        var manager = this;
-        chrome.storage.local.get("lastEdit", (editObj) => {
-            console.log(editObj);
-            editObj["lastEdit"] = new Date(JSON.parse(editObj["lastEdit"]));
-            console.log(editObj["lastEdit"]);
-            if ( Object.prototype.toString.call(editObj["lastEdit"]) === "[object Date]" ) {
-                if (!isNaN((editObj["lastEdit"]).getTime())) {
-                    // date is in valid format
-                    if (this.isExpired()) {
-                        manager.lastEdit = new Date();
-                        this.clearStorage().then( () => console.log(manager.lastEdit));
-
-                    } else {
-                        manager.lastEdit = editObj["lastEdit"];
-                        console.log(editObj["lastEdit"]);
-                        console.log(manager.lastEdit);
-                    }
-
-                }
-            }
-        });*/
-    }
+    private constructor() { }
 
     static get instance() {
         return this._instance || (this._instance = new StorageManager());
@@ -154,7 +131,7 @@ class StorageManager {
                         else {
                             instr = activity;
                         }
-                        chrome.storage.local.set({"instrumentation": JSON.stringify(instr),}, () => {
+                        chrome.storage.local.set({ "instrumentation": JSON.stringify(instr), }, () => {
                             if (chrome.runtime.lastError) {
                                 console.log(chrome.runtime.lastError);
                             } else {
@@ -192,7 +169,7 @@ class StorageManager {
 
     saveUUID(id: String): Promise<string> {
         return new Promise(function (resolve, reject) {
-            chrome.storage.local.set({'userId': id}, () => {
+            chrome.storage.local.set({ 'userId': id }, () => {
                 if (chrome.runtime.lastError) {
                     console.log(chrome.runtime.lastError);
                     reject(new Error('Failed to save uuid:' + id));
