@@ -393,7 +393,7 @@ var messageViewerManager = {
                 messageViewerManager.activeSchemeId ? messageViewerManager.activeSchemeId : newDataset.schemeIds[0]);
         } else {
             // todo take care to clear previous one
-            scrollbarManager.init(undefined, document.getElementById("scrollbar"), 100);
+            scrollbarManager.init(document.getElementById("scrollbar"));
         }
 
         /*

@@ -37,13 +37,11 @@ var scrollbarManager = {
     scale: 1,
     scrollThumb: $("#scrollthumb"),
 
-    // TODO: sessionData is unused; remove it (WS cannot auto-refactor this)
-    init: function(sessionData, scrollbarEl, subsamplingNum) {
+    init: function(scrollbarEl) {
 
         console.time("scrollbar init");
 
         this.scrollbarEl = scrollbarEl;
-        //this.subsamplingNum = subsamplingNum;
 
         // check for active column
         // check if any code has colour set
@@ -65,7 +63,6 @@ var scrollbarManager = {
 
         $("body").hide();
 
-        //this.subsamplingNum = Math.ceil(newDataset.eventOrder.length/(scrollbarEl.height-4));
         this.subsamplingNum = Math.floor(newDataset.eventCount / (scrollbarEl.height - 4));
 
         $("#scrollbar").drawRect({
