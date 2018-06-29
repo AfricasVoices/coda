@@ -20,7 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-class ColourUtils {
+class ColorUtils {
     static rgb2hsl(rgbString: string) : string {
     // based on formulas from http://www.rapidtables.com/convert/color/rgb-to-hsl.htm
     let rgb = rgbString.split("(")[1].split(")")[0].split(",");
