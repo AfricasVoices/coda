@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function () {
         dataDiv.innerText = text;
 
         accText += text;
-        chrome.storage.local.set({"text": accText}, () => {
+        chrome.storage.local.set({ "text": accText }, () => {
             chrome.storage.local.get((items) => {
                 console.log("Items: " + items["text"]);
             });
@@ -106,7 +106,7 @@ class SchemaEntry {
     shortcuts: Array<string>;
 
     constructor(codingSchemeName: string,
-                codes: Array<string>, shortcuts: Array<string>) {
+        codes: Array<string>, shortcuts: Array<string>) {
         this.codingSchemeName = codingSchemeName;
         this.codes = codes;
         this.shortcuts = shortcuts;

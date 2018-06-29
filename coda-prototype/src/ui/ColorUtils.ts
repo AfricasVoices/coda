@@ -21,65 +21,65 @@ SOFTWARE.
 */
 
 class ColorUtils {
-    static rgb2hsl(rgbString: string) : string {
-    // based on formulas from http://www.rapidtables.com/convert/color/rgb-to-hsl.htm
-    let rgb = rgbString.split("(")[1].split(")")[0].split(",");
-    let r, g, b, a;
+    static rgb2hsl(rgbString: string): string {
+        // based on formulas from http://www.rapidtables.com/convert/color/rgb-to-hsl.htm
+        let rgb = rgbString.split("(")[1].split(")")[0].split(",");
+        let r, g, b, a;
 
-    if (rgb.length == 3) {
-        r = parseInt(rgb[0]);
-        g = parseInt(rgb[1]);
-        b = parseInt(rgb[2]);
-    } else return "";
+        if (rgb.length == 3) {
+            r = parseInt(rgb[0]);
+            g = parseInt(rgb[1]);
+            b = parseInt(rgb[2]);
+        } else return "";
 
-    if (r >= 0 && 256 > r && g >= 0 && 256 > g && b >= 0 && 256 > b) {
+        if (r >= 0 && 256 > r && g >= 0 && 256 > g && b >= 0 && 256 > b) {
 
-        let r0 = r / 255,
-            g0 = g / 255,
-            b0 = b / 255;
+            let r0 = r / 255,
+                g0 = g / 255,
+                b0 = b / 255;
 
-        let min = Math.min(r0, g0, b0),
-            max = Math.max(r0, g0, b0),
-            delta = max - min;
+            let min = Math.min(r0, g0, b0),
+                max = Math.max(r0, g0, b0),
+                delta = max - min;
 
-        let switchVal = delta == 0 ? 0 : max;
-        let hue;
-        switch (switchVal) {
-            case 0:
-                hue = 0;
-                break;
-            case r0:
-                hue = 60 * (((g0 - b0) / delta) % 6);
-                break;
-            case g0:
-                hue = 60 * (((b0 - r0) / delta) + 2);
-                break;
-            case b0:
-                hue = 60 * (((r0 - g0) / delta) + 4);
-                break;
-        }
+            let switchVal = delta == 0 ? 0 : max;
+            let hue;
+            switch (switchVal) {
+                case 0:
+                    hue = 0;
+                    break;
+                case r0:
+                    hue = 60 * (((g0 - b0) / delta) % 6);
+                    break;
+                case g0:
+                    hue = 60 * (((b0 - r0) / delta) + 2);
+                    break;
+                case b0:
+                    hue = 60 * (((r0 - g0) / delta) + 4);
+                    break;
+            }
 
-        if (hue >= 360) {
-            hue = hue - 360;
-        } else if (hue < 0) {
-            hue = hue + 360;
-        }
+            if (hue >= 360) {
+                hue = hue - 360;
+            } else if (hue < 0) {
+                hue = hue + 360;
+            }
 
-        let luminance = (max + min) / 2;
-        let saturation = delta == 0 ? 0 : (delta / (1 - Math.abs(2 * luminance - 1)));
+            let luminance = (max + min) / 2;
+            let saturation = delta == 0 ? 0 : (delta / (1 - Math.abs(2 * luminance - 1)));
 
-        return "hsl(" + Math.round(hue * 100) / 100 + "," + Math.round(saturation * 100) / 100 + "," + Math.round(luminance * 100) / 100 + ")";
+            return "hsl(" + Math.round(hue * 100) / 100 + "," + Math.round(saturation * 100) / 100 + "," + Math.round(luminance * 100) / 100 + ")";
 
-    } else return "";
+        } else return "";
 
     }
 
-    static hex2rgb(hex : string) : string {
+    static hex2rgb(hex: string): string {
         //http://stackoverflow.com/a/5624139
 
         // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
         let shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-        hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+        hex = hex.replace(shorthandRegex, function (m, r, g, b) {
             return r + r + g + g + b + b;
         });
 
@@ -94,7 +94,7 @@ class ColorUtils {
         else return "rgb(" + rgb.r + "," + rgb.g + "," + rgb.b + ")";
     }
 
-    static rgb2hex(rgb : string) : string {
+    static rgb2hex(rgb: string): string {
 
         let r, g, b;
         let components = rgb.split("(")[1].split(")")[0].split(",");
@@ -114,7 +114,7 @@ class ColorUtils {
         return "#" + r_hex + g_hex + b_hex;
     }
 
-    static hsl2rgb(hslString : string) : string {
+    static hsl2rgb(hslString: string): string {
         // based on formulas from http://www.rapidtables.com/convert/color/hsl-to-rgb.htm
         let hsl = hslString.split("(")[1].split(")")[0].split(",");
         let h, s, l;
@@ -137,7 +137,7 @@ class ColorUtils {
                 let X = C * (1 - Math.abs((h / 60) % 2 - 1));
                 let m = l - C / 2;
 
-                var test = function(h) {
+                var test = function (h) {
                     if (h >= 0 && 60 > h) return 0;
                     if (h >= 60 && 120 > h) return 1;
                     if (h >= 120 && 180 > h) return 2;
