@@ -53,7 +53,7 @@ const VALID_NAME_FORMAT = /(^[a-zA-Z0-9]+([" "]?[a-zA-Z0-9])*)([/\-_][a-zA-Z0-9]
         return obj;
     };
 
-    Object.defineProperty(Map.prototype, "toJSON", {value: mapToJSON});
+    Object.defineProperty(Map.prototype, "toJSON", { value: mapToJSON });
 
 })();
 
@@ -355,7 +355,7 @@ class Dataset {
                         }
 
                         if (eventToFix.decorations[schemeId].code instanceof Code
-                            && eventToFix.decorations[schemeId].codingMode  === CodingMode.Manual) {
+                            && eventToFix.decorations[schemeId].codingMode === CodingMode.Manual) {
                             eventToFix.decorations[schemeId].code.addEvent(eventToFix);
                         }
                     }
@@ -1087,7 +1087,7 @@ class CodeScheme {
                 invalidValues.push(code.id);
             }
         }
-        return {"name": isNameValid, "invalidValues": invalidValues, "invalidShortcuts": invalidShortcuts};
+        return { "name": isNameValid, "invalidValues": invalidValues, "invalidShortcuts": invalidShortcuts };
     }
 
     toJSON() {
