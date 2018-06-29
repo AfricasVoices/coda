@@ -281,12 +281,11 @@ var scrollbarManager = {
 
         if (color === "" || color == null) return "#ffffff";
 
-        let hslColor = UIUtils.rgb2hsl(UIUtils.hex2rgb(color));
+        let hslColor = ColorUtils.rgb2hsl(ColorUtils.hex2rgb(color));
         let hsl = hslColor.split("(")[1].split(")")[0].split(",");
 
         let newHsl = "hsl(" + hsl[0] + "," + confidence + "," + hsl[2] + ")";
-        let rgbReturn = UIUtils.rgb2hex(UIUtils.hsl2rgb(newHsl));
-        //console.log(newHsl);
+        let rgbReturn = ColorUtils.rgb2hex(ColorUtils.hsl2rgb(newHsl));
         return rgbReturn;
 
     },
