@@ -4,17 +4,17 @@
   "description": "Coda is an interactive tool that helps you label short text datasets!",
   "main": "ui.js",
   "dependencies": {
-    "d3": "^4.11.0"
+    "d3": "^4.13.0"
   },
   "devDependencies": {
-    "@types/jasmine": "^2.6.0",
-    "jasmine": "^2.8.0",
-    "jasmine-core": "^2.8.0",
+    "@types/jasmine": "^2.8.8",
+    "jasmine": "^2.99.0",
+    "jasmine-core": "^2.99.1",
     "jasmine-ts": "^0.2.1",
-    "karma": "^1.7.1",
+    "karma": "^2.0.4",
     "karma-chrome-launcher": "^2.2.0",
-    "karma-coverage": "^1.1.1",
-    "karma-jasmine": "^1.1.0"
+    "karma-coverage": "^1.1.2",
+    "karma-jasmine": "^1.1.2"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
