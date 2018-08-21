@@ -52,6 +52,7 @@ var messageViewerManager = {
     currentSort: null,
     firstScheme: "",
     horizontal: true,
+    autoAdvance: true,
     initialMessageTableWidth: 800,
 
     init: function(messageContainer, data, rowsInTable) {
@@ -64,10 +65,10 @@ var messageViewerManager = {
         this.decorationTable = $("#deco-table");
         this.lastLoadedPageIndex = 1;
         this.currentSort = this.sortUtils.restoreDefaultSort;
+        this.autoAdvance = $("#auto-advance-checkbox").prop("checked");
 
         if (!data) {
             this.buildTable();
-
         } else {
             newDataset.restoreDefaultSort();
             this.buildTable(data, rowsInTable);
@@ -1304,6 +1305,10 @@ var messageViewerManager = {
     },
 
     verticalCoding: function(eventId) {
+        if (!this.autoAdvance) {
+            return;
+        }
+
         /*
         get new active row, keeping the active scheme
         N.B. will wrap if no uncoded events are found between eventId and end of list
@@ -1343,6 +1348,9 @@ var messageViewerManager = {
     },
 
     horizontalCoding: function(eventId) {
+        if (!this.autoAdvance) {
+            return;
+        }
 
         // switch to next active scheme: next uncoded column
         let eventObj = newDataset.getEvent(eventId);

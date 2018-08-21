@@ -63,6 +63,10 @@ SOFTWARE.
     padding: 14px 15px;
 }
 
+#auto-advance-label {
+    font-weight: normal;
+}
+
 thead {
     border-top: none;
     border-bottom: none;
