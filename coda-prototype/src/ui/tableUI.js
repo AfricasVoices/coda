@@ -1284,11 +1284,6 @@ var messageViewerManager = {
                 let decoColumn = activeRow.find(".checkbox-manual").prop("checked", true);
 
                 if (messageViewerManager.horizontal) {
-                    /*
-          setTimeout(() => {
-          messageViewerManager.horizontalCoding(activeRow.attr("eventid"));
-          }, 500);
-          */
                     messageViewerManager.horizontalCoding(activeRow.attr("eventid"));
                 } else {
                     setTimeout(() => {
