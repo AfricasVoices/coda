@@ -65,6 +65,8 @@ SOFTWARE.
 
 #auto-advance-label {
     font-weight: normal;
+    user-select: none;
+    cursor: pointer;
 }
 
 thead {
