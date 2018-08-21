@@ -2178,7 +2178,7 @@ var messageViewerManager = {
                     regexMatcher.wrapElement(event, regexMatcher.generateOrRegex(eventDeco.code.words), eventDeco.code.id);
                 }
 
-                if (event.decorations.get(schemeId).codingMode === CdoingMode.Manual) {
+                if (event.decorations.get(schemeId).codingMode === CodingMode.Manual) {
                     newCheckbox += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox' checked></span>";
                 } else {
                     newCheckbox += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox'></span>";
