@@ -1447,8 +1447,6 @@ var messageViewerManager = {
 
             let pageIndex = Math.floor(eventIndex / Math.floor(messageViewerManager.rowsInTable / 2));
             this.goToPage(pageIndex);
-
-            // Advance to the first uncoded row on this page.
             eventRow = $(".message-row[eventid='" + eventId + "']");
 
             if (eventRow) {
