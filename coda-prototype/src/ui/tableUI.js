@@ -1284,11 +1284,6 @@ var messageViewerManager = {
                 let decoColumn = activeRow.find(".checkbox-manual").prop("checked", true);
 
                 if (messageViewerManager.horizontal) {
-                    /*
-          setTimeout(() => {
-          messageViewerManager.horizontalCoding(activeRow.attr("eventid"));
-          }, 500);
-          */
                     messageViewerManager.horizontalCoding(activeRow.attr("eventid"));
                 } else {
                     setTimeout(() => {
@@ -1409,6 +1404,37 @@ var messageViewerManager = {
         activeRow.find("select." + messageViewerManager.activeSchemeId).focus();
     },
 
+    goToPage: function(pageIndex) {
+        /**
+         * Updates the message view table to start with the event at index 'pageIndex'
+         *
+         * pageIndex: Index of event row to display at the top of the table
+         */
+        let messageTablePage1 = messageViewerManager.createMessagePageHTML(pageIndex);
+        let messageTablePage2 = messageViewerManager.createMessagePageHTML(pageIndex + 1);
+        let decoTablePage1 = messageViewerManager.createDecorationPageHTML(pageIndex);
+        let decoTablePage2 = messageViewerManager.createDecorationPageHTML(pageIndex + 1);
+        messageViewerManager.lastLoadedPageIndex = pageIndex + 1;
+
+        let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
+        let decoTableTbodyElement = messageViewerManager.decorationTable.find("tbody");
+
+        messageTableTbodyElement.empty();
+        decoTableTbodyElement.empty();
+
+        let messageRows = $(messageTablePage1).appendTo(messageTableTbodyElement);
+        messageRows = messageRows.add($(messageTablePage2).appendTo(messageTableTbodyElement));
+
+        let decoRows = $(decoTablePage1).appendTo(decoTableTbodyElement);
+        decoRows = decoRows.add($(decoTablePage2).appendTo(decoTableTbodyElement));
+
+        for (let i = 0; i < messageRows.length; i++) {
+            // need to adjust heights so rows match in each table
+            let outerHeight = $(messageRows[i]).outerHeight();
+            $(decoRows[i]).outerHeight(outerHeight);
+        }
+    },
+
     bringEventIntoView: function(eventId) {
         let eventRow = $(".message-row[eventid='" + eventId + "']");
         let eventIndex = newDataset.positionOfEvent(eventId);
@@ -1420,26 +1446,7 @@ var messageViewerManager = {
             // 2. load the appropriate pair of pages in
 
             let pageIndex = Math.floor(eventIndex / Math.floor(messageViewerManager.rowsInTable / 2));
-
-            // load in pages at index pageIndex & pageIndex-1 except if pageIndex-1 is out of range!
-            let tbody = "";
-            if (pageIndex === 0) {
-                // load 0th and 1st
-                tbody += messageViewerManager.createPageHTML(0);
-                tbody += messageViewerManager.createPageHTML(1);
-                messageViewerManager.lastLoadedPageIndex = 1;
-
-            } else {
-                tbody += messageViewerManager.createPageHTML(pageIndex - 1);
-                tbody += messageViewerManager.createPageHTML(pageIndex);
-                messageViewerManager.lastLoadedPageIndex = pageIndex;
-
-            }
-
-            let currentTbody = messageViewerManager.messageTable.find("tbody");
-            currentTbody.empty();
-            currentTbody.append(tbody);
-
+            this.goToPage(pageIndex);
             eventRow = $(".message-row[eventid='" + eventId + "']");
 
             if (eventRow) {
@@ -2178,7 +2185,7 @@ var messageViewerManager = {
                     regexMatcher.wrapElement(event, regexMatcher.generateOrRegex(eventDeco.code.words), eventDeco.code.id);
                 }
 
-                if (event.decorations.get(schemeId).codingMode === CdoingMode.Manual) {
+                if (event.decorations.get(schemeId).codingMode === CodingMode.Manual) {
                     newCheckbox += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox' checked></span>";
                 } else {
                     newCheckbox += "<span class='input-group-addon'><input class='checkbox-manual' type='checkbox'></span>";

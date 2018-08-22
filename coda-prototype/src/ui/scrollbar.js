@@ -288,42 +288,19 @@ var scrollbarManager = {
     },
 
     scrolling: function(scrollthumbLayer) {
-
         let thumbMid = scrollthumbLayer.y + scrollbarManager.thumbWidth + Math.floor(scrollbarManager.thumbHeight / 2); // for stroke width of the scrollthumb
 
         // todo need to take scaling into account
         let percentage = scrollthumbLayer.y + scrollbarManager.thumbWidth === 6 ? 0 : Math.round(((thumbMid - 10) / (scrollbarManager.scrollbarEl.height - 20) * 100 )) / 100; // force it to 0 if top is 6px displaced, 2px for border, 4px for scrollthumb
         let eventIndexToLoad = scrollthumbLayer.y > 2 ? Math.floor(newDataset.eventCount * percentage) : 0;
         const halfPage = Math.floor(messageViewerManager.rowsInTable / 2);
-        let pagesToLoad = Math.floor(eventIndexToLoad / halfPage);
+        let pageIndex = Math.floor(eventIndexToLoad / halfPage);
 
-        if ((pagesToLoad * halfPage + halfPage) >= newDataset.eventCount) {
-            pagesToLoad = pagesToLoad - 2;
+        if ((pageIndex * halfPage + halfPage) >= newDataset.eventCount) {
+            pageIndex = pageIndex - 2;
         }
 
-        let messageTablePage1 = messageViewerManager.createMessagePageHTML(pagesToLoad);
-        let messageTablePage2 = messageViewerManager.createMessagePageHTML(pagesToLoad + 1);
-        let decoTablePage1 = messageViewerManager.createDecorationPageHTML(pagesToLoad);
-        let decoTablePage2 = messageViewerManager.createDecorationPageHTML(pagesToLoad + 1);
-        messageViewerManager.lastLoadedPageIndex = pagesToLoad + 1;
-
-        let messageTableTbodyElement = messageViewerManager.messageTable.find("tbody");
-        let decoTableTbodyElement = messageViewerManager.decorationTable.find("tbody");
-
-        messageTableTbodyElement.empty();
-        decoTableTbodyElement.empty();
-
-        let messageRows = $(messageTablePage1).appendTo(messageTableTbodyElement);
-        messageRows = messageRows.add($(messageTablePage2).appendTo(messageTableTbodyElement));
-
-        let decoRows = $(decoTablePage1).appendTo(decoTableTbodyElement);
-        decoRows = decoRows.add($(decoTablePage2).appendTo(decoTableTbodyElement));
-
-        for (let i = 0; i < messageRows.length; i++) {
-            // need to adjust heights so rows match in each table
-            let outerHeight = $(messageRows[i]).outerHeight();
-            $(decoRows[i]).outerHeight(outerHeight);
-        }
+        messageViewerManager.goToPage(pageIndex);
 
         messageViewerManager.messageContainer.scrollTop(0);
 
