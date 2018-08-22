@@ -63,6 +63,12 @@ SOFTWARE.
     padding: 14px 15px;
 }
 
+#auto-advance-label {
+    font-weight: normal;
+    user-select: none;
+    cursor: pointer;
+}
+
 thead {
     border-top: none;
     border-bottom: none;

@@ -693,6 +693,10 @@ function initUI(dataset) {
         });
     });
 
+    $("#auto-advance-checkbox").change(function() {
+        messageViewerManager.autoAdvance = this.checked;
+    });
+
     $("#code-now-button").on("click", () => {
 
         // code and re-sort dataset
