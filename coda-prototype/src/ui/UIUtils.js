@@ -195,11 +195,11 @@ var UIUtils = (function() {
         },
 
         randomId: function(array) {
-            var newId = Math.floor(Math.random() * 100); // todo : better way of generating random
+            var newId = Math.floor(Math.random() * 1000); // todo : better way of generating random
 
             if (array !== undefined && array.length !== 0) {
                 while (array.indexOf(newId) !== -1) {
-                    newId = Math.floor(Math.random() * 100);
+                    newId = Math.floor(Math.random() * 1000);
                 }
             }
             return newId;
