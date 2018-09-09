@@ -398,6 +398,9 @@ class FileUtils {
     static loadCodeScheme(file: File): Promise<CodeScheme> {
         return new Promise<CodeScheme>((resolve, reject) => {
             FileUtils.readFileAsText(file).then(readResult => {
+                // Remove new line character at end of file, if it exists.
+                readResult = readResult.replace(/\n$/, "");
+
                 // Attempt to parse the scheme read from the file.
                 let parse = Papa.parse(readResult, {header: true});
                 if (parse.errors.length > 0) {
