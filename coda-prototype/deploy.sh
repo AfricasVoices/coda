@@ -15,7 +15,7 @@ function finish {
 trap finish EXIT
 
 # Ensure dependencies match those in the package-lock, and recompile typescript
-npm ci --silent
+# npm ci --silent
 tsc
 
 # If the current directory does not match the HEAD commit, emit a warning,
