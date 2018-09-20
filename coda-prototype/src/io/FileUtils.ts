@@ -45,7 +45,7 @@ class FileUtils {
 
         // For each 'event', add a row to the output for each scheme if schemes exist, or a single row if not.
         // TODO: Write this in a less-yucky way such that pushing many empty strings is not required
-        let dropped_data = 0
+        let coding_mode_overwritten = 0
         for (let event of dataset.eventsInSortOrder) {
             if (dataset.schemeCount === 0) {
                 let newEventData = [];
@@ -96,8 +96,9 @@ class FileUtils {
                                 newEventData.push("manual");
                                 break;
                             default:
-                                dropped_data = dropped_data + 1
-                                continue;
+                                newEventData.push("manual");    
+                                coding_mode_overwritten = coding_mode_overwritten + 1
+                                break;
                                 // throw "Unknown CodingMode: " + decoration.codingMode;
                         }
 
@@ -130,8 +131,8 @@ class FileUtils {
             });
         });
 
-        if (dropped_data > 0) {
-            console.warn("Data with unknown coding mode was dropped " + dropped_data)
+        if (coding_mode_overwritten > 0) {
+            console.warn("Data with unknown coding mode was forced manual, count: " + coding_mode_overwritten)
         }
 
     }
