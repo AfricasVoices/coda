@@ -4,7 +4,7 @@
   "description": "Coda is an interactive tool that helps you label short text datasets!",
   "main": "ui.js",
   "dependencies": {
-    "d3": "^4.13.0"
+    "d3": "^7.6.1"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
